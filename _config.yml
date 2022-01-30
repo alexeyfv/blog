@@ -1,0 +1,28 @@
+title: alexeyfv.blog
+description: Articles about .NET, C# and much more
+baseurl: "/blog"
+url: "https://alexeyfv.github.io/"
+
+theme: minima
+plugins:
+  - jekyll-feed
+
+author:
+  name: © 2022 Alexey Fedorov
+  
+minima:
+  skin: dark
+  social_links:
+    github: alexeyfv
+    linkedin: alexeyfv
+    telegram: alexeyfv  
+
+header_pages:
+  - _pages/tags.html
+  - _pages/projects.md
+  - _pages/setup.md
+  - _pages/about.md
+
+include: ['_pages']
+
+show_excerpts: true

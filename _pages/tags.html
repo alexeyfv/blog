@@ -1,0 +1,17 @@
+---
+permalink: /tags/
+layout: page
+title: Tags
+---
+
+<ul>
+    {% assign tags = site.posts | all_tags %}  
+    {% for tag in tags %}
+      <li>
+        <a class="tag-link"
+          href="{{site.baseurl}}/tag/{{tag['name']}}">
+          #{{ tag['name'] }} ({{ tag['count'] }})
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
