@@ -1,7 +1,7 @@
 title: alexeyfv.blog
 description: Articles about .NET, C# and much more
-baseurl: "/blog"
-url: "https://alexeyfv.github.io/"
+baseurl: ""
+url: "http://www.alexeyfv.blog/"
 
 theme: minima
 plugins:
