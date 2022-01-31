@@ -1,0 +1,319 @@
+---
+layout: post
+title: "Коварный enum в .NET"
+date: 2022-01-31
+tags: dotnet csharp wcf
+---
+
+Перечисления - это такой тип данных, который выглядит очень просто и его легко использовать. Вот только за этой простотой скрывается коварность. Почему? Потому что `enum` - это `ValueType`, а `ValueType` в C#, как известно, не наследуется. Необдуманное использование типов, которые нарушают принцип Open / Closed, может создать проблемы в вашем проекте в будущем.
+
+Предположим, вы - разработчик, которому нужно сделать клиент-серверное приложение. Клиент должен отправлять данные о продажах на сервер. В теле передаваемого объекта должна содержатся цена товара и валюта за которую товар был продан. Как это можно реализовать? Например, через `enum`:
+
+``` cs
+public enum CurrenciesEnum
+{
+    EUR,
+    USD
+}
+```
+
+Класс передаваемого объекта тогда будет выглядеть следующим образом:
+
+``` cs
+public class SaleDetails
+{
+    public double Price { get; set; }
+
+    public CurrenciesEnum Currency { get; set; }
+}
+```
+
+Очень просто и элегантно, правда? А теперь представьте, что нужно добавить в `CurrenciesEnum` ещё одну валюту - фунт стерлингов. Как это можно сделать? Есть только один способ - изменить само перечисление:
+
+``` cs
+public enum CurrenciesEnum
+{
+    EUR,
+    USD,
+    GBP
+}
+```
+
+Ничего сложного, но возможность вносить изменения в существующие типы есть далеко не всегда. Например, что, если перечисление находится в неком базовом проекте, у которого есть несколько кастомизаций под различных заказчиков? Изменение перечисления в базовом проекте может привести к так называемому [shotgun surgery](https://en.wikipedia.org/wiki/Shotgun_surgery). Или что, если при этом свойство типа `enum` является членом контракта WCF? С таким случаем я столкнулся на одном из рабочих проектов. Это и побудило меня написать статью.
+
+## Enum курильщика
+
+Я сделал упрощенный вариант приложения, которое передаёт суть проблемы. Рассмотрим [код](https://github.com/alexeyfv/EnumerationDemo) подробнее. Начнём с перечисления `CurrenciesEnum` и класса `SaleDetails`. Тут всё по старому, за исключением того, что добавились атрибуты. Они нам необходимы для работы WCF.
+
+``` cs
+[DataContract]
+public enum CurrenciesEnum
+{
+    [EnumMember]
+    EUR,
+    [EnumMember]
+    USD
+}
+```
+
+``` cs
+[DataContract]
+public class SaleDetails
+{
+    [DataMember]
+    public double Price { get; set; }
+
+    [DataMember]
+    public virtual CurrenciesEnum Currency { get; set; }
+}
+```
+
+Перечисление `CurrenciesEnum` и класс `SaleDetails` я разместил в проекте Shared. Предположим, что мы не можем вносить изменения в проект напрямую, т.к. он используется во многих других приложениях, поэтому мы вынуждены использовать наследование.
+
+<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/project-tree.png" alt="project-tree">
+
+Проект Server - это WCF-служба. Она состоит из запроса и его колбэка. В этом проекте имитируется получение данных от клиента и преобразование в XML. Чтобы проверить корректность преобразования данных, будем отправлять строку с XML обратно клиенту.
+
+``` cs
+public class Request : IRequest
+{
+    public void SendRequest(SaleDetails saleDetails)
+    {
+        var response = OperationContext.Current.GetCallbackChannel<IResponse>();
+
+        var responseString =
+            $"<SaleDetails>\n" +
+            $"\t<Price>{saleDetails.Price:N2}</Price>\n" +
+            $"\t<Currency>{saleDetails.Currency}</Currency>\n" +
+            $"</SaleDetails>";
+
+        response.SendResponse(responseString);
+    }
+
+}
+```
+
+Проект Client - это консольное приложение. В нём находится реализация колбэка и запрос к серверу. Полученный колбэк будет выведен в консоль.
+
+``` cs
+class Callback : IRequestCallback
+{
+    public void SendResponse(string response) => Console.WriteLine(response);
+}
+```
+
+``` cs
+internal class Program
+{
+    static void Main(string[] args)
+    {
+        var server = new RequestClient(new InstanceContext(new Callback()));
+        server.Open();
+        try
+        {
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 100,
+                Currency = CurrenciesEnum.USD
+            });
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 100,
+                Currency = CurrenciesEnum.EUR
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            server.Close();
+        }
+
+        Console.ReadLine();
+    }
+}
+```
+
+Результат работы вполне ожидаем. Клиент получил от сервера две XML-строки:
+
+<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/first-response.png" alt="first-response">
+
+Теперь попробуем кастомизировать `SaleDetails` в клиенте и добавить новый тип валюты, например вот так:
+
+``` cs
+[DataContract(Name = "CurrenciesEnum")]
+enum CustomCurrenciesEnum
+{
+    [EnumMember]
+    EUR = CurrenciesEnum.EUR,
+    [EnumMember]
+    USD = CurrenciesEnum.USD,
+    [EnumMember]
+    GBP = 2
+}
+```
+
+``` cs
+[DataContract]
+class CustomSaleDetails : SaleDetails
+{
+    [DataMember]
+    public new CustomCurrenciesEnum Currency { get; set; }
+}
+```
+
+И отправим 2 запроса: один с экземпляторм `SaleDetails`, а второй с `CustomSaleDetails`:
+
+``` cs
+server.SendRequest(new SaleDetails()
+{
+    Price = 100,
+    Currency = CurrenciesEnum.USD
+});
+server.SendRequest(new CustomSaleDetails()
+{
+    Price = 100,
+    Currency = CustomCurrenciesEnum.GBP
+});
+```
+
+Конечно это не сработает. И хоть приложение скомпилируется без ошибок, но при выполнении, сервер вернет ответ только на первый запрос. На второй запрос ответа не последует и наш клиент выбросит исключение из-за таймаута.
+
+Тот же результат будет, если попробовать явно преобразовать значение `CustomCurrenciesEnum.GBP` к типу `CurrenciesEnum`
+
+``` cs
+server.SendRequest(new SaleDetails()
+{
+    Price = 100,
+    Currency = (CurrenciesEnum) CustomCurrenciesEnum.GBP
+});
+```
+
+Причина ошибки проста - контракты данных клиента и сервера не [эквивалентны](https://docs.microsoft.com/en-us/dotnet/framework/wcf/feature-details/data-contract-equivalence). Как решить такую проблему, если мы не можем изменить контракт в проекте Shared? В случае с рабочим проектом пришлось делать костыль. В перечислении было много неиспользуемых значений, одно из которых я условно принял за необходимое (т.е. если бы значение USD не использовалось, то я бы условно принял, что это GBP и на стороне клиента сам преобразовывал USD в строку GBP). Если вы столкнулись с такой проблемой и у вас нет неиспользуемых значений перечисления, то у вас проблемы. Этого можно было бы избежать, если бы использовались `enum classes`.
+
+## Enum здорового человека
+
+Вместо классического `enum` можно использовать `enum classes`. Да, этой теме уже сто лет в обед, но судя по всему не все о ней знают. За основу я взял реализацию из [статьи MSDN](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/enumeration-classes-over-enum-types) и оставил только то, что необходимо для демонстрации.
+
+``` cs
+[DataContract]
+public abstract class Enumeration
+{
+    [DataMember]
+    public int Value { get; set; }
+
+    [DataMember]
+    public string DisplayName { get; set; }
+
+    public override string ToString() => DisplayName;
+}
+```
+
+Перепишем наше перечисление с использованием нового класса
+
+``` cs
+[DataContract]
+public class CurrenciesClass : Enumeration
+{
+    [DataMember]
+    public static readonly CurrenciesClass EUR = new CurrenciesClass
+    {
+        Value = 0,
+        DisplayName = "EUR"
+    };
+
+    [DataMember]
+    public static readonly CurrenciesClass USD = new CurrenciesClass
+    {
+        Value = 1,
+        DisplayName = "USD"
+    };
+}
+```
+
+и примением его в классе `SaleDetails`.
+
+``` cs
+[DataContract]
+public class SaleDetails
+{
+    [DataMember]
+    public double Price { get; set; }
+
+    [DataMember]
+    public CurrenciesClass Currency { get; set; }
+}
+```
+
+Обновим запросы в клиенте, запустим и посмотрим что получилось.
+
+``` cs
+internal class Program
+{
+    static void Main(string[] args)
+    {
+        var server = new RequestClient(new InstanceContext(new Callback()   ));
+        server.Open();
+        try
+        {
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 100,
+                Currency = CurrenciesClass.EUR
+            });
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 200,
+                Currency = CurrenciesClass.USD
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            server.Close();
+        }
+
+        Console.ReadLine();
+    }
+}
+```
+
+<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/second-response.png" alt="second-response">
+
+Как мы видим, всё работает отлично. Всё отлично и с возможностью расширения функционала класса `CurrenciesClass`? Создаём класс наследник в клиенте и добавляем новое статическое поле:
+
+``` cs
+[DataContract]
+class CustomCurrenciesClass : CurrenciesClass
+{
+    [DataMember]
+    public static readonly CurrenciesClass GBR = new CurrenciesClass()
+    {
+        Value = 2,
+        DisplayName = "GBR"
+    };
+}
+```
+
+добавляем в тело метода `Main` ещё один запрос
+
+``` cs
+server.SendRequest(new SaleDetails()
+{
+    Price = 300,
+    Currency = CustomCurrenciesClass.GBR
+});
+```
+
+Вуаля, всё работает
+
+<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/third-response.png" alt="third-response">
+
+## Резюме
+
+Как мы видим, использование `enum classes` значительно упрощает кастомизацию уже существующих перечислений. Да, придётся писать чуть больше кода, но преимущества такого подхода очевидны. Конечно, не нужно использовать `enum classes` везде вместо классического `enum`. Если вы на 100% уверены, что ваше перечисление не будет меняться в будущем или если вы можете вносить изменения в коде на любом слое вашего приложения, то можно использовать `enum`. Просто в некоторых случаях, как например, описанный мною, использование `enum classes` - это единственное решение, которое бы не доставило вам проблем в будущем.
