@@ -20,7 +20,7 @@ minima:
 header_pages:
   - _pages/tags.html
   - _pages/projects.md
-  - _pages/setup.md
+  # - _pages/setup.md
   - _pages/about.md
 
 include: ['_pages']
