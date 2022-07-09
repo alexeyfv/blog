@@ -2,7 +2,7 @@
 layout: post
 title: "Внедрение зависимостей - это передача аргумента"
 date: 2022-07-06
-tags: dotnet fsharp csharp functionalprogramming dependencyinjection
+tags: dotnet fsharp csharp functional_programming dependency_injection
 ---
 
 Это перевод первой статьи из серии ["От внедрения зависимостей к отказу от зависимостей"](https://blog.ploeh.dk/2017/01/27/from-dependency-injection-to-dependency-rejection/).

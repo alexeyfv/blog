@@ -2,7 +2,7 @@
 layout: post
 title: "Частичная реализация — это внедрение зависимостей"
 date: 2022-07-06
-tags: dotnet fsharp csharp functionalprogramming dependencyinjection
+tags: dotnet fsharp csharp haskell functional_programming dependency_injection
 ---
 
 Это перевод второй статьи из серии ["От внедрения зависимостей к отказу от зависимостей"](https://blog.ploeh.dk/2017/01/27/from-dependency-injection-to-dependency-rejection/).
