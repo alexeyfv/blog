@@ -24,8 +24,8 @@ public IHttpActionResult Post(ReservationRequestDto dto)
  
     var r = mapper.Map(dto);
     // Maître D' (метрдотель) - лицо, 
-  	// координирующее работу обслуживания посетителей ресторана 
-  	// или постояльцев отеля.
+    // координирующее работу обслуживания посетителей ресторана 
+    // или постояльцев отеля.
     var id = maîtreD.TryAccept(r);
     if (id == null)
         return this.StatusCode(HttpStatusCode.Forbidden);
