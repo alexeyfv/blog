@@ -2,7 +2,8 @@
 layout: post
 title: "Внедрение зависимостей - это передача аргумента"
 date: 2022-07-06
-tags: dotnet fsharp csharp functional_programming dependency_injection
+tags: dotnet fsharp csharp functional_programming dependency_injection software_design
+excerpt_separator: <!--more-->
 ---
 
 *Действительно ли внедрение зависимостей — это просто передача аргумента?*
@@ -12,6 +13,8 @@ tags: dotnet fsharp csharp functional_programming dependency_injection
 Рунар Бьярнасон в выступлении на Northeast Scala Symposium в 2012 году [вскользь подметил](https://t.co/oD1oQYZwbz), что внедрение зависимостей — это «на самом деле претенциозный способ сказать «принять аргумент». Учитывая, что я написал [книгу о внедрении зависимостей](http://amzn.to/12p90MG) объёмом 500+ страниц, можно было бы ожидать от меня возражений на этот счёт. Тем не менее в этом есть доля правды, но не всё так просто.
 
 В этой статье, я покажу несколько простых примеров и объясню почему с одной стороны Рунар Бьярнасон прав, но с другой, почему этот вопрос несколько сложнее.
+
+<!--more-->
 
 ## Пример с бронированием столика в ресторане
 

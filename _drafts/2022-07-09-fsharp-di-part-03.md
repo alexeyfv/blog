@@ -2,12 +2,15 @@
 layout: post
 title: "Отказ от зависимостей"
 date: 2022-07-09
-tags: dotnet fsharp csharp functional_programming dependency_injection
+tags: dotnet fsharp csharp haskell functional_programming dependency_injection software_design
+excerpt_separator: <!--more-->
 ---
 
 *В функциональном программировании необходимо отказаться от понятия «зависимости». Вместо этого приложения должны состоять из чистых и нечистых функций.*
 
 Это перевод третьей статьи из серии ["От внедрения зависимостей к отказу от зависимостей"](https://blog.ploeh.dk/2017/01/27/from-dependency-injection-to-dependency-rejection/). В предыдущих статьях мы выяснили, что внедрение зависимостей не может быть функциональным, потому что из-за этого функции перестают быть чистыми. В этой статье я покажу, что можно делать вместо этого.
+
+<!--more-->
 
 ## Косвенный ввод и вывод
 
