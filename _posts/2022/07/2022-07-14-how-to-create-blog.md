@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Как создать блог на GitHub"
-date: 2022-07-15
+date: 2022-07-14
 tags: blogging github jekyll markdown html
 ---
 
