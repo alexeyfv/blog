@@ -76,7 +76,7 @@ description: Articles about .NET, C# and much more
 # Директория из которой будет загружаться блог. Можно оставить поле пустым.  
 baseurl: ""
 # Полный URL сайта
-url: "http://www.alexeyfv.blog/"
+url: "http://www.alexeyfv.xyz/"
 
 # Тема блога.
 theme: minima

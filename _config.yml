@@ -1,14 +1,14 @@
 title: alexeyfv.blog
 description: Articles about .NET, C# and much more
 baseurl: ""
-url: "http://www.alexeyfv.blog/"
+url: "http://www.alexeyfv.xyz/"
 
 theme: minima
 plugins:
   - jekyll-feed
 
 author:
-  name: © 2022 Alexey Fedorov
+  name: © 2023 Alexey Fedorov
   
 minima:
   skin: dark
