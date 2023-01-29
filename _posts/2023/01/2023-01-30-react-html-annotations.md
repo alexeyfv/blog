@@ -5,7 +5,7 @@ date: 2023-01-27
 tags: typescript react
 ---
 
-I changed my job last november and became Full Stack Developer in a new team. Now I have lots of work related with frontend, espesially with `React` and `TypeScript`. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations.
+I changed my job last November and became a Full Stack Developer in a new team. Now I have lots of work related with frontend, especially with `React` and `TypeScript`. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations.
 
 ## What is required?
 
@@ -13,7 +13,7 @@ Let's imagine that we have the following text content:
 
 <img src="{{site.baseurl}}/assets/2023/01/2023-01-30-react-html-annotations/image01.png" alt="content">
 
-We need to implement functionality that allows user to add text annotations on the selected part of content. For example such functionality in Google Docs:
+We need to implement functionality that allows the user to add text annotations on the selected part of content. For example, such functionality in Google Docs:
 
 <img src="{{site.baseurl}}/assets/2023/01/2023-01-30-react-html-annotations/image02.png" alt="content">
 
@@ -21,7 +21,7 @@ To do that we should understand how to get information about selected text, how 
 
 ## Selection and Ranges
 
-DOM standart [describes](https://dom.spec.whatwg.org/#ranges) interface named `Range` which represents part of the content between two boundary points. Using `Range` we can easily get the information about selection. To do that just call `getSelection` and then `getRangeAt`:
+DOM standard [describes](https://dom.spec.whatwg.org/#ranges) an interface named `Range`, which represents part of the content between two boundary points. Using `Range`, we can easily get the information about selection. To do that, just call `getSelection` and then `getRangeAt`:
 
 ``` typescript
 const s = window.getSelection();
@@ -66,7 +66,7 @@ The most important fields are `startContainer`, `startOffset`, `endContainer`, `
 </div>
 ```
 
-For the considered example selection range will be:
+For the considered example, selection range will be:
 
 | Field            | Value                     |
 | ---------------- | ------------------------- |
@@ -75,7 +75,7 @@ For the considered example selection range will be:
 | `endContainer`   | `#text` (child of `<p>`)  |
 | `endOffset`      | `74`                      |
 
-Now let's look at `startContainer` and `endContainer` in a different way. The nodes that stored by these fields can be determined by their indexes in the child arrays of the DOM tree. It means, that we can determine the addresses of the start and end nodes relative to the `root` node by recuresively traversing the DOM tree. Thus, the addresses will be `[0, 0, 0, 0]`, `[1, 1, 0, 0]` for `startContainer` and `endContainer` respectively:
+Now let's look at `startContainer` and `endContainer` differently. The nodes that stored by these fields can be determined by their indexes in the child arrays of the DOM tree. It means, that we can determine the addresses of the start and end nodes relative to the `root` node by recursively traversing the DOM tree. Thus, the addresses will be `[0, 0, 0, 0]`, `[1, 1, 0, 0]` for `startContainer` and `endContainer` respectively:
 
 ``` text
 [0] <div id="root">
@@ -112,7 +112,7 @@ Functions for serializing `Range` to `SelectionData` and vice versa you can find
 
 ## Content highlighting
 
-Now we know how to save and restore information about selection, but how we can highlight the selected content? Function `getClientRects` will help us with that. This function returns list of `DOMRect` objects.
+Now we know how to save and restore information about selection, but how we can highlight the selected content? Function `getClientRects` will help us with that. This function returns a list of `DOMRect` objects.
 
 ``` typescript
 interface Range extends AbstractRange {
@@ -122,7 +122,7 @@ interface Range extends AbstractRange {
 }
 ```
 
-In our case `DOMRect` describes the size and position of the selected area of content.
+In our case, `DOMRect` describes the size and position of the selected area of content.
 
 ``` typescript
 interface DOMRectReadOnly {
