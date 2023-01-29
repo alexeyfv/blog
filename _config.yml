@@ -8,7 +8,7 @@ plugins:
   - jekyll-feed
 
 author:
-  name: © 2022 Alexey Fedorov
+  name: © 2023 Alexey Fedorov
   
 minima:
   skin: dark
