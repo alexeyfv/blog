@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "How to create text annotations using React and TypeScript "
-date: 2023-01-27
+date: 2023-01-31
 tags: typescript react
 ---
 
@@ -11,11 +11,11 @@ I changed my job last November and became a Full Stack Developer in a new team. 
 
 Let's imagine that we have the following text content:
 
-<img src="{{site.baseurl}}/assets/2023/01/2023-01-30-react-html-annotations/image01.png" alt="content">
+<img src="{{site.baseurl}}/assets/2023/01/2023-01-31-react-html-annotations/image01.png" alt="content">
 
 We need to implement functionality that allows the user to add text annotations on the selected part of content. For example, such functionality in Google Docs:
 
-<img src="{{site.baseurl}}/assets/2023/01/2023-01-30-react-html-annotations/image02.png" alt="content">
+<img src="{{site.baseurl}}/assets/2023/01/2023-01-31-react-html-annotations/image02.png" alt="content">
 
 To do that we should understand how to get information about selected text, how to save and restore it and how to highlight selected part of the text if the user adds annotation to it.
 
