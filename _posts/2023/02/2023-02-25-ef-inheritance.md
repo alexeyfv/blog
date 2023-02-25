@@ -5,7 +5,7 @@ date: 2023-02-25
 tags: csharp efcore sqlserver
 ---
 
-Entity Framework (EF) is a popular object-relational mapping framework used to interact with databases in .NET applications. EF offers different mapping strategies, each of which affects on the database schema and how EF interacts with hierarchy of .NET types. In this article, we will examine how these mapping strategies affects performance in SQL Server.
+Entity Framework (EF) is a popular object-relational mapping framework used to interact with databases in .NET applications. EF offers different mapping strategies, each of which affects the database schema and how EF interacts with the hierarchy of .NET types. In this article, we will examine how these mapping strategies affects performance in SQL Server.
 
 ## Mapping strategies in Entity Framework
 
@@ -15,7 +15,7 @@ The official Microsoft documentation [describes](https://learn.microsoft.com/en-
 - Table-per-class (TPC);
 - Table-per-type (TPT).
 
-In my practice, I also met another mapping strategy that I called `TPH with JSON`. The main idea of it is to convert properties from the derived classes to JSON payload and add discriminator column like in default `TPH` strategy.
+In my experience, I have also encountered another mapping strategy that I refer to as `TPH with JSON`. The main idea behind this strategy is to convert properties from the derived classes to a JSON payload and add a discriminator column, similar to the default `TPH` strategy.
 
 Let's have a look at the hierarchy below:
 
@@ -47,14 +47,14 @@ The database schemas for this hierarchy will be as follows:
 | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | <img src="{{site.baseurl}}/assets/2023/02/2023-02-25-ef-inheritance/diagram-tph.png" alt="content"> | <img src="{{site.baseurl}}/assets/2023/02/2023-02-25-ef-inheritance/diagram-tpc.png" alt="content"> | <img src="{{site.baseurl}}/assets/2023/02/2023-02-25-ef-inheritance/diagram-tpt.png" alt="content"> | <img src="{{site.baseurl}}/assets/2023/02/2023-02-25-ef-inheritance/diagram-tphjson.png" alt="content"> |
 
-As can be seen:
+As shown below:
 
 - `TPH` table contains all the properties from all the types.
 - `TPC` child tables are non related to the parent `Roots` table.
 - `TPT` child tables contains only type specific columns and related to the parent `Roots` table.
 - `TPH with JSON` looks very similar to plain `TPH`, except all the columns for child properties replaced by one JSON column `Payload`. Column `PayloadType` corresponds to `Discriminator` column in `TPH`.
 
-Now let's find out how all these mapping strategies affects on performance in SQL Server.
+Now let's find out how all these mapping strategies affect on performance in SQL Server.
 
 ## Benchmark
 
@@ -97,7 +97,7 @@ There are 2 benchmarks in the projects - for [`INSERT`](https://github.com/alexe
 
 ### Results
 
-Here are the benchmark [results](https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/BenchmarkDotNet.Artifacts). As we can see from the figures below, `TPT` has the worst performance for `SELECT` as well as `INSERT`. This strategy about 40-60% slower than `TPH` which is default for EF. `TPC` a slightly better in selecting data and slightly worse in inserting data comparing to `TPH`. The most interesting fact is that `TPH with JSON` performance better than `TPH` performance.
+Here are the benchmark [results](https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/BenchmarkDotNet.Artifacts). As we can see from the figures below, `TPT` has the worst performance for `SELECT` as well as `INSERT`. This strategy is about 40-60% slower than `TPH` which is default for EF. `TPC` performs slightly better in selecting data, but slightly worse in inserting data compared to `TPH`. The most interesting fact is that `TPH with JSON` performance better than `TPH` performance.
 
 <div class="glide">
   <div class="glide__track" data-glide-el="track">
@@ -120,9 +120,9 @@ Here are the benchmark [results](https://github.com/alexeyfv/ef-inheritance/tree
 
 ## `TPH` vs `TPH with JSON`
 
-I was wondered that `TPH with JSON` shows better performance that `TPH`. To determine the reason of this I created another benchmark. This benchmark [has](https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/Contexts) instances of `DbContext` with entities that have 3, 5, 8, 13 and 21 properties for each type of mapping strategy (10 in total).
+I was curious why `TPH with JSON` shows better performance that `TPH`, so I another benchmark. This benchmark [uses](https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/Contexts) instances of `DbContext` with entities that have 3, 5, 8, 13 and 21 properties for each type of mapping strategy (10 in total).
 
-As we can see from figure 3 and 4, `TPH with JSON` strategy has almost the same inserting time, when `TPH` execution time increases with the number of properties as well as the number of entities.
+As we can see from figure 3 and 4, `TPH with JSON` strategy has almost the same insertion time, while the `TPH` execution time increases with both the number of properties and the number of entities.
 
 <div class="glide">
   <div class="glide__track" data-glide-el="track">
