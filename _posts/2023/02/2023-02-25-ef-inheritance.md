@@ -120,7 +120,7 @@ Here are the benchmark [results](https://github.com/alexeyfv/ef-inheritance/tree
 
 ## `TPH` vs `TPH with JSON`
 
-I was curious why `TPH with JSON` shows better performance that `TPH`, so I another benchmark. This benchmark [uses](https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/Contexts) instances of `DbContext` with entities that have 3, 5, 8, 13 and 21 properties for each type of mapping strategy (10 in total).
+I was curious why `TPH with JSON` shows better performance that `TPH`, so I created another benchmark. This benchmark [uses](https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/Contexts) instances of `DbContext` with entities that have 3, 5, 8, 13 and 21 properties for each type of mapping strategy (10 in total).
 
 As we can see from figure 3 and 4, `TPH with JSON` strategy has almost the same insertion time, while the `TPH` execution time increases with both the number of properties and the number of entities.
 
