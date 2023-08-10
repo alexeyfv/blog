@@ -5,7 +5,7 @@ date: 2023-08-10
 tags: csharp
 ---
 
-Lately, I've been writing a lot of services that use [top-level statements](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/top-level-statements). The code with this kind of syntax sugar simplifies the `Main` method and improves readability. However, on the other hand, it makes it more difficult to create integration tests for the services. There isn't simply way to call you `Main` method and pass the neccessary arguments.
+Lately, I've been writing a lot of services that use [top-level statements](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/top-level-statements). The code with this kind of syntax sugar simplifies the `Main` method and improves readability. However, on the other hand, it makes it more difficult to create integration tests for the services. There isn't simply way to call the `Main` method and pass the necessary arguments.
 
 Since Microsoft introduced top-level statements in C# 9, you no longer need to write a weird Java-like `public static void Main(string[] args)` method. So the code
 
