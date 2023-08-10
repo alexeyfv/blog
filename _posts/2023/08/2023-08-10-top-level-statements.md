@@ -1,0 +1,64 @@
+---
+layout: post
+title: "How to call Program.Main method if you're using top-level statements"
+date: 2023-08-10
+tags: csharp
+---
+
+Lately, I've been writing a lot of services that use [top-level statements](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/top-level-statements). The code with this kind of syntax sugar simplifies the `Main` method and improves readability. However, on the other hand, it makes it more difficult to create integration tests for the services. There isn't simply way to call you `Main` method and pass the neccessary arguments.
+
+Since Microsoft introduced top-level statements in C# 9, you no longer need to write a weird Java-like `public static void Main(string[] args)` method. So the code
+
+``` cs
+using System;
+
+namespace Application
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            Console.WriteLine($"args: {string.Join(",", args)}");
+        }
+    }
+}
+```
+
+can be written just in one line:
+
+``` cs
+System.Console.WriteLine($"args: {string.Join(",", args)}");
+```
+
+But what if we want to call this code and pass some arguments? By default, the C# compiler will convert the code above to the [following code](https://sharplab.io/#v2:D4AQTAjAsAULIQJwAoAkAiAhgJwOYGcAuAAgG8EAGAOgCkB7ASwDtl0Aad4nAgSgF90PANywgA==):
+
+``` cs
+internal class Program
+{
+    private static void <Main>$(string[] args)
+    {
+        Console.WriteLine(string.Concat("args: ", string.Join(",", args)));
+    }
+}
+```
+
+The class is internal, and the method is private. You cannot call the `<Main>` method directly, especially from another assembly. How can you overcome this?
+
+First of all, you should declare the `Program` class as `public partial`. This makes the `Program` class visible in external code. If you can’t change the code, you can load the type from the assembly using [Assembly.GetType](https://learn.microsoft.com/en-us/dotnet/api/system.reflection.assembly.gettype).
+
+``` cs
+System.Console.WriteLine($"args: {string.Join(",", args)}");
+
+public partial class Program { }
+```
+
+Now that the `Program` class has [become visible](https://sharplab.io/#v2:D4AQTAjAsAULIQJwAoAkAiAhgJwOYGcAuAAgG8EAGAOgCkB7ASwDtl0Aad4nAgSgF90PANyx4AZmIAHHABcGmADbFwyiAHYyxPrCA===) from other assemblies, the `<Main>` method is still private. Using reflection, we can retrieve the `<Main>` method from the `DeclaredMethods` collection and call it using `Invoke`:
+
+``` cs
+var typeInfo = typeof(Program) as TypeInfo ?? throw new InvalidOperationException();
+var main = typeInfo.DeclaredMethods.First(m => m.Name == "<Main>");
+var args = new[] { "arg1", "arg2" };
+main.Invoke(null, new object[] { args });
+```
+
+That’s it. Reflection provides a powerful mechanism which helps us with writing tests for programs that use top-level statements.
