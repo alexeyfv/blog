@@ -2,7 +2,7 @@
 layout: post
 title: "Performance issues when using a method as a parameter in C#. Are they real?"
 date: 2023-10-18
-tags: csharp
+tags: csharp benchmark
 ---
 
 There is an [article](https://habr.com/ru/companies/skbkontur/articles/721822/) on Habr about performance issues when passing a method as a parameter in C#. The author showed that passing an instance method as a parameter inside `for` loops may degrade performance and increase memory consumption due to unnecessary object allocations in the heap. In this short article, I want to repeat the original benchmark and compare how things have changed since the .NET 7 release.
