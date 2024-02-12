@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>alexeyfv | Articles about .NET, C# and much more</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="alexeyfv" />
+<meta name="author" content="© 2023 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Articles about .NET, C# and much more" />
+<meta property="og:description" content="Articles about .NET, C# and much more" />
+<link rel="canonical" href="http://www.alexeyfv.xyz//" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="alexeyfv" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2023 Alexey Fedorov"},"description":"Articles about .NET, C# and much more","@type":"WebSite","headline":"alexeyfv","url":"http://www.alexeyfv.xyz//","name":"alexeyfv","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/projects/">Projects</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <div class="home">
+ <ul class="post-list"><li>
+      <span class="post-meta">Feb 12, 2024</span>
+      <h3>
+        <a class="post-link" href="/2024/02/12/testcontainers.html">
+          Simplify Integration Testing with Testcontainers
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/testing">#testing</a>
+         
+      </h4><p>Integration tests play an important role in software development. They help us see how the system works with volatile dependencies, such as databases. To run the integration test with the database, we need somewhere to create this database. It can be deployed on a virtual machine or even on a local host. However, it’s best to use <a href="https://testcontainers.com/">Testcontainers framework</a>.</p>
+</li><li>
+      <span class="post-meta">Jan 15, 2024</span>
+      <h3>
+        <a class="post-link" href="/2024/01/15/class-vs-struct.html">
+          The 16-Byte Rule: Unraveling the Performance Mystery of C# Structures
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/benchmark">#benchmark</a>
+         
+      </h4><p>Many C# developers are familiar with the following statements. By default, when passing to or returning from a method, an instance of a value type is copied, while an instance of a reference type is passed by reference. This has led to a belief that utilizing structures may degrade the overall app performance, especially if the structure has a size greater than 16 bytes. The discussion about this is <a href="https://www.reddit.com/r/csharp/comments/yhsjjf/only_use_structs_if_they_are_under_16_bytes_but/">still ongoing</a>. In this article, we will try to find the truth.</p>
+</li><li>
+      <span class="post-meta">Jan 8, 2024</span>
+      <h3>
+        <a class="post-link" href="/2024/01/08/whats-wrong-with-options-pattern.html">
+          What&#39;s wrong with the Options pattern in C#?
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+         
+      </h4><p>In .NET, there is a so-called <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/options">Options</a> pattern that simplifies the way we handle application configuration. To use it, developers just need to follow three steps. First, add the necessary <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers">configuration provider</a>. Second, set up Service Provider using <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.optionsconfigurationservicecollectionextensions.configure"><code class="language-plaintext highlighter-rouge">Configure</code></a> extension method. Third, inject either <code class="language-plaintext highlighter-rouge">IOptions&lt;T&gt;</code>, or <code class="language-plaintext highlighter-rouge">IOptionsMonitor&lt;T&gt;</code>, or <code class="language-plaintext highlighter-rouge">IOptionsSnapshot&lt;T&gt;</code>  into the target class through constructor injecting.</p>
+</li><li>
+      <span class="post-meta">Dec 2, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/12/02/readonlyspan-vs-string.html">
+          What is ReadOnlySpan&lt;T&gt; in C# and how fast is it comparing to strings?
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/benchmark">#benchmark</a>
+         
+      </h4><p>I already wrote an article about the fastest way of extracting substrings in C#. Now I want to investigate Span structures more. Recently, Microsoft released the .NET 8 platform which has several new <a href="https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions?view=net-8.0">extension methods</a> for <code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code>. So I want to compare the performance of <code class="language-plaintext highlighter-rouge">MemoryExtensions</code> methods with counterparts in string class.</p>
+</li><li>
+      <span class="post-meta">Oct 28, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/10/28/substring.html">
+          Fastest way to extract a substring in C#
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/benchmark">#benchmark</a>
+         
+      </h4><p>Today, we’ll dive back into a microbenchmarking and a concise article about performance in C#. Our focus will be on strings and the most effective way for extracting a substring from the original string.</p>
+</li><li>
+      <span class="post-meta">Oct 18, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/10/18/method-as-a-parameter.html">
+          Performance issues when using a method as a parameter in C#. Are they real?
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/benchmark">#benchmark</a>
+         
+      </h4><p>There is an <a href="https://habr.com/ru/companies/skbkontur/articles/721822/">article</a> on Habr about performance issues when passing a method as a parameter in C#. The author showed that passing an instance method as a parameter inside <code class="language-plaintext highlighter-rouge">for</code> loops may degrade performance and increase memory consumption due to unnecessary object allocations in the heap. In this short article, I want to repeat the original benchmark and compare how things have changed since the .NET 7 release.</p>
+</li><li>
+      <span class="post-meta">Aug 10, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/08/10/top-level-statements.html">
+          How to call Program.Main method if you&#39;re using top-level statements
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+         
+      </h4><p>Lately, I’ve been writing a lot of services that use <a href="https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/top-level-statements">top-level statements</a>. The code with this kind of syntax sugar simplifies the <code class="language-plaintext highlighter-rouge">Main</code> method and improves readability. However, on the other hand, it makes it more difficult to create integration tests for the services. There isn’t simply way to call the <code class="language-plaintext highlighter-rouge">Main</code> method and pass the necessary arguments.</p>
+</li><li>
+      <span class="post-meta">Jul 30, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/07/30/secure-app-with-keycloak.html">
+          Create secure React SPA + ASP.NET Web API with Keycloak OAuth2
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/aspnet">#aspnet</a>
+        
+        <a href="/tag/typescript">#typescript</a>
+        
+        <a href="/tag/react">#react</a>
+        
+        <a href="/tag/docker">#docker</a>
+        
+        <a href="/tag/oauth2">#oauth2</a>
+        
+        <a href="/tag/keycloak">#keycloak</a>
+         
+      </h4><p>This is a step-by-step guide how to create a full stack secure application with OAuth2 authentication.</p>
+</li><li>
+      <span class="post-meta">Jun 5, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/06/05/understanding-ddd-01.html">
+          Understanding Domain-Driven Design. From Anemic Domain Model to Rich Domain Model.
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/ddd">#ddd</a>
+         
+      </h4><p>I recently read the book <a href="https://www.**oreilly**.com/library/view/learning-domain-driven-design/9781098100124/">Learning Domain-Driven Design</a> on the advice of my mate, who is more experienced in development than I am. I’ve already written a small review about this book in <a href="https://t.me/full_stack_dev_diaries/9">my Telegram channel</a> (it’s in Russian). Now, I’m going to write a series of articles about how Domain-Driven Design (DDD) can improve your code and software development process. This is the first article in this series.</p>
+</li><li>
+      <span class="post-meta">Feb 25, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/02/25/ef-inheritance.html">
+          Impact of EF mapping strategy on SQL queries performance
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/efcore">#efcore</a>
+        
+        <a href="/tag/sqlserver">#sqlserver</a>
+         
+      </h4><p>Entity Framework (EF) is a popular object-relational mapping framework used to interact with databases in .NET applications. EF offers different mapping strategies, each of which affects the database schema and how EF interacts with the hierarchy of .NET types. In this article, we will examine how these mapping strategies affects performance in SQL Server.</p>
+</li><li>
+      <span class="post-meta">Jan 31, 2023</span>
+      <h3>
+        <a class="post-link" href="/2023/01/31/react-html-annotations.html">
+          How to create text annotations using React and TypeScript 
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/typescript">#typescript</a>
+        
+        <a href="/tag/react">#react</a>
+         
+      </h4><p>I changed my job last November and became a Full Stack Developer in a new team. Now I have lots of work related with frontend, especially with <code class="language-plaintext highlighter-rouge">React</code> and <code class="language-plaintext highlighter-rouge">TypeScript</code>. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations.</p>
+</li><li>
+      <span class="post-meta">Jul 14, 2022</span>
+      <h3>
+        <a class="post-link" href="/2022/07/14/how-to-create-blog.html">
+          Как создать блог на GitHub
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/blogging">#blogging</a>
+        
+        <a href="/tag/github">#github</a>
+        
+        <a href="/tag/jekyll">#jekyll</a>
+        
+        <a href="/tag/markdown">#markdown</a>
+        
+        <a href="/tag/html">#html</a>
+         
+      </h4><p>Многие программисты имеют свой блог, в которых пишут свои заметки. Очень часто блог реализован на Jekyll, Hugo или Gatsby.js, а для хранения, деплоя и хостинга используется GitHub и GitLab. В этом гайде я расскажу, как реализован мой блог на Jekyll и GitHub.</p>
+</li><li>
+      <span class="post-meta">May 8, 2022</span>
+      <h3>
+        <a class="post-link" href="/2022/05/08/fsharp-02.html">
+          Функциональное программирование на F# (часть 2)
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/dotnet">#dotnet</a>
+        
+        <a href="/tag/fsharp">#fsharp</a>
+        
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/functional_programming">#functional_programming</a>
+         
+      </h4><p>В прошлой статье мы написали модуль для расчёта ряда Фибоначчи практически не углубляясь в детали того, что из себя представляет F# и чем он отличается от кода на C#. В этой статье мы рассмотрим основные принципы функционального программирования, некоторые базовые языковые конструкции F# и исследуем скомпилированный код.</p>
+</li><li>
+      <span class="post-meta">May 1, 2022</span>
+      <h3>
+        <a class="post-link" href="/2022/05/01/fsharp-01.html">
+          Функциональное программирование на F# (часть 1)
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/dotnet">#dotnet</a>
+        
+        <a href="/tag/fsharp">#fsharp</a>
+        
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/functional_programming">#functional_programming</a>
+         
+      </h4><p>Недавно прочитал книгу <sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote" rel="footnote">1</a></sup> “Unit Testing Principles, Practices, and Patterns” Владимира Хорикова. Книга классная, фундаментальная. В плане полезности для .NET backend разработчиков, по-моему, стоит на уровне CLR via C#, Dependency Injection in .NET, Patterns of Enterprise Application Architecture и т.д. Помимо вопросов тестирования, она также вкратце объясняет вопросы функциональной архитектуры и то, как такая архитектура положительно влияет на возможность тестирования кода. Ранее мне не приходилось сталкиваться с функциональными языками программирования, но после прочтения книги очень захотелось поработать с ними. Поскольку я C# разработчик, то проще всего было начать изучать функциональное программирование с другой разработкой Microsoft - языка F#. В этой статье мы попробуем реализовать один и тот же алгоритм в функциональном стиле на C# и F# и сравнить результат.</p>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:1" role="doc-endnote">
+      <p><a href="https://www.manning.com/books/unit-testing">“Unit Testing Principles, Practices, and Patterns”</a> <a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+</li><li>
+      <span class="post-meta">Jan 31, 2022</span>
+      <h3>
+        <a class="post-link" href="/2022/01/31/insidious-enum-in-dotnet.html">
+          Коварный enum в .NET
+        </a>
+      </h3>
+      <h4>
+         
+        <a href="/tag/dotnet">#dotnet</a>
+        
+        <a href="/tag/csharp">#csharp</a>
+        
+        <a href="/tag/wcf">#wcf</a>
+         
+      </h4><p>Перечисления - это такой тип данных, который выглядит очень просто и его легко использовать. Вот только за этой простотой скрывается коварность. Почему? Потому что <code class="language-plaintext highlighter-rouge">enum</code> - это <code class="language-plaintext highlighter-rouge">ValueType</code>, а <code class="language-plaintext highlighter-rouge">ValueType</code> в C#, как известно, не наследуется. Необдуманное использование типов, которые нарушают принцип Open / Closed, может создать проблемы в вашем проекте в будущем.</p>
+</li></ul>
+
+  </div>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2023 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>
