@@ -2,7 +2,7 @@
 layout: post
 title: "Заглядываем под капот FrozenDictionary: насколько он быстрее Dictionary и почему"
 date: 2024-08-22
-tags: csharp benchmark
+tags: csharp benchmark hashtable algorithms
 excerpt_separator: <!--more-->
 ---
 
