@@ -1,37 +1,58 @@
 ---
-permalink: /projects/
+permalink: /cv/
 layout: page
-title: Projects
+title: CV
 ---
 
-## Newest to oldest
+## STRABAG
 
-### Enterprise-level retail application
+*November 2022 — Present*
 
-**Employer**: [GDC (Fujitsu preferred supplier of Services)](https://www.linkedin.com/company/fujitsu-russia-gdc/)
+**Software Developer**
 
-**Role**: Software Developer
+Developing services to automate the IT infrastructure of one of the largest construction companies in the world.
 
-**Period**: July 2021 - now
+#### Achievements
 
-**Stack**: C#, Visual Basic, WPF, JavaScript, React, MS SQL Server
+- Created a service for automated management of X.509 certificates, which allows issuance and renewal of certificates for hundreds of domains via Let's Encrypt, GoDaddy, and Windows PKI.
+- Contributed to the development of a dashboard for analyzing and prediction cloud infrastructure costs in Google Cloud, Microsoft Azure, and Amazon Web Services, helping the company optimize IT expenses.
+- Participated in the development of a web application for automated collection of updates and vulnerabilities of M365 products, and data analysis using OpenAI, which improved support quality for tens of thousands of the company’s internal devices.
 
-### Antivirus application
+## Fujitsu
 
-**Employer**: [Auslogics Software Pty Ltd](https://www.linkedin.com/company/auslogics-software-pty-ltd/)
+*June 2021 — November 2022*
 
-**Role**: Software Developer
+**Software Developer**
 
-**Period**: June 2020 - July 2021
+Supported and developed the POS system for one of the largest clothing brands in Europe.
 
-**Stack**: C#, WPF, SQLite
+#### Achievements
 
-### Electrical power system simulation application
+- Successfully adapted the application to work with the UnionPay payment system.
+- Participated in the development of software for pilot self-service checkouts.
+- Supported services in Japan, South Korea, and Australia, ensuring uninterrupted operation and quick problem resolving.
+- Spent a month on a business trip in India, where I successfully conducted knowledge transfer sessions and trained foreign specialists.
 
-**Employer**: [Relematika LLC](https://www.linkedin.com/company/иц-бреслер/)
+## Auslogics Labs
 
-**Role**: Software Developer
+*June 2020 — May 2021*
 
-**Period**: July 2019 - June 2020
+**Software Developer**
 
-**Stack**: C#, WinForms, DevExpress, Firebird SQL
+Developed and maintained the client-side of antivirus software.
+
+#### Achievements
+
+- Participated in the development and implementation of a new user interface.
+- Contributed to improving threat detection functionality, increasing protection efficiency, and minimizing false positives.
+
+## Relematika
+
+*July 2019 — June 2020*
+
+**Software Developer**
+
+Developed and maintained a system for mathematical modeling of processes in electric power grids.
+
+#### Achievements
+- Implemented new methods for calculating short-circuit currents in medium-voltage electrical grids.
