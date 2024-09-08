@@ -6,15 +6,17 @@ title: About
 
 ### About me
 
-My name is Alexey Fedorov, and I am a full-time software engineer. I graduated in 2017 with a master’s degree in Power System Automation from Chuvash State University.
+My name is Alexey Fedorov, a software engineer with a master's degree in Power System Automation from Chuvash State University, earned in 2017.
 
-I worked as an electrical power engineer for 3 years before decided to complitely change my career and become a software engineer. I started as a Desktop Developer and now as a Backend Developer. I mainly use C# and ASP.NET, but I also work with TypeScript and React.
+After working as an electrical power engineer for three years, I decided to completely change my career and become a software engineer. Starting as a desktop developer, I now specialize in backend development, mainly using C# and ASP.NET, but also working with TypeScript and React.
 
-I speak Russian and English and am currently learning Serbian.
+Since 2022, I’ve been living in Serbia. I’m fluent in Russian and English, and currently learning Serbian.
 
 ### About this blog
 
-I enjoy learning about .NET internals, analyzing and improving code performance, and working with algorithms and data structures. In this blog, I share tips and explain C# development, with a focus on making code faster.
+I enjoy learning about .NET internals, analyzing and improving code performance, and working with algorithms and data structures. In this blog, I share tips and explain C# development, with a focus on making code faster. From time to time, I also post about life in emigration.
+
+New posts are typically published weekly, but it depends on the article complexity.
 
 I’m always learning. If you think I’ve missed something or made a mistake, please leave a comment or send me a message.
 
