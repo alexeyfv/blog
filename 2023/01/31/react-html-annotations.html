@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>How to create text annotations using React and TypeScript | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="How to create text annotations using React and TypeScript" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="I changed my job last November and became a Full Stack Developer in a new team. Now I have lots of work related with frontend, especially with React and TypeScript. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations." />
+<meta property="og:description" content="I changed my job last November and became a Full Stack Developer in a new team. Now I have lots of work related with frontend, especially with React and TypeScript. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2023/01/31/react-html-annotations.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2023/01/31/react-html-annotations.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-01-31T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="How to create text annotations using React and TypeScript" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"I changed my job last November and became a Full Stack Developer in a new team. Now I have lots of work related with frontend, especially with React and TypeScript. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations.","@type":"BlogPosting","headline":"How to create text annotations using React and TypeScript","dateModified":"2023-01-31T00:00:00+00:00","datePublished":"2023-01-31T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2023/01/31/react-html-annotations.html"},"url":"http://www.alexeyfv.xyz//2023/01/31/react-html-annotations.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      How to create text annotations using React and TypeScript 
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2023-01-31T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Jan 31, 2023
+      </time></p>
+    
+    <a class="post" href="/tag/typescript">#typescript</a>
+    
+    <a class="post" href="/tag/react">#react</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>I changed my job last November and became a Full Stack Developer in a new team. Now I have lots of work related with frontend, especially with <code class="language-plaintext highlighter-rouge">React</code> and <code class="language-plaintext highlighter-rouge">TypeScript</code>. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations.</p>
+
+<h2 id="what-is-required">What is required?</h2>
+
+<p>Let’s imagine that we have the following text content:</p>
+
+<p><img src="/assets/2023/01/2023-01-31-react-html-annotations/image01.png" alt="content" /></p>
+
+<p>We need to implement functionality that allows the user to add text annotations on the selected part of content. For example, such functionality in Google Docs:</p>
+
+<p><img src="/assets/2023/01/2023-01-31-react-html-annotations/image02.png" alt="content" /></p>
+
+<p>To do that we should understand how to get information about selected text, how to save and restore it and how to highlight selected part of the text if the user adds annotation to it.</p>
+
+<h2 id="selection-and-ranges">Selection and Ranges</h2>
+
+<p>DOM standard <a href="https://dom.spec.whatwg.org/#ranges">describes</a> an interface named <code class="language-plaintext highlighter-rouge">Range</code>, which represents part of the content between two boundary points. Using <code class="language-plaintext highlighter-rouge">Range</code>, we can easily get the information about selection. To do that, just call <code class="language-plaintext highlighter-rouge">getSelection</code> and then <code class="language-plaintext highlighter-rouge">getRangeAt</code>:</p>
+
+<div class="language-typescript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">const</span> <span class="nx">s</span> <span class="o">=</span> <span class="nb">window</span><span class="p">.</span><span class="nx">getSelection</span><span class="p">();</span>
+<span class="kd">const</span> <span class="nx">range</span> <span class="o">=</span> <span class="nx">s</span><span class="p">.</span><span class="nx">getRangeAt</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>Parameter <code class="language-plaintext highlighter-rouge">range</code> is of interface <code class="language-plaintext highlighter-rouge">Range</code>. This interface inherits another interface <code class="language-plaintext highlighter-rouge">AbstractRange</code> which looks like:</p>
+
+<div class="language-typescript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">interface</span> <span class="nx">AbstractRange</span> <span class="p">{</span>
+  <span class="cm">/** Returns true if range is collapsed, and false otherwise. */</span>
+  <span class="k">readonly</span> <span class="nx">collapsed</span><span class="p">:</span> <span class="nx">boolean</span><span class="p">;</span>
+  <span class="cm">/** Returns range's end node. */</span>
+  <span class="k">readonly</span> <span class="nx">endContainer</span><span class="p">:</span> <span class="nx">Node</span><span class="p">;</span>
+  <span class="cm">/** Returns range's end offset. */</span>
+  <span class="k">readonly</span> <span class="nx">endOffset</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="cm">/** Returns range's start node. */</span>
+  <span class="k">readonly</span> <span class="nx">startContainer</span><span class="p">:</span> <span class="nx">Node</span><span class="p">;</span>
+  <span class="cm">/** Returns range's start offset. */</span>
+  <span class="k">readonly</span> <span class="nx">startOffset</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The most important fields are <code class="language-plaintext highlighter-rouge">startContainer</code>, <code class="language-plaintext highlighter-rouge">startOffset</code>, <code class="language-plaintext highlighter-rouge">endContainer</code>, <code class="language-plaintext highlighter-rouge">endOffset</code>. These fields just determine selection. Let’s look at HTML code of the content that was shown above:</p>
+
+<div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;div</span> <span class="na">id=</span><span class="s">"root"</span><span class="nt">&gt;</span> 
+  <span class="nt">&lt;div&gt;</span>
+    <span class="nt">&lt;h5&gt;</span>What is Lorem Ipsum?<span class="nt">&lt;/h5&gt;</span>
+    <span class="nt">&lt;p&gt;</span>
+      <span class="nt">&lt;strong&gt;</span>Lorem Ipsum<span class="nt">&lt;/strong&gt;</span> is simply dummy text of the printing and
+      typesetting industry. Lorem Ipsum has been the industry's standard dummy
+      text ever since the 1500s, when an unknown printer took a galley of type
+      and scrambled it to make a type specimen book. It has survived not only
+      five centuries, but also the leap into electronic typesetting, remaining
+      essentially unchanged. It was popularised in the 1960s with the release of
+      Letraset sheets containing Lorem Ipsum passages, and more recently with
+      desktop publishing software like Aldus PageMaker including versions of
+      Lorem Ipsum.
+    <span class="nt">&lt;/p&gt;</span>
+  <span class="nt">&lt;/div&gt;</span>
+<span class="nt">&lt;/div&gt;</span>
+</code></pre></div></div>
+
+<p>For the considered example, selection range will be:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Field</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">startContainer</code></td>
+      <td><code class="language-plaintext highlighter-rouge">#text</code> (child of <code class="language-plaintext highlighter-rouge">&lt;h5&gt;</code>)</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">startOffset</code></td>
+      <td><code class="language-plaintext highlighter-rouge">12</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">endContainer</code></td>
+      <td><code class="language-plaintext highlighter-rouge">#text</code> (child of <code class="language-plaintext highlighter-rouge">&lt;p&gt;</code>)</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">endOffset</code></td>
+      <td><code class="language-plaintext highlighter-rouge">74</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Now let’s look at <code class="language-plaintext highlighter-rouge">startContainer</code> and <code class="language-plaintext highlighter-rouge">endContainer</code> differently. The nodes that stored by these fields can be determined by their indexes in the child arrays of the DOM tree. It means, that we can determine the addresses of the start and end nodes relative to the <code class="language-plaintext highlighter-rouge">root</code> node by recursively traversing the DOM tree. Thus, the addresses will be <code class="language-plaintext highlighter-rouge">[0, 0, 0, 0]</code>, <code class="language-plaintext highlighter-rouge">[1, 1, 0, 0]</code> for <code class="language-plaintext highlighter-rouge">startContainer</code> and <code class="language-plaintext highlighter-rouge">endContainer</code> respectively:</p>
+
+<div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[0] &lt;div id="root"&gt;
+ |
+ ╵--[0] &lt;div&gt;
+     |
+     |-- [0] &lt;h5&gt;
+     |    |
+     |    ╵--[0] #text &lt;-- startContainer (startOffset: 12) 
+     |
+     ╵-- [1] &lt;p&gt;
+          |
+          |--[0] &lt;strong&gt;
+          |
+          |--[1] #text &lt;-- endContainer (endOffset: 74) 
+          |
+         ...
+</code></pre></div></div>
+
+<p>This approach allows us to save selection data in the following class:</p>
+
+<div class="language-typescript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">class</span> <span class="nx">SelectionData</span> <span class="p">{</span>
+  <span class="nl">startNode</span><span class="p">:</span> <span class="kr">number</span><span class="p">[];</span>
+  <span class="nl">endNode</span><span class="p">:</span> <span class="kr">number</span><span class="p">[];</span>
+  <span class="nl">startTextOffset</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="nl">endTextOffset</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+
+  <span class="c1">// other members</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Functions for serializing <code class="language-plaintext highlighter-rouge">Range</code> to <code class="language-plaintext highlighter-rouge">SelectionData</code> and vice versa you can find <a href="https://github.com/alexeyfv/react-html-annotations/blob/main/src/hooks/useSelection.ts">here</a>.</p>
+
+<h2 id="content-highlighting">Content highlighting</h2>
+
+<p>Now we know how to save and restore information about selection, but how we can highlight the selected content? Function <code class="language-plaintext highlighter-rouge">getClientRects</code> will help us with that. This function returns a list of <code class="language-plaintext highlighter-rouge">DOMRect</code> objects.</p>
+
+<div class="language-typescript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">interface</span> <span class="nx">Range</span> <span class="kd">extends</span> <span class="nx">AbstractRange</span> <span class="p">{</span>
+  <span class="nx">getClientRects</span><span class="p">():</span> <span class="nx">DOMRectList</span><span class="p">;</span>
+
+  <span class="c1">// other members</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In our case, <code class="language-plaintext highlighter-rouge">DOMRect</code> describes the size and position of the selected area of content.</p>
+
+<div class="language-typescript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">interface</span> <span class="nx">DOMRectReadOnly</span> <span class="p">{</span>
+  <span class="k">readonly</span> <span class="nx">bottom</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="k">readonly</span> <span class="nx">height</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="k">readonly</span> <span class="nx">left</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="k">readonly</span> <span class="nx">right</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="k">readonly</span> <span class="nx">top</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="k">readonly</span> <span class="nx">width</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="k">readonly</span> <span class="nx">x</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="k">readonly</span> <span class="nx">y</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="nx">toJSON</span><span class="p">():</span> <span class="kr">any</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kr">interface</span> <span class="nx">DOMRect</span> <span class="kd">extends</span> <span class="nx">DOMRectReadOnly</span> <span class="p">{</span>
+  <span class="nl">height</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="nl">width</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="nl">x</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+  <span class="nl">y</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Thus, using <code class="language-plaintext highlighter-rouge">top</code>, <code class="language-plaintext highlighter-rouge">left</code>, <code class="language-plaintext highlighter-rouge">height</code> and <code class="language-plaintext highlighter-rouge">width</code> we can create, for example, a <code class="language-plaintext highlighter-rouge">&lt;div&gt;</code> element with calculated position and size to highlight the content. In a <code class="language-plaintext highlighter-rouge">React</code> app, highlighting can be implemented something like this:</p>
+
+<div class="language-typescript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Highlighting component</span>
+<span class="k">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="nx">Highlighting</span><span class="p">(</span><span class="nx">props</span><span class="p">:</span> <span class="p">{</span>
+  <span class="nl">highlighting</span><span class="p">:</span> <span class="nx">HighlightingData</span><span class="p">;</span>
+<span class="p">})</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">style</span><span class="o">=</span><span class="p">{</span><span class="nx">styleHighlighting</span><span class="p">(</span><span class="nx">props</span><span class="p">.</span><span class="nx">highlighting</span><span class="p">)}</span> <span class="sr">/&gt;</span><span class="err">;
+</span><span class="p">}</span>
+
+<span class="kd">const</span> <span class="nx">styleHighlighting</span> <span class="o">=</span> <span class="p">(</span><span class="nx">h</span><span class="p">:</span> <span class="nx">HighlightingData</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="na">s</span><span class="p">:</span> <span class="nx">CSSProperties</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">position</span><span class="p">:</span> <span class="dl">"</span><span class="s2">absolute</span><span class="dl">"</span><span class="p">,</span>
+    <span class="na">border</span><span class="p">:</span> <span class="s2">`1.5px solid darkgreen`</span><span class="p">,</span>
+    <span class="na">borderRadius</span><span class="p">:</span> <span class="dl">"</span><span class="s2">5px</span><span class="dl">"</span><span class="p">,</span>
+    <span class="na">padding</span><span class="p">:</span> <span class="dl">"</span><span class="s2">2px</span><span class="dl">"</span><span class="p">,</span>
+    <span class="na">top</span><span class="p">:</span> <span class="s2">`</span><span class="p">${</span><span class="nx">h</span><span class="p">.</span><span class="nx">top</span><span class="p">}</span><span class="s2">px`</span><span class="p">,</span>
+    <span class="na">left</span><span class="p">:</span> <span class="s2">`</span><span class="p">${</span><span class="nx">h</span><span class="p">.</span><span class="nx">left</span> <span class="o">-</span> <span class="mi">2</span><span class="p">}</span><span class="s2">px`</span><span class="p">,</span>
+    <span class="na">width</span><span class="p">:</span> <span class="s2">`</span><span class="p">${</span><span class="nx">h</span><span class="p">.</span><span class="nx">width</span> <span class="o">+</span> <span class="mi">4</span><span class="p">}</span><span class="s2">px`</span><span class="p">,</span>
+    <span class="na">height</span><span class="p">:</span> <span class="s2">`</span><span class="p">${</span><span class="nx">h</span><span class="p">.</span><span class="nx">height</span><span class="p">}</span><span class="s2">px`</span><span class="p">,</span>
+  <span class="p">};</span>
+  <span class="k">return</span> <span class="nx">s</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// Determines highlighted area</span>
+<span class="kd">class</span> <span class="nx">HighlightingData</span> <span class="p">{</span>
+  <span class="nl">top</span><span class="p">:</span> <span class="kr">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="nl">left</span><span class="p">:</span> <span class="kr">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="nl">right</span><span class="p">:</span> <span class="kr">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="nl">bottom</span><span class="p">:</span> <span class="kr">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="nl">width</span><span class="p">:</span> <span class="kr">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="nl">height</span><span class="p">:</span> <span class="kr">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="demo-sandbox">Demo sandbox</h2>
+
+<p>The approaches described in this article were implemented in a demo application. You can find the source code in my <a href="https://github.com/alexeyfv/react-html-annotations">GitHub profile</a> as well as in the sandbox below.</p>
+
+<iframe src="https://codesandbox.io/embed/wandering-water-3rum90?autoresize=1&amp;fontsize=14&amp;hidenavigation=1&amp;theme=dark&amp;view=preview" style="
+    width: 100%;
+    height: 500px;
+    border: 0;
+    border-radius: 4px;
+    overflow: hidden;
+  " title="react-html-annotations-sandbox" allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking" sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"></iframe>
+</div><a class="u-url" href="/2023/01/31/react-html-annotations.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

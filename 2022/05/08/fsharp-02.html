@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Функциональное программирование на F# (часть 2) | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Функциональное программирование на F# (часть 2)" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="В прошлой статье мы написали модуль для расчёта ряда Фибоначчи практически не углубляясь в детали того, что из себя представляет F# и чем он отличается от кода на C#. В этой статье мы рассмотрим основные принципы функционального программирования, некоторые базовые языковые конструкции F# и исследуем скомпилированный код." />
+<meta property="og:description" content="В прошлой статье мы написали модуль для расчёта ряда Фибоначчи практически не углубляясь в детали того, что из себя представляет F# и чем он отличается от кода на C#. В этой статье мы рассмотрим основные принципы функционального программирования, некоторые базовые языковые конструкции F# и исследуем скомпилированный код." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2022/05/08/fsharp-02.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2022/05/08/fsharp-02.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-05-08T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Функциональное программирование на F# (часть 2)" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"В прошлой статье мы написали модуль для расчёта ряда Фибоначчи практически не углубляясь в детали того, что из себя представляет F# и чем он отличается от кода на C#. В этой статье мы рассмотрим основные принципы функционального программирования, некоторые базовые языковые конструкции F# и исследуем скомпилированный код.","@type":"BlogPosting","headline":"Функциональное программирование на F# (часть 2)","dateModified":"2022-05-08T00:00:00+00:00","datePublished":"2022-05-08T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2022/05/08/fsharp-02.html"},"url":"http://www.alexeyfv.xyz//2022/05/08/fsharp-02.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Функциональное программирование на F# (часть 2)
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2022-05-08T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        May 8, 2022
+      </time></p>
+    
+    <a class="post" href="/tag/dotnet">#dotnet</a>
+    
+    <a class="post" href="/tag/fsharp">#fsharp</a>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/functional_programming">#functional_programming</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>В прошлой статье мы написали модуль для расчёта ряда Фибоначчи практически не углубляясь в детали того, что из себя представляет F# и чем он отличается от кода на C#. В этой статье мы рассмотрим основные принципы функционального программирования, некоторые базовые языковые конструкции F# и исследуем скомпилированный код.</p>
+
+<h2 id="определение-значений-simple-values">Определение значений (Simple values)</h2>
+
+<p>Начнём с самого простого - с определения значений простых типов<sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote" rel="footnote">1</a></sup>.</p>
+
+<div class="language-fsharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">let</span> <span class="n">hello</span> <span class="p">=</span> <span class="s2">"Hello, world!"</span>
+<span class="k">let</span> <span class="k">mutable</span> <span class="n">year</span> <span class="p">=</span> <span class="mi">2022</span>
+</code></pre></div></div>
+
+<p>Как видно ниже, значение <code class="language-plaintext highlighter-rouge">hello</code> компилируется в статическое свойство с доступом только для чтения, т.е. в функцию, которая не принимает никаких аргументов и всегда возвращает одно и то же значение. Такое поведение является дефолтным для F# и таким образом достигается иммутабельность данных. Если же мы захотим изменять данные, то нужно добавить ключевое слово <code class="language-plaintext highlighter-rouge">mutable</code>. Тогда значение скомпилируется в свойство в котором будут и геттер и сеттер.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">static</span> <span class="kt">string</span> <span class="n">hello</span> <span class="p">=&gt;</span> <span class="s">"Hello, world!"</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="kt">int</span> <span class="n">year</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>Код на C#, эквивалентный коду на F#, из-за автоматической генерации кода декомпилятора занимает довольно много места. Здесь и далее я опустил некоторые несущественные детали, которые не влияют на смысл. Если интересна полная картина, то можно воспользоваться dotPeek <sup id="fnref:2" role="doc-noteref"><a href="#fn:2" class="footnote" rel="footnote">2</a></sup> или SharpLab <sup id="fnref:3" role="doc-noteref"><a href="#fn:3" class="footnote" rel="footnote">3</a></sup>.</p>
+</blockquote>
+
+<h2 id="определение-функций-function-values">Определение функций (Function values)</h2>
+
+<p>Теперь сделаем из <code class="language-plaintext highlighter-rouge">hello</code> функцию, которая принимает один параметр и добавляет его в строку, но реализуем это 5 разными способами.</p>
+
+<div class="language-fsharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">let</span> <span class="n">hello1</span> <span class="n">x</span> <span class="p">=</span> <span class="o">$</span><span class="s2">"Hello "</span> <span class="o">+</span> <span class="n">x</span> <span class="o">+</span> <span class="s2">"!"</span> 
+<span class="k">let</span> <span class="n">hello2</span> <span class="n">x</span> <span class="p">=</span> <span class="o">$</span><span class="s2">"Hello {x}!"</span>
+<span class="k">let</span> <span class="n">hello3</span> <span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="kt">string</span><span class="p">)</span> <span class="p">=</span> <span class="o">$</span><span class="s2">"Hello {x}!"</span> <span class="c1">// explicit type 'string' for an argument 'x'</span>
+<span class="k">let</span> <span class="n">hello4</span> <span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="kt">int</span><span class="p">)</span> <span class="p">=</span> <span class="o">$</span><span class="s2">"Hello {x}!"</span> <span class="c1">// explicit type 'int' for an argument 'x'</span>
+<span class="k">let</span> <span class="n">hello5</span> <span class="n">x</span> <span class="p">:</span> <span class="kt">string</span> <span class="p">=</span> <span class="o">$</span><span class="s2">"Hello {x}!"</span> <span class="c1">// explicit output type</span>
+</code></pre></div></div>
+
+<p>Как мы видим, функции определяются точно также, как и значения - через ключевое слово <code class="language-plaintext highlighter-rouge">let</code>. Вообще, это одна из главных особенностей функциональных языков программирования - функции являются объектами первого класса. <sup id="fnref:4" role="doc-noteref"><a href="#fn:4" class="footnote" rel="footnote">4</a></sup> Это значит, что функции сами являются значениями, т.е. могут быть входными аргументами или возвращаемыми параметрами.</p>
+
+<p>Скомпилированный код <code class="language-plaintext highlighter-rouge">hello1</code> - простой, куда интереснее код с интерполированными строками:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">static</span> <span class="kt">string</span> <span class="nf">hello1</span><span class="p">(</span><span class="kt">string</span> <span class="n">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="kt">string</span><span class="p">.</span><span class="nf">Concat</span><span class="p">(</span><span class="s">"Hello "</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="s">"!"</span><span class="p">);</span>
+
+<span class="c1">// hello2 and hello5 have the same method body</span>
+<span class="k">public</span> <span class="k">static</span> <span class="kt">string</span> <span class="n">hello2</span><span class="p">&lt;</span><span class="n">a</span><span class="p">&gt;(</span><span class="n">a</span> <span class="n">x</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">object</span><span class="p">[]</span> <span class="n">array</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">object</span><span class="p">[</span><span class="m">1</span><span class="p">];</span>
+    <span class="n">array</span><span class="p">[</span><span class="m">0</span><span class="p">]</span> <span class="p">=</span> <span class="n">x</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">PrintfModule</span><span class="p">.</span><span class="nf">PrintFormatToStringThen</span><span class="p">(</span>
+        <span class="k">new</span> <span class="n">PrintfFormat</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">,</span> <span class="n">Unit</span><span class="p">,</span> <span class="kt">string</span><span class="p">,</span> <span class="kt">string</span><span class="p">,</span> <span class="n">a</span><span class="p">&gt;(</span>
+            <span class="s">"Hello %P()!"</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="k">null</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="kt">string</span> <span class="nf">hello3</span><span class="p">(</span><span class="kt">string</span> <span class="n">x</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">object</span><span class="p">[]</span> <span class="n">array</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">object</span><span class="p">[</span><span class="m">1</span><span class="p">];</span>
+    <span class="n">array</span><span class="p">[</span><span class="m">0</span><span class="p">]</span> <span class="p">=</span> <span class="n">x</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">PrintfModule</span><span class="p">.</span><span class="nf">PrintFormatToStringThen</span><span class="p">(</span>
+        <span class="k">new</span> <span class="n">PrintfFormat</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">,</span> <span class="n">Unit</span><span class="p">,</span> <span class="kt">string</span><span class="p">,</span> <span class="kt">string</span><span class="p">,</span> <span class="kt">string</span><span class="p">&gt;(</span>
+            <span class="s">"Hello %P()!"</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="k">null</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="kt">string</span> <span class="nf">hello4</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">object</span><span class="p">[]</span> <span class="n">array</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">object</span><span class="p">[</span><span class="m">1</span><span class="p">];</span>
+    <span class="n">array</span><span class="p">[</span><span class="m">0</span><span class="p">]</span> <span class="p">=</span> <span class="n">x</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">PrintfModule</span><span class="p">.</span><span class="nf">PrintFormatToStringThen</span><span class="p">(</span>
+        <span class="k">new</span> <span class="n">PrintfFormat</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">,</span> <span class="n">Unit</span><span class="p">,</span> <span class="kt">string</span><span class="p">,</span> <span class="kt">string</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;(</span>
+            <span class="s">"Hello %P()!"</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="k">null</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Рассмотрим, что тут происходит:</p>
+
+<ul>
+  <li>Функция <code class="language-plaintext highlighter-rouge">hello2</code> компилируется в обобщённый метод, т.к. мы не указали явно тип входного параметра.</li>
+  <li>Методы <code class="language-plaintext highlighter-rouge">hello2</code> и <code class="language-plaintext highlighter-rouge">hello5</code> по-сути одинаковы (поэтому я их объединил), т.к. F# сам вывел тип для <code class="language-plaintext highlighter-rouge">hello2</code>.</li>
+  <li>Для методов <code class="language-plaintext highlighter-rouge">hello3</code> и <code class="language-plaintext highlighter-rouge">hello4</code> явно указан тип <code class="language-plaintext highlighter-rouge">x</code>, поэтому метод не обобщённый.</li>
+  <li>Тела методов <code class="language-plaintext highlighter-rouge">hello2</code>, <code class="language-plaintext highlighter-rouge">hello3</code> и <code class="language-plaintext highlighter-rouge">hello4</code> выглядят довольно объёмно. Если, например <code class="language-plaintext highlighter-rouge">hello4</code>, написать на C#, то скомпилированный код займёт меньше места:</li>
+</ul>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="kt">string</span> <span class="nf">hello3</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="kt">string</span><span class="p">.</span><span class="nf">Format</span><span class="p">(</span><span class="s">"Hello, {0}!"</span><span class="p">,</span> <span class="n">x</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="типы-и-каррирование-функций-carrying">Типы и каррирование функций (Carrying)</h2>
+
+<p>Способов определения одних и тех же функций может быть множество. Например, рассмотрим вот эти две функции:</p>
+
+<div class="language-fsharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">let</span> <span class="n">sum1</span> <span class="n">x</span> <span class="n">y</span> <span class="p">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span> 
+<span class="k">let</span> <span class="n">sum2</span> <span class="n">x</span> <span class="p">=</span> <span class="k">fun</span> <span class="n">y</span> <span class="p">-&gt;</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+</code></pre></div></div>
+
+<p>Если попытаться явно переписать их на C#, то получилось бы примерно следующее:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Invocation: int result = sum1(1, 2);</span>
+<span class="k">public</span> <span class="kt">int</span> <span class="nf">sum1</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">,</span> <span class="kt">int</span> <span class="n">y</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="n">x</span> <span class="p">+</span> <span class="n">y</span><span class="p">;</span>
+
+<span class="c1">// Invocation: int result = sum2(1)(2);</span>
+<span class="k">public</span> <span class="n">Func</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;</span> <span class="nf">sum2</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="p">=&gt;</span>
+<span class="p">{</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="p">+</span> <span class="n">y</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>Для F# функции <code class="language-plaintext highlighter-rouge">sum1</code> и <code class="language-plaintext highlighter-rouge">sum2</code> эквивалентны, но c точки зрения C# - нет, несмотря на то, что результат вызова в обоих случаях будет иметь тип <code class="language-plaintext highlighter-rouge">int</code>. Чтобы понять почему так, нужно разобраться, что значит тип в функциональных языках. В объектно-ориентированных языках программирования, когда мы говорим о типах, то мы подразумеваем классы или структуры. В функциональных языках же под типом понимается набор входных и выходных значений.</p>
+
+<p>Сперва может показаться, что на F#, как и на C#, набор входных значений отличается - <code class="language-plaintext highlighter-rouge">sum1</code> принимает два аргумента, а <code class="language-plaintext highlighter-rouge">sum2</code> только один. На самом деле всё не совсем так. В F# одна функция, которая принимает множество параметров, преобразуются в множество функций, которые принимают по одному параметру. Таким образом, функция вида <code class="language-plaintext highlighter-rouge">(a, b) -&gt; c</code>, превращается в <code class="language-plaintext highlighter-rouge">a -&gt; b -&gt; c</code>. Такой метод преобразования называется каррированием. <sup id="fnref:5" role="doc-noteref"><a href="#fn:5" class="footnote" rel="footnote">5</a></sup></p>
+
+<p>Благодаря каррированию, функции <code class="language-plaintext highlighter-rouge">sum1</code> и <code class="language-plaintext highlighter-rouge">sum2</code> можно описать одним типом:</p>
+
+<div class="language-fsharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">type</span> <span class="n">operation</span> <span class="p">=</span> <span class="kt">int</span> <span class="p">-&gt;</span> <span class="kt">int</span> <span class="p">-&gt;</span> <span class="kt">int</span>
+</code></pre></div></div>
+
+<p>Эта странная запись читается слева направо и значит, что функция принимает на вход значение типа <code class="language-plaintext highlighter-rouge">int</code> и возвращает функцию, которая, в свою очередь, тоже принимает на вход значение <code class="language-plaintext highlighter-rouge">int</code> и возвращает значение <code class="language-plaintext highlighter-rouge">int</code>.</p>
+
+<h2 id="функции-как-входные-и-выходные-параметры">Функции как входные и выходные параметры</h2>
+
+<p>Как упоминалось ранее, функции в F# - это объекты первого класса. Это значит, что можно записать вот так:</p>
+
+<div class="language-fsharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">let</span> <span class="n">operationAsInput</span> <span class="p">(</span><span class="n">op</span><span class="p">:</span> <span class="n">operation</span><span class="p">)</span> <span class="n">x</span> <span class="n">y</span> <span class="p">=</span> <span class="n">op</span> <span class="n">x</span> <span class="n">y</span>
+<span class="k">let</span> <span class="n">operationAsOutput</span> <span class="p">:</span> <span class="n">operation</span> <span class="p">=</span> <span class="k">fun</span> <span class="n">x</span> <span class="p">-&gt;</span> <span class="k">fun</span> <span class="n">y</span> <span class="p">-&gt;</span> <span class="n">x</span> <span class="p">*</span> <span class="n">y</span>
+
+<span class="k">let</span> <span class="n">result</span> <span class="p">=</span> <span class="n">operationAsInput</span> <span class="n">operationAsOutput</span> <span class="mi">10</span> <span class="mi">5</span> <span class="c1">// result = 50</span>
+</code></pre></div></div>
+
+<p>Рассмотрим подробнее, что тут происходит:</p>
+
+<ol>
+  <li>Функция <code class="language-plaintext highlighter-rouge">operationAsInput</code> принимает на вход функцию <code class="language-plaintext highlighter-rouge">op</code> типа <code class="language-plaintext highlighter-rouge">operation</code> и значения <code class="language-plaintext highlighter-rouge">x</code> и <code class="language-plaintext highlighter-rouge">y</code>, а возвращает результат выполнения этой функции для <code class="language-plaintext highlighter-rouge">x</code> и <code class="language-plaintext highlighter-rouge">y</code>.</li>
+  <li>Функция <code class="language-plaintext highlighter-rouge">operationAsOutput</code> возвращает другую функцию типа <code class="language-plaintext highlighter-rouge">operation</code>. В данном случае умножение двух чисел.</li>
+  <li>Осуществляется вызов <code class="language-plaintext highlighter-rouge">operationAsInput</code>, в которую передаётся функция <code class="language-plaintext highlighter-rouge">operationAsOutput</code> и значения 10 и 5.</li>
+</ol>
+
+<p>Возможность использования функций как параметров позволяет осуществлять таким образом композицию, внедрение зависимостей, реализовывать паттерны проектирования. Об этом поговорим в следующей статье.</p>
+
+<p>Кстати, при компиляции код будет оптимизирован, поэтому на C# наши декомпилированные функции выглядят немного по-другому:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">operationAsInput</span><span class="p">(</span>
+    <span class="n">FSharpFunc</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">FSharpFunc</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;&gt;</span> <span class="n">op</span><span class="p">,</span> <span class="kt">int</span> <span class="n">x</span><span class="p">,</span> <span class="kt">int</span> <span class="n">y</span><span class="p">)</span> <span class="p">=&gt;</span> 
+        <span class="n">FSharpFunc</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;.</span><span class="nf">InvokeFast</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">);</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">operationAsOutput</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">,</span> <span class="kt">int</span> <span class="n">y</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="n">x</span> <span class="p">*</span> <span class="n">y</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h2 id="операторы-как-функции">Операторы как функции</h2>
+
+<p>Как мы знаем, операторы в языках .NET - это методы. Например, оператор <code class="language-plaintext highlighter-rouge">+</code> для типа <code class="language-plaintext highlighter-rouge">int</code> после компиляции в CIL выглядит примерно так:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">.</span><span class="n">method</span> <span class="k">public</span> <span class="n">hidebysig</span> <span class="n">specialname</span> <span class="k">static</span> <span class="n">int32</span> <span class="nf">op_Addition</span> <span class="p">(</span>
+        <span class="n">int32</span> <span class="n">a</span><span class="p">,</span>  <span class="n">int32</span> <span class="n">b</span><span class="p">)</span> <span class="n">cil</span> <span class="n">managed</span> 
+<span class="p">{</span>
+    <span class="c1">// operator implementation</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>С точки зрения функционального программирования <code class="language-plaintext highlighter-rouge">op_Addition</code> - это функция типа <code class="language-plaintext highlighter-rouge">int -&gt; int -&gt; int</code>, и это значит, что представленные ниже функции эквивалентны:</p>
+
+<div class="language-fsharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// int -&gt; int -&gt; int</span>
+<span class="k">let</span> <span class="n">sumInfix</span> <span class="n">x</span> <span class="n">y</span> <span class="p">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+<span class="k">let</span> <span class="n">sumPrefix</span> <span class="n">x</span> <span class="n">y</span> <span class="p">=</span> <span class="o">(+)</span> <span class="n">x</span> <span class="n">y</span>
+
+<span class="c1">// int -&gt; int</span>
+<span class="k">let</span> <span class="n">incrementInfix</span> <span class="n">x</span> <span class="p">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="k">let</span> <span class="n">incrementPrefix</span> <span class="p">=</span> <span class="o">(+)</span> <span class="mi">1</span>
+</code></pre></div></div>
+
+<p>Если посмотреть декомпилированный код на C#, то первые три функции выглядят вполне обычно.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">sumInfix</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">,</span> <span class="kt">int</span> <span class="n">y</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="k">return</span> <span class="n">x</span> <span class="p">+</span> <span class="n">y</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">sumPrefix</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">,</span> <span class="kt">int</span> <span class="n">y</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="k">return</span> <span class="n">x</span> <span class="p">+</span> <span class="n">y</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">incrementInfix</span><span class="p">(</span><span class="kt">int</span> <span class="n">x</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="k">return</span> <span class="n">x</span> <span class="p">+</span> <span class="m">1</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>Чего нельзя сказать об <code class="language-plaintext highlighter-rouge">incrementPrefix</code>:</p>
+
+<ul>
+  <li>Во-первых, <code class="language-plaintext highlighter-rouge">incrementPrefix</code> компилируется в свойство типа <code class="language-plaintext highlighter-rouge">FSharpFunc&lt;int, int&gt;</code></li>
+  <li>Во-вторых, это свойство возвращает значение поля <code class="language-plaintext highlighter-rouge">incrementPrefix@8</code> из дополнительного класса <code class="language-plaintext highlighter-rouge">$_</code></li>
+  <li>В-третьих, полю <code class="language-plaintext highlighter-rouge">$_.incrementPrefix@8</code> присваивается значение поля <code class="language-plaintext highlighter-rouge">Functions.incrementPrefix@8.@_instance</code> в конструкторе типа <code class="language-plaintext highlighter-rouge">_$</code></li>
+</ul>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">static</span> <span class="k">class</span> <span class="nc">Functions</span>
+<span class="p">{</span>
+    <span class="k">internal</span> <span class="k">sealed</span> <span class="k">class</span> <span class="nc">incrementPrefix</span><span class="err">@</span><span class="m">8</span> <span class="p">:</span> <span class="n">FSharpFunc</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;</span>
+    <span class="p">{</span>
+        <span class="k">internal</span> <span class="k">static</span> <span class="k">readonly</span> <span class="n">incrementPrefix</span><span class="err">@</span><span class="m">8</span> <span class="n">@_instance</span> <span class="p">=</span> <span class="k">new</span> <span class="n">incrementPrefix</span><span class="err">@</span><span class="m">8</span><span class="p">();</span>
+        <span class="k">public</span> <span class="k">override</span> <span class="kt">int</span> <span class="nf">Invoke</span><span class="p">(</span><span class="kt">int</span> <span class="n">y</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="m">1</span> <span class="p">+</span> <span class="n">y</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">static</span> <span class="n">FSharpFunc</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;</span> <span class="n">incrementPrefix</span> <span class="p">=&gt;</span> <span class="err">$</span><span class="n">_</span><span class="p">.</span><span class="n">incrementPrefix</span><span class="err">@</span><span class="m">8</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">internal</span> <span class="k">static</span> <span class="k">class</span> <span class="err">$</span><span class="nc">_</span>
+<span class="p">{</span>
+    <span class="k">internal</span> <span class="k">static</span> <span class="k">readonly</span> <span class="n">FSharpFunc</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;</span> <span class="n">incrementPrefix</span><span class="err">@</span><span class="m">8</span><span class="p">;</span>
+
+    <span class="k">static</span> <span class="err">$</span><span class="nf">_</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="n">incrementPrefix</span><span class="err">@</span><span class="m">8</span> <span class="p">=</span> <span class="n">Functions</span><span class="p">.</span><span class="n">incrementPrefix</span><span class="err">@</span><span class="m">8.</span><span class="n">@_instance</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="резюме">Резюме</h2>
+
+<p>В этой статье рассмотрены ключевые принципы функциональных языков программирования:</p>
+
+<ul>
+  <li>Функции - это объекты первого класса, т.е. могут быть входными аргументами или возвращаемыми параметрами.</li>
+  <li>Возможность использования функций как параметров позволяет осуществлять композицию.</li>
+  <li>Под типом понимаются не классы и структуры, а набор входных и выходных значений функций.</li>
+</ul>
+
+<p>В следующей статье мы продолжим рассматривать синтаксис F#, а также рассмотрим как в F# осуществляется внедрение зависимостей и реализуем часто встречающиеся паттерны.</p>
+
+<h2 id="ссылки-и-источники">Ссылки и источники</h2>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:1" role="doc-endnote">
+      <p><a href="https://github.com/alexeyfv/FSharpOverview">Исходный код</a> <a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:2" role="doc-endnote">
+      <p><a href="https://www.jetbrains.com/ru-ru/decompiler/">JetBrains dotPeek</a> <a href="#fnref:2" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:3" role="doc-endnote">
+      <p><a href="https://sharplab.io/">SharpLab</a> <a href="#fnref:3" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:4" role="doc-endnote">
+      <p><a href="https://en.wikipedia.org/wiki/First-class_function">First-class function</a> <a href="#fnref:4" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:5" role="doc-endnote">
+      <p><a href="https://en.wikipedia.org/wiki/Currying">Currying</a> <a href="#fnref:5" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+</div><a class="u-url" href="/2022/05/08/fsharp-02.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

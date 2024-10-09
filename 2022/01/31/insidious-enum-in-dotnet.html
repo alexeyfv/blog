@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Коварный enum в .NET | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Коварный enum в .NET" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Перечисления - это такой тип данных, который выглядит очень просто и его легко использовать. Вот только за этой простотой скрывается коварность. Почему? Потому что enum - это ValueType, а ValueType в C#, как известно, не наследуется. Необдуманное использование типов, которые нарушают принцип Open / Closed, может создать проблемы в вашем проекте в будущем." />
+<meta property="og:description" content="Перечисления - это такой тип данных, который выглядит очень просто и его легко использовать. Вот только за этой простотой скрывается коварность. Почему? Потому что enum - это ValueType, а ValueType в C#, как известно, не наследуется. Необдуманное использование типов, которые нарушают принцип Open / Closed, может создать проблемы в вашем проекте в будущем." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2022/01/31/insidious-enum-in-dotnet.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2022/01/31/insidious-enum-in-dotnet.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-01-31T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Коварный enum в .NET" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"Перечисления - это такой тип данных, который выглядит очень просто и его легко использовать. Вот только за этой простотой скрывается коварность. Почему? Потому что enum - это ValueType, а ValueType в C#, как известно, не наследуется. Необдуманное использование типов, которые нарушают принцип Open / Closed, может создать проблемы в вашем проекте в будущем.","@type":"BlogPosting","headline":"Коварный enum в .NET","dateModified":"2022-01-31T00:00:00+00:00","datePublished":"2022-01-31T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2022/01/31/insidious-enum-in-dotnet.html"},"url":"http://www.alexeyfv.xyz//2022/01/31/insidious-enum-in-dotnet.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Коварный enum в .NET
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2022-01-31T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Jan 31, 2022
+      </time></p>
+    
+    <a class="post" href="/tag/dotnet">#dotnet</a>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/wcf">#wcf</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>Перечисления - это такой тип данных, который выглядит очень просто и его легко использовать. Вот только за этой простотой скрывается коварность. Почему? Потому что <code class="language-plaintext highlighter-rouge">enum</code> - это <code class="language-plaintext highlighter-rouge">ValueType</code>, а <code class="language-plaintext highlighter-rouge">ValueType</code> в C#, как известно, не наследуется. Необдуманное использование типов, которые нарушают принцип Open / Closed, может создать проблемы в вашем проекте в будущем.</p>
+
+<p>Предположим, вы - разработчик, которому нужно сделать клиент-серверное приложение. Клиент должен отправлять данные о продажах на сервер. В теле передаваемого объекта должна содержатся цена товара и валюта за которую товар был продан. Как это можно реализовать? Например, через <code class="language-plaintext highlighter-rouge">enum</code>:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">enum</span> <span class="n">CurrenciesEnum</span>
+<span class="p">{</span>
+    <span class="n">EUR</span><span class="p">,</span>
+    <span class="n">USD</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Класс передаваемого объекта тогда будет выглядеть следующим образом:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">SaleDetails</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">double</span> <span class="n">Price</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="k">public</span> <span class="n">CurrenciesEnum</span> <span class="n">Currency</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Очень просто и элегантно, правда? А теперь представьте, что нужно добавить в <code class="language-plaintext highlighter-rouge">CurrenciesEnum</code> ещё одну валюту - фунт стерлингов. Как это можно сделать? Есть только один способ - изменить само перечисление:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">enum</span> <span class="n">CurrenciesEnum</span>
+<span class="p">{</span>
+    <span class="n">EUR</span><span class="p">,</span>
+    <span class="n">USD</span><span class="p">,</span>
+    <span class="n">GBP</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Ничего сложного, но возможность вносить изменения в существующие типы есть далеко не всегда. Например, что, если перечисление находится в неком базовом проекте, у которого есть несколько кастомизаций под различных заказчиков? Изменение перечисления в базовом проекте может привести к так называемому <a href="https://en.wikipedia.org/wiki/Shotgun_surgery">shotgun surgery</a>. Или что, если при этом свойство типа <code class="language-plaintext highlighter-rouge">enum</code> является членом контракта WCF? С таким случаем я столкнулся на одном из рабочих проектов. Это и побудило меня написать статью.</p>
+
+<h2 id="enum-курильщика">Enum курильщика</h2>
+
+<p>Я сделал упрощенный вариант приложения, которое передаёт суть проблемы. Рассмотрим <a href="https://github.com/alexeyfv/EnumerationDemo">код</a> подробнее. Начнём с перечисления <code class="language-plaintext highlighter-rouge">CurrenciesEnum</code> и класса <code class="language-plaintext highlighter-rouge">SaleDetails</code>. Тут всё по старому, за исключением того, что добавились атрибуты. Они нам необходимы для работы WCF.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">DataContract</span><span class="p">]</span>
+<span class="k">public</span> <span class="k">enum</span> <span class="n">CurrenciesEnum</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">EnumMember</span><span class="p">]</span>
+    <span class="n">EUR</span><span class="p">,</span>
+    <span class="p">[</span><span class="n">EnumMember</span><span class="p">]</span>
+    <span class="n">USD</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">DataContract</span><span class="p">]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">SaleDetails</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="kt">double</span> <span class="n">Price</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="k">virtual</span> <span class="n">CurrenciesEnum</span> <span class="n">Currency</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Перечисление <code class="language-plaintext highlighter-rouge">CurrenciesEnum</code> и класс <code class="language-plaintext highlighter-rouge">SaleDetails</code> я разместил в проекте Shared. Предположим, что мы не можем вносить изменения в проект напрямую, т.к. он используется во многих других приложениях, поэтому мы вынуждены использовать наследование.</p>
+
+<p><img src="/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/project-tree.png" alt="project-tree" /></p>
+
+<p>Проект Server - это WCF-служба. Она состоит из запроса и его колбэка. В этом проекте имитируется получение данных от клиента и преобразование в XML. Чтобы проверить корректность преобразования данных, будем отправлять строку с XML обратно клиенту.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">Request</span> <span class="p">:</span> <span class="n">IRequest</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">void</span> <span class="nf">SendRequest</span><span class="p">(</span><span class="n">SaleDetails</span> <span class="n">saleDetails</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">var</span> <span class="n">response</span> <span class="p">=</span> <span class="n">OperationContext</span><span class="p">.</span><span class="n">Current</span><span class="p">.</span><span class="n">GetCallbackChannel</span><span class="p">&lt;</span><span class="n">IResponse</span><span class="p">&gt;();</span>
+
+        <span class="kt">var</span> <span class="n">responseString</span> <span class="p">=</span>
+            <span class="s">$"&lt;SaleDetails&gt;\n"</span> <span class="p">+</span>
+            <span class="s">$"\t&lt;Price&gt;</span><span class="p">{</span><span class="n">saleDetails</span><span class="p">.</span><span class="n">Price</span><span class="p">:</span><span class="n">N2</span><span class="p">}</span><span class="s">&lt;/Price&gt;\n"</span> <span class="p">+</span>
+            <span class="s">$"\t&lt;Currency&gt;</span><span class="p">{</span><span class="n">saleDetails</span><span class="p">.</span><span class="n">Currency</span><span class="p">}</span><span class="s">&lt;/Currency&gt;\n"</span> <span class="p">+</span>
+            <span class="s">$"&lt;/SaleDetails&gt;"</span><span class="p">;</span>
+
+        <span class="n">response</span><span class="p">.</span><span class="nf">SendResponse</span><span class="p">(</span><span class="n">responseString</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Проект Client - это консольное приложение. В нём находится реализация колбэка и запрос к серверу. Полученный колбэк будет выведен в консоль.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Callback</span> <span class="p">:</span> <span class="n">IRequestCallback</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">void</span> <span class="nf">SendResponse</span><span class="p">(</span><span class="kt">string</span> <span class="n">response</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="n">response</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">internal</span> <span class="k">class</span> <span class="nc">Program</span>
+<span class="p">{</span>
+    <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">var</span> <span class="n">server</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">RequestClient</span><span class="p">(</span><span class="k">new</span> <span class="nf">InstanceContext</span><span class="p">(</span><span class="k">new</span> <span class="nf">Callback</span><span class="p">()));</span>
+        <span class="n">server</span><span class="p">.</span><span class="nf">Open</span><span class="p">();</span>
+        <span class="k">try</span>
+        <span class="p">{</span>
+            <span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">SaleDetails</span><span class="p">()</span>
+            <span class="p">{</span>
+                <span class="n">Price</span> <span class="p">=</span> <span class="m">100</span><span class="p">,</span>
+                <span class="n">Currency</span> <span class="p">=</span> <span class="n">CurrenciesEnum</span><span class="p">.</span><span class="n">USD</span>
+            <span class="p">});</span>
+            <span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">SaleDetails</span><span class="p">()</span>
+            <span class="p">{</span>
+                <span class="n">Price</span> <span class="p">=</span> <span class="m">100</span><span class="p">,</span>
+                <span class="n">Currency</span> <span class="p">=</span> <span class="n">CurrenciesEnum</span><span class="p">.</span><span class="n">EUR</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="k">catch</span> <span class="p">(</span><span class="n">Exception</span> <span class="n">ex</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="n">ex</span><span class="p">.</span><span class="n">Message</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">finally</span>
+        <span class="p">{</span>
+            <span class="n">server</span><span class="p">.</span><span class="nf">Close</span><span class="p">();</span>
+        <span class="p">}</span>
+
+        <span class="n">Console</span><span class="p">.</span><span class="nf">ReadLine</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Результат работы вполне ожидаем. Клиент получил от сервера две XML-строки:</p>
+
+<p><img src="/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/first-response.png" alt="first-response" /></p>
+
+<p>Теперь попробуем кастомизировать <code class="language-plaintext highlighter-rouge">SaleDetails</code> в клиенте и добавить новый тип валюты, например вот так:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="nf">DataContract</span><span class="p">(</span><span class="n">Name</span> <span class="p">=</span> <span class="s">"CurrenciesEnum"</span><span class="p">)]</span>
+<span class="k">enum</span> <span class="n">CustomCurrenciesEnum</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">EnumMember</span><span class="p">]</span>
+    <span class="n">EUR</span> <span class="p">=</span> <span class="n">CurrenciesEnum</span><span class="p">.</span><span class="n">EUR</span><span class="p">,</span>
+    <span class="p">[</span><span class="n">EnumMember</span><span class="p">]</span>
+    <span class="n">USD</span> <span class="p">=</span> <span class="n">CurrenciesEnum</span><span class="p">.</span><span class="n">USD</span><span class="p">,</span>
+    <span class="p">[</span><span class="n">EnumMember</span><span class="p">]</span>
+    <span class="n">GBP</span> <span class="p">=</span> <span class="m">2</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">DataContract</span><span class="p">]</span>
+<span class="k">class</span> <span class="nc">CustomSaleDetails</span> <span class="p">:</span> <span class="n">SaleDetails</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="k">new</span> <span class="n">CustomCurrenciesEnum</span> <span class="n">Currency</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>И отправим 2 запроса: один с экземпляторм <code class="language-plaintext highlighter-rouge">SaleDetails</code>, а второй с <code class="language-plaintext highlighter-rouge">CustomSaleDetails</code>:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">SaleDetails</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">Price</span> <span class="p">=</span> <span class="m">100</span><span class="p">,</span>
+    <span class="n">Currency</span> <span class="p">=</span> <span class="n">CurrenciesEnum</span><span class="p">.</span><span class="n">USD</span>
+<span class="p">});</span>
+<span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">CustomSaleDetails</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">Price</span> <span class="p">=</span> <span class="m">100</span><span class="p">,</span>
+    <span class="n">Currency</span> <span class="p">=</span> <span class="n">CustomCurrenciesEnum</span><span class="p">.</span><span class="n">GBP</span>
+<span class="p">});</span>
+</code></pre></div></div>
+
+<p>Конечно это не сработает. И хоть приложение скомпилируется без ошибок, но при выполнении, сервер вернет ответ только на первый запрос. На второй запрос ответа не последует и наш клиент выбросит исключение из-за таймаута.</p>
+
+<p>Тот же результат будет, если попробовать явно преобразовать значение <code class="language-plaintext highlighter-rouge">CustomCurrenciesEnum.GBP</code> к типу <code class="language-plaintext highlighter-rouge">CurrenciesEnum</code></p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">SaleDetails</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">Price</span> <span class="p">=</span> <span class="m">100</span><span class="p">,</span>
+    <span class="n">Currency</span> <span class="p">=</span> <span class="p">(</span><span class="n">CurrenciesEnum</span><span class="p">)</span> <span class="n">CustomCurrenciesEnum</span><span class="p">.</span><span class="n">GBP</span>
+<span class="p">});</span>
+</code></pre></div></div>
+
+<p>Причина ошибки проста - контракты данных клиента и сервера не <a href="https://docs.microsoft.com/en-us/dotnet/framework/wcf/feature-details/data-contract-equivalence">эквивалентны</a>. Как решить такую проблему, если мы не можем изменить контракт в проекте Shared? В случае с рабочим проектом пришлось делать костыль. В перечислении было много неиспользуемых значений, одно из которых я условно принял за необходимое (т.е. если бы значение USD не использовалось, то я бы условно принял, что это GBP и на стороне клиента сам преобразовывал USD в строку GBP). Если вы столкнулись с такой проблемой и у вас нет неиспользуемых значений перечисления, то у вас проблемы. Этого можно было бы избежать, если бы использовались <code class="language-plaintext highlighter-rouge">enum classes</code>.</p>
+
+<h2 id="enum-здорового-человека">Enum здорового человека</h2>
+
+<p>Вместо классического <code class="language-plaintext highlighter-rouge">enum</code> можно использовать <code class="language-plaintext highlighter-rouge">enum classes</code>. Да, этой теме уже сто лет в обед, но судя по всему не все о ней знают. За основу я взял реализацию из <a href="https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/enumeration-classes-over-enum-types">статьи MSDN</a> и оставил только то, что необходимо для демонстрации.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">DataContract</span><span class="p">]</span>
+<span class="k">public</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">Enumeration</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">Value</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">DisplayName</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">override</span> <span class="kt">string</span> <span class="nf">ToString</span><span class="p">()</span> <span class="p">=&gt;</span> <span class="n">DisplayName</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Перепишем наше перечисление с использованием нового класса</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">DataContract</span><span class="p">]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">CurrenciesClass</span> <span class="p">:</span> <span class="n">Enumeration</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">readonly</span> <span class="n">CurrenciesClass</span> <span class="n">EUR</span> <span class="p">=</span> <span class="k">new</span> <span class="n">CurrenciesClass</span>
+    <span class="p">{</span>
+        <span class="n">Value</span> <span class="p">=</span> <span class="m">0</span><span class="p">,</span>
+        <span class="n">DisplayName</span> <span class="p">=</span> <span class="s">"EUR"</span>
+    <span class="p">};</span>
+
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">readonly</span> <span class="n">CurrenciesClass</span> <span class="n">USD</span> <span class="p">=</span> <span class="k">new</span> <span class="n">CurrenciesClass</span>
+    <span class="p">{</span>
+        <span class="n">Value</span> <span class="p">=</span> <span class="m">1</span><span class="p">,</span>
+        <span class="n">DisplayName</span> <span class="p">=</span> <span class="s">"USD"</span>
+    <span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>и примением его в классе <code class="language-plaintext highlighter-rouge">SaleDetails</code>.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">DataContract</span><span class="p">]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">SaleDetails</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="kt">double</span> <span class="n">Price</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="n">CurrenciesClass</span> <span class="n">Currency</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Обновим запросы в клиенте, запустим и посмотрим что получилось.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">internal</span> <span class="k">class</span> <span class="nc">Program</span>
+<span class="p">{</span>
+    <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">var</span> <span class="n">server</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">RequestClient</span><span class="p">(</span><span class="k">new</span> <span class="nf">InstanceContext</span><span class="p">(</span><span class="k">new</span> <span class="nf">Callback</span><span class="p">()</span>   <span class="p">));</span>
+        <span class="n">server</span><span class="p">.</span><span class="nf">Open</span><span class="p">();</span>
+        <span class="k">try</span>
+        <span class="p">{</span>
+            <span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">SaleDetails</span><span class="p">()</span>
+            <span class="p">{</span>
+                <span class="n">Price</span> <span class="p">=</span> <span class="m">100</span><span class="p">,</span>
+                <span class="n">Currency</span> <span class="p">=</span> <span class="n">CurrenciesClass</span><span class="p">.</span><span class="n">EUR</span>
+            <span class="p">});</span>
+            <span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">SaleDetails</span><span class="p">()</span>
+            <span class="p">{</span>
+                <span class="n">Price</span> <span class="p">=</span> <span class="m">200</span><span class="p">,</span>
+                <span class="n">Currency</span> <span class="p">=</span> <span class="n">CurrenciesClass</span><span class="p">.</span><span class="n">USD</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+        <span class="k">catch</span> <span class="p">(</span><span class="n">Exception</span> <span class="n">ex</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="n">ex</span><span class="p">.</span><span class="n">Message</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">finally</span>
+        <span class="p">{</span>
+            <span class="n">server</span><span class="p">.</span><span class="nf">Close</span><span class="p">();</span>
+        <span class="p">}</span>
+
+        <span class="n">Console</span><span class="p">.</span><span class="nf">ReadLine</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p><img src="/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/second-response.png" alt="second-response" /></p>
+
+<p>Как мы видим, всё работает отлично. Всё отлично и с возможностью расширения функционала класса <code class="language-plaintext highlighter-rouge">CurrenciesClass</code>? Создаём класс наследник в клиенте и добавляем новое статическое поле:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="n">DataContract</span><span class="p">]</span>
+<span class="k">class</span> <span class="nc">CustomCurrenciesClass</span> <span class="p">:</span> <span class="n">CurrenciesClass</span>
+<span class="p">{</span>
+    <span class="p">[</span><span class="n">DataMember</span><span class="p">]</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">readonly</span> <span class="n">CurrenciesClass</span> <span class="n">GBR</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">CurrenciesClass</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="n">Value</span> <span class="p">=</span> <span class="m">2</span><span class="p">,</span>
+        <span class="n">DisplayName</span> <span class="p">=</span> <span class="s">"GBR"</span>
+    <span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>добавляем в тело метода <code class="language-plaintext highlighter-rouge">Main</code> ещё один запрос</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">server</span><span class="p">.</span><span class="nf">SendRequest</span><span class="p">(</span><span class="k">new</span> <span class="nf">SaleDetails</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">Price</span> <span class="p">=</span> <span class="m">300</span><span class="p">,</span>
+    <span class="n">Currency</span> <span class="p">=</span> <span class="n">CustomCurrenciesClass</span><span class="p">.</span><span class="n">GBR</span>
+<span class="p">});</span>
+</code></pre></div></div>
+
+<p>Вуаля, всё работает</p>
+
+<p><img src="/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/third-response.png" alt="third-response" /></p>
+
+<h2 id="резюме">Резюме</h2>
+
+<p>Как мы видим, использование <code class="language-plaintext highlighter-rouge">enum classes</code> значительно упрощает кастомизацию уже существующих перечислений. Да, придётся писать чуть больше кода, но преимущества такого подхода очевидны. Конечно, не нужно использовать <code class="language-plaintext highlighter-rouge">enum classes</code> везде вместо классического <code class="language-plaintext highlighter-rouge">enum</code>. Если вы на 100% уверены, что ваше перечисление не будет меняться в будущем или если вы можете вносить изменения в коде на любом слое вашего приложения, то можно использовать <code class="language-plaintext highlighter-rouge">enum</code>. Просто в некоторых случаях, как например, описанный мною, использование <code class="language-plaintext highlighter-rouge">enum classes</code> - это единственное решение, которое бы не доставило вам проблем в будущем.</p>
+</div><a class="u-url" href="/2022/01/31/insidious-enum-in-dotnet.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

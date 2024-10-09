@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Understanding Domain-Driven Design. From Anemic Domain Model to Rich Domain Model. | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Understanding Domain-Driven Design. From Anemic Domain Model to Rich Domain Model." />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="I recently read the book Learning Domain-Driven Design on the advice of my mate, who is more experienced in development than I am. I’ve already written a small review about this book in my Telegram channel (it’s in Russian). Now, I’m going to write a series of articles about how Domain-Driven Design (DDD) can improve your code and software development process. This is the first article in this series." />
+<meta property="og:description" content="I recently read the book Learning Domain-Driven Design on the advice of my mate, who is more experienced in development than I am. I’ve already written a small review about this book in my Telegram channel (it’s in Russian). Now, I’m going to write a series of articles about how Domain-Driven Design (DDD) can improve your code and software development process. This is the first article in this series." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2023/06/05/understanding-ddd-01.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2023/06/05/understanding-ddd-01.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-06-05T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Understanding Domain-Driven Design. From Anemic Domain Model to Rich Domain Model." />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"I recently read the book Learning Domain-Driven Design on the advice of my mate, who is more experienced in development than I am. I’ve already written a small review about this book in my Telegram channel (it’s in Russian). Now, I’m going to write a series of articles about how Domain-Driven Design (DDD) can improve your code and software development process. This is the first article in this series.","@type":"BlogPosting","headline":"Understanding Domain-Driven Design. From Anemic Domain Model to Rich Domain Model.","dateModified":"2023-06-05T00:00:00+00:00","datePublished":"2023-06-05T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2023/06/05/understanding-ddd-01.html"},"url":"http://www.alexeyfv.xyz//2023/06/05/understanding-ddd-01.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Understanding Domain-Driven Design. From Anemic Domain Model to Rich Domain Model.
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2023-06-05T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Jun 5, 2023
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/ddd">#ddd</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>I recently read the book <a href="https://www.**oreilly**.com/library/view/learning-domain-driven-design/9781098100124/">Learning Domain-Driven Design</a> on the advice of my mate, who is more experienced in development than I am. I’ve already written a small review about this book in <a href="https://t.me/full_stack_dev_diaries/9">my Telegram channel</a> (it’s in Russian). Now, I’m going to write a series of articles about how Domain-Driven Design (DDD) can improve your code and software development process. This is the first article in this series.</p>
+
+<h2 id="anemic-domain-model-adm">Anemic Domain Model (ADM)</h2>
+
+<p>I’m not sure if I can describe what ADM is better that <a href="https://martinfowler.com/bliki/AnemicDomainModel.html">Martin Fowler</a>. Firstly and foremost, I highly recommend reading his article about this antipattern.</p>
+
+<p>In essence, ADM represents a Domain Model that lacks behavior, consisting solely of a bunch of getters and setters. I created a <a href="https://gitlab.com/alexeyfv/understanding-ddd-01">simple</a> CLI application which uses ADM. The code I have written is based on what I saw during my career as a software developer, and we’ll try to improve it.</p>
+
+<p>The application simulates a system for tracking tickets. It has the following <a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DomainLayer/Models.cs">models</a>:</p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">Worker</code> - a person responsible for resolving the tickets.</li>
+  <li><code class="language-plaintext highlighter-rouge">Ticket</code> - an entity that describes a problem and can be assigned to any worker.</li>
+</ol>
+
+<p>The functionality of the application allows the user to:</p>
+
+<ol>
+  <li><a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L7">Add workers</a>.</li>
+  <li><a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L36">Update workers info</a>.</li>
+  <li><a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L53">Fire workers</a>.</li>
+  <li><a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L24">Get workers info</a>.</li>
+  <li><a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L67">Open tickets for workers</a>.</li>
+  <li><a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L116">Close tickets for workers</a>.</li>
+</ol>
+
+<p>Imagine that we have a ticket with <code class="language-plaintext highlighter-rouge">Id = 1</code> and user tries to update <code class="language-plaintext highlighter-rouge">Description</code> of the ticket. To do that, user executes:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dotnet run <span class="nt">--</span> ticket update <span class="nt">-id</span> 1 <span class="nt">-c</span> <span class="s2">"Some new content"</span>
+</code></pre></div></div>
+
+<p>In the result, the ticket will be updated, but what’s going on inside the application? The sequence diagram for this workflow is below:</p>
+
+<p><img src="/assets/2023/06/2023-06-05-understanding-ddd-01/image01.png" alt="content" />
+<strong>Figure 1 - Sequence diagram for ticket updating</strong></p>
+
+<p>Seems quite complicated, doesn’t it? What exactly are the disadvantages of this architecture? Here is the list:</p>
+
+<ol>
+  <li>Domain Models and Database Objects are pretty much the same. The <a href="https://en.wikipedia.org/wiki/Don%27t_repeat_yourself">DRY principle</a> is violated.</li>
+  <li>If you need to implement new functionality, you’ll need to write at least twice as much code.</li>
+  <li>If you need to support existing code, you’ll have to spend at least twice as much time on maintanance.</li>
+  <li>For each pair of Domain Model - Database Object, you have to create a mapper. More code increases the chances of creating bugs.</li>
+  <li>Unnecessary calls to the DB.</li>
+  <li>If you need to process hundreds or thousands of entities, you have to load all these DBOs into memory and map them to Domain Models. This will significantly degrade application performance.</li>
+</ol>
+
+<p>How we can improve this existing code? Take a look at the sequence diagram for <a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L67">opening a new ticket</a>:</p>
+
+<p><img src="/assets/2023/06/2023-06-05-understanding-ddd-01/image02.png" alt="content" />
+<strong>Figure 2 - Sequence diagram for opening ticket</strong></p>
+
+<p>This example doesn’t have unnecessary requests to the DB, but we still have all other problems that were mentioned earlier. Moreover, you may be wondering where is the BLL? That is one of the problem of such an approach. The business logic is spread across by different kinds of handler. In this particular case, the logic of ticket assigning has leaked to the DAL.</p>
+
+<p>Is it possible to further improve the code? Yes, and this is where a Rich Domain Model (RDM) comes into play.</p>
+
+<h2 id="rich-domain-model-rdm">Rich Domain Model (RDM)</h2>
+
+<p>As I mentioned earlier, ADM is simply a class with a collection of getters and setters. However, it’s evident that an RDM is more that just a bunch of getters and setters. It also contains functionality that is directly related to the domain.</p>
+
+<p>To refactor the code from ADM to RDM, we should follow these steps:</p>
+
+<ol>
+  <li>Get rid of duplicated models and mappers by combining Domain Models with DBO.</li>
+  <li>Replace <code class="language-plaintext highlighter-rouge">Requests</code> and <code class="language-plaintext highlighter-rouge">Queries</code> with <code class="language-plaintext highlighter-rouge">Commands</code> and <code class="language-plaintext highlighter-rouge">Events</code>.</li>
+  <li>Consolidate all database-related operations from different handlers into a single command handler.</li>
+  <li>Transfer domain functionality from handlers to Domain Models.</li>
+</ol>
+
+<h3 id="get-rid-of-duplications">Get rid of duplications</h3>
+
+<p>The first step will be is combine the duplicated models. Lets’do it for <code class="language-plaintext highlighter-rouge">Worker</code> entity. In the initial project, we had <code class="language-plaintext highlighter-rouge">Worker</code> class and <code class="language-plaintext highlighter-rouge">WorkerDbo</code> class as a Domain Model and Database Object, respectively:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="n">record</span> <span class="n">Worker</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">Id</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Name</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Email</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Position</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">bool</span> <span class="n">Fired</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">DateTimeOffset</span> <span class="n">Created</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">DateTimeOffset</span> <span class="n">Updated</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="n">record</span> <span class="n">WorkerDbo</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">Id</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Name</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Email</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Position</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">bool</span> <span class="n">Fired</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">DateTimeOffset</span> <span class="n">Created</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">DateTimeOffset</span> <span class="n">Updated</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">ICollection</span><span class="p">&lt;</span><span class="n">TicketDbo</span><span class="p">&gt;</span> <span class="n">AssignedTickets</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="k">new</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">TicketDbo</span><span class="p">&gt;();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>After refactoring, Domain Model for the Worker will be:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="n">record</span> <span class="n">Worker</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">Id</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Name</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Email</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Position</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">bool</span> <span class="n">Fired</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">DateTimeOffset</span> <span class="n">Created</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">DateTimeOffset</span> <span class="n">Updated</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">ICollection</span><span class="p">&lt;</span><span class="n">Ticket</span><span class="p">&gt;</span> <span class="n">AssignedTickets</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">protected</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="k">new</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">Ticket</span><span class="p">&gt;();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This is a crucial and straightforward step. By removing duplicates, we significantly simplified the maintenance of the code. Now, there is no reason to write the same code multiple times and write mappers. Note that all properties have <code class="language-plaintext highlighter-rouge">protected set</code> modifier. Consequently, Domain Model mutations can only be done from within of the class.</p>
+
+<h2 id="commands-and-events">Commands and Events</h2>
+
+<p>The next step is to replace Requests and Queries by Commands and Events.</p>
+
+<p>A command is a structure which encapsulates an action data that will cause the mutation of the Domain Model. According to the naming conventions in DDD, <a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/rdm/DomainLayer/Commands.cs">Commands</a> should be named in an imperative mood plus the Domain Model name. For example, <code class="language-plaintext highlighter-rouge">CreateWorker</code>, <code class="language-plaintext highlighter-rouge">UpdateWorker</code>, <code class="language-plaintext highlighter-rouge">OpenTicketForWorker</code>.</p>
+
+<p>An event is a structure which encapsulates the result of Domain Model mutation. According to the naming conventions in DDD, <a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/rdm/DomainLayer/Events.cs">Events</a> should be named with the Domain Model name plus the verb in past tense. For example, <code class="language-plaintext highlighter-rouge">WorkerCreated</code>, <code class="language-plaintext highlighter-rouge">WorkerUpdated</code>, <code class="language-plaintext highlighter-rouge">TicketForWorkerOpened</code>.</p>
+
+<h2 id="single-command-handler">Single command handler</h2>
+
+<p>We already have updated Domain Models and also Commands and Events. Now it’s time to implement a Command Handler which will be a single point for all commands in the application. Depends on the type of the Command, <a href="https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/rdm/ApplicationLayer/CommandHandler.cs">Command Handler</a> will call appropriate method for Domain Models.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">CommandHandler</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="n">EventBase</span> <span class="nf">Handle</span><span class="p">(</span><span class="n">CommandBase</span> <span class="n">command</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">var</span> <span class="n">@event</span> <span class="p">=</span> <span class="n">command</span> <span class="k">switch</span>
+        <span class="p">{</span>
+            <span class="n">TicketCommand</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+            <span class="n">WorkerCommand</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+            <span class="n">_</span> <span class="p">=&gt;</span> <span class="k">throw</span> <span class="k">new</span> <span class="nf">NotSupportedException</span><span class="p">(),</span>
+        <span class="p">};</span>
+        <span class="k">return</span> <span class="n">@event</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Private Handle methods implemented according to one pattern:</p>
+
+<ol>
+  <li>Extract entity from the DB.</li>
+  <li>Call appropriate Handle method in the Domain Model</li>
+  <li>Save changes in the DB.</li>
+  <li>Return result event.</li>
+</ol>
+
+<p>For example, Handler method for <code class="language-plaintext highlighter-rouge">Worker</code> model:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">private</span> <span class="n">EventBase</span> <span class="nf">Handle</span><span class="p">(</span><span class="n">WorkerCommand</span> <span class="n">command</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">db</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">DatabaseAdapter</span><span class="p">();</span>
+
+    <span class="kt">var</span> <span class="n">@event</span> <span class="p">=</span> <span class="n">command</span> <span class="k">switch</span>
+    <span class="p">{</span>
+        <span class="n">CreateWorker</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="n">db</span><span class="p">.</span><span class="n">Workers</span>
+            <span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="k">new</span> <span class="nf">Worker</span><span class="p">()).</span><span class="n">Entity</span>
+            <span class="p">.</span><span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+        <span class="n">UpdateWorker</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="n">db</span><span class="p">.</span><span class="n">Workers</span>
+            <span class="p">.</span><span class="nf">First</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">Id</span> <span class="p">==</span> <span class="n">cmd</span><span class="p">.</span><span class="n">Id</span><span class="p">)</span>
+            <span class="p">.</span><span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+        <span class="n">FireWorker</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="n">db</span><span class="p">.</span><span class="n">Workers</span>
+            <span class="p">.</span><span class="nf">First</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">Id</span> <span class="p">==</span> <span class="n">cmd</span><span class="p">.</span><span class="n">Id</span><span class="p">)</span>
+            <span class="p">.</span><span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+        <span class="n">GetWorkerInfo</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="n">db</span><span class="p">.</span><span class="n">Workers</span>
+            <span class="p">.</span><span class="nf">First</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">Id</span> <span class="p">==</span> <span class="n">cmd</span><span class="p">.</span><span class="n">Id</span><span class="p">)</span>
+            <span class="p">.</span><span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+        <span class="n">OpenTicketForWorker</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="n">db</span><span class="p">.</span><span class="n">Workers</span>
+            <span class="p">.</span><span class="nf">First</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">Id</span> <span class="p">==</span> <span class="n">cmd</span><span class="p">.</span><span class="n">Id</span><span class="p">)</span>
+            <span class="p">.</span><span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+        <span class="n">CloseTicketForWorker</span> <span class="n">cmd</span> <span class="p">=&gt;</span> <span class="n">db</span><span class="p">.</span><span class="n">Workers</span>
+            <span class="p">.</span><span class="nf">Include</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">AssignedTickets</span><span class="p">)</span>
+            <span class="p">.</span><span class="nf">First</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">Id</span> <span class="p">==</span> <span class="n">cmd</span><span class="p">.</span><span class="n">Id</span><span class="p">)</span>
+            <span class="p">.</span><span class="nf">Handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">),</span>
+        <span class="n">_</span> <span class="p">=&gt;</span> <span class="k">throw</span> <span class="k">new</span> <span class="nf">NotSupportedException</span><span class="p">(),</span>
+    <span class="p">};</span>
+    <span class="n">db</span><span class="p">.</span><span class="nf">SaveChanges</span><span class="p">();</span>
+    <span class="k">return</span> <span class="n">@event</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="handlers-in-domain-model">Handlers in Domain Model</h2>
+
+<p>Last, but not least, we need to move domain functionality from old handlers to handlers in the Domain Model. The new handlers will be much simpler because now they only contain domain logic without functionality to database. For example, the handler for the <code class="language-plaintext highlighter-rouge">UpdateWorker</code> command looks like:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="n">EventBase</span> <span class="nf">Handle</span><span class="p">(</span><span class="n">UpdateWorker</span> <span class="n">request</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="n">Name</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span> <span class="n">Name</span> <span class="p">=</span> <span class="n">request</span><span class="p">.</span><span class="n">Name</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="n">Email</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span> <span class="n">Email</span> <span class="p">=</span> <span class="n">request</span><span class="p">.</span><span class="n">Email</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="n">Position</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span> <span class="n">Position</span> <span class="p">=</span> <span class="n">request</span><span class="p">.</span><span class="n">Position</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="n">Name</span> <span class="p">!=</span> <span class="k">null</span> <span class="p">||</span> 
+        <span class="n">request</span><span class="p">.</span><span class="n">Email</span> <span class="p">!=</span> <span class="k">null</span> <span class="p">||</span> 
+        <span class="n">request</span><span class="p">.</span><span class="n">Position</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span> <span class="n">Updated</span> <span class="p">=</span> <span class="n">DateTimeOffset</span><span class="p">.</span><span class="n">Now</span><span class="p">;</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="nf">WorkerUpdated</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="after-refactoring">After refactoring</h2>
+
+<p>Now, let’s examine the sequence diagram for the ticket updating functionality and compare with Figure 1 and 2. You will notice that it has become much simpler:</p>
+
+<p><img src="/assets/2023/06/2023-06-05-understanding-ddd-01/image03.png" alt="content" />
+<strong>Figure 3 - Sequence diagram for ticket updating using RDM</strong></p>
+
+<p>Actually, the diagram will remain the same for all types of commands, not just for for updating ticket. The only difference will be in Business Logic part.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>In this article, I tried to show how DDD patterns and RDM can improve the code base and the architecture of your application. The advantages of using DDD and RDM are the following:</p>
+
+<ol>
+  <li>Encapsulation of data and behavior. Domain Models are no longer just a bunch of getters and setters.</li>
+  <li>Understandable naming conventions, e.g. for Commands and Events.</li>
+  <li>There is no need to have several classes with the same set of properties and create mappers for them.</li>
+  <li>Database calls are kept to a minimum.</li>
+</ol>
+</div><a class="u-url" href="/2023/06/05/understanding-ddd-01.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

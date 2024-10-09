@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Create secure React SPA + ASP.NET Web API with Keycloak OAuth2 | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Create secure React SPA + ASP.NET Web API with Keycloak OAuth2" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This is a step-by-step guide how to create a full stack secure application with OAuth2 authentication." />
+<meta property="og:description" content="This is a step-by-step guide how to create a full stack secure application with OAuth2 authentication." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2023/07/30/secure-app-with-keycloak.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2023/07/30/secure-app-with-keycloak.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-07-30T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Create secure React SPA + ASP.NET Web API with Keycloak OAuth2" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"This is a step-by-step guide how to create a full stack secure application with OAuth2 authentication.","@type":"BlogPosting","headline":"Create secure React SPA + ASP.NET Web API with Keycloak OAuth2","dateModified":"2023-07-30T00:00:00+00:00","datePublished":"2023-07-30T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2023/07/30/secure-app-with-keycloak.html"},"url":"http://www.alexeyfv.xyz//2023/07/30/secure-app-with-keycloak.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Create secure React SPA + ASP.NET Web API with Keycloak OAuth2
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2023-07-30T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Jul 30, 2023
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/aspnet">#aspnet</a>
+    
+    <a class="post" href="/tag/typescript">#typescript</a>
+    
+    <a class="post" href="/tag/react">#react</a>
+    
+    <a class="post" href="/tag/docker">#docker</a>
+    
+    <a class="post" href="/tag/oauth2">#oauth2</a>
+    
+    <a class="post" href="/tag/keycloak">#keycloak</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>This is a step-by-step guide how to create a full stack secure application with OAuth2 authentication.</p>
+
+<h2 id="table-of-contents">Table of contents</h2>
+
+<ul>
+  <li><a href="#table-of-contents">Table of contents</a></li>
+  <li><a href="#introduction">Introduction</a></li>
+  <li><a href="#prerequisites">Prerequisites</a></li>
+  <li><a href="#initialize-the-app">Initialize the app</a>
+    <ul>
+      <li><a href="#create-aspnet-web-api-service">Create ASP.NET Web API service</a></li>
+      <li><a href="#create-react-spa">Create React SPA</a></li>
+      <li><a href="#connect-client-with-server">Connect client with server</a></li>
+      <li><a href="#dockerize-the-app">Dockerize the app</a></li>
+    </ul>
+  </li>
+  <li><a href="#secure-the-app">Secure the app</a>
+    <ul>
+      <li><a href="#setup-keycloak">Setup Keycloak</a></li>
+      <li><a href="#change-the-client">Change the client</a></li>
+      <li><a href="#change-the-server">Change the server</a></li>
+      <li><a href="#run-it-all-together">Run it all together</a></li>
+    </ul>
+  </li>
+  <li><a href="#source-code">Source code</a></li>
+  <li><a href="#summary">Summary</a></li>
+</ul>
+
+<h2 id="introduction">Introduction</h2>
+
+<p><a href="https://www.keycloak.org/">Keycloak</a> is an open-source identity and access management (IAM) solution. It provides user authentication, authorization, and user management. Keycloak allows you to secure web applications by providing a centralized authentication and authorization mechanism. It supports various authentication methods, including username/password, social login (e.g., Google, Facebook), and more. Keycloak is based on standard protocols such as <a href="https://datatracker.ietf.org/doc/html/rfc6749">OAuth 2.0</a> and OpenID Connect, making it compatible with a wide range of applications and services.</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>Since we are going to create a full stack application I assume that you have knowledge of:</p>
+
+<ol>
+  <li>C# and ASP.NET Web API.</li>
+  <li>TypeScript and React.</li>
+  <li>Docker.</li>
+</ol>
+
+<p>You also have to have the following software on your machine:</p>
+
+<ol>
+  <li>.NET SDK</li>
+  <li>Node.js with npm</li>
+  <li>Docker</li>
+</ol>
+
+<h2 id="initialize-the-app">Initialize the app</h2>
+
+<h3 id="create-aspnet-web-api-service">Create ASP.NET Web API service</h3>
+
+<p>Let’s start with the backend part. We’re going to create an ASP.NET Web API service using the following command:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>dotnet new webapi <span class="nt">--no-openapi</span> <span class="nt">--use-minimal-apis</span>
+</code></pre></div></div>
+
+<p>I used 2 options to simplify the source code:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">–-no-openapi</code> disables OpenAPI specification generation.</li>
+  <li><code class="language-plaintext highlighter-rouge">–-use-minimal-apis</code> generates minimalistic version of HTTP requests handlers.</li>
+</ul>
+
+<p>The result is below.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">var</span> <span class="n">builder</span> <span class="p">=</span> <span class="n">WebApplication</span><span class="p">.</span><span class="nf">CreateBuilder</span><span class="p">(</span><span class="n">args</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">app</span> <span class="p">=</span> <span class="n">builder</span><span class="p">.</span><span class="nf">Build</span><span class="p">();</span>
+<span class="n">app</span><span class="p">.</span><span class="nf">UseHttpsRedirection</span><span class="p">();</span>
+
+<span class="kt">var</span> <span class="n">summaries</span> <span class="p">=</span> <span class="k">new</span><span class="p">[]</span>
+<span class="p">{</span>
+    <span class="s">"Freezing"</span><span class="p">,</span> <span class="s">"Bracing"</span><span class="p">,</span> <span class="s">"Chilly"</span><span class="p">,</span> <span class="s">"Cool"</span><span class="p">,</span> <span class="s">"Mild"</span><span class="p">,</span> <span class="s">"Warm"</span><span class="p">,</span> <span class="s">"Balmy"</span><span class="p">,</span> <span class="s">"Hot"</span><span class="p">,</span> <span class="s">"Sweltering"</span><span class="p">,</span> <span class="s">"Scorching"</span>
+<span class="p">};</span>
+
+<span class="n">app</span><span class="p">.</span><span class="nf">MapGet</span><span class="p">(</span><span class="s">"/weatherforecast"</span><span class="p">,</span> <span class="p">()</span> <span class="p">=&gt;</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">forecast</span> <span class="p">=</span> <span class="n">Enumerable</span><span class="p">.</span><span class="nf">Range</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">5</span><span class="p">).</span><span class="nf">Select</span><span class="p">(</span><span class="n">index</span> <span class="p">=&gt;</span>
+        <span class="k">new</span> <span class="nf">WeatherForecast</span>
+        <span class="p">(</span>
+            <span class="n">DateOnly</span><span class="p">.</span><span class="nf">FromDateTime</span><span class="p">(</span><span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">.</span><span class="nf">AddDays</span><span class="p">(</span><span class="n">index</span><span class="p">)),</span>
+            <span class="n">Random</span><span class="p">.</span><span class="n">Shared</span><span class="p">.</span><span class="nf">Next</span><span class="p">(-</span><span class="m">20</span><span class="p">,</span> <span class="m">55</span><span class="p">),</span>
+            <span class="n">summaries</span><span class="p">[</span><span class="n">Random</span><span class="p">.</span><span class="n">Shared</span><span class="p">.</span><span class="nf">Next</span><span class="p">(</span><span class="n">summaries</span><span class="p">.</span><span class="n">Length</span><span class="p">)]</span>
+        <span class="p">))</span>
+        <span class="p">.</span><span class="nf">ToArray</span><span class="p">();</span>
+    <span class="k">return</span> <span class="n">forecast</span><span class="p">;</span>
+<span class="p">});</span>
+
+<span class="n">app</span><span class="p">.</span><span class="nf">Run</span><span class="p">();</span>
+
+<span class="n">record</span> <span class="nf">WeatherForecast</span><span class="p">(</span><span class="n">DateOnly</span> <span class="n">Date</span><span class="p">,</span> <span class="kt">int</span> <span class="n">TemperatureC</span><span class="p">,</span> <span class="kt">string</span><span class="p">?</span> <span class="n">Summary</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">TemperatureF</span> <span class="p">=&gt;</span> <span class="m">32</span> <span class="p">+</span> <span class="p">(</span><span class="kt">int</span><span class="p">)(</span><span class="n">TemperatureC</span> <span class="p">/</span> <span class="m">0.5556</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The service has only one endpoint <code class="language-plaintext highlighter-rouge">/weatherforecast</code>. Right now it is not secured, so anyone can call it and receive the data.</p>
+
+<p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image01.png" alt="content" />
+<strong>The endpoint /weatherforecast is not secured</strong></p>
+
+<h3 id="create-react-spa">Create React SPA</h3>
+
+<p>Create the client via:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>npx create-react-app client -—template typescript
+</code></pre></div></div>
+
+<p>This command generates a bunch of files we don’t need, so I removed them to simplify the code.</p>
+
+<p>Now project looks like:</p>
+
+<p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image02.png" alt="content" />
+<strong>Initial project</strong></p>
+
+<h3 id="connect-client-with-server">Connect client with server</h3>
+
+<p>Right now, the project contains two different applications (client and server) which don’t communicate with each other. Let’s connect them, so that the client will be able to call <code class="language-plaintext highlighter-rouge">/weatherforecast</code> endpoint:</p>
+
+<ol>
+  <li>
+    <p>At the server side a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">CORS</a> policy should be added. The policy allows any header, any method and any origin. Don’t do it in production, but for development purposes it’s ok.</p>
+
+    <div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="n">builder</span><span class="p">.</span><span class="n">Services</span><span class="p">.</span><span class="nf">AddCors</span><span class="p">();</span>
+
+ <span class="c1">// other code</span>
+
+ <span class="k">if</span> <span class="p">(</span><span class="n">builder</span><span class="p">.</span><span class="n">Environment</span><span class="p">.</span><span class="nf">IsDevelopment</span><span class="p">())</span>
+ <span class="p">{</span>
+     <span class="n">app</span><span class="p">.</span><span class="nf">UseCors</span><span class="p">(</span><span class="n">config</span> <span class="p">=&gt;</span>
+     <span class="p">{</span>
+         <span class="n">config</span><span class="p">.</span><span class="nf">AllowAnyHeader</span><span class="p">();</span>
+         <span class="n">config</span><span class="p">.</span><span class="nf">AllowAnyMethod</span><span class="p">();</span>
+         <span class="n">config</span><span class="p">.</span><span class="nf">AllowAnyOrigin</span><span class="p">();</span>
+     <span class="p">});</span>
+ <span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>At the client side <code class="language-plaintext highlighter-rouge">WeatherForecastView</code> component should be created. This component calls <code class="language-plaintext highlighter-rouge">/weatherforecast</code> endpoint and renders the received data.</p>
+
+    <div class="language-tsx highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c1">// App.tsx</span>
+ <span class="k">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="nx">App</span><span class="p">()</span> <span class="p">{</span>
+     <span class="k">return</span> <span class="p">(</span>
+         <span class="p">&lt;</span><span class="nt">div</span> <span class="na">className</span><span class="p">=</span><span class="s">"App"</span><span class="p">&gt;</span>
+             <span class="p">&lt;</span><span class="nc">WeatherForecastView</span> <span class="p">/&gt;</span>
+         <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+     <span class="p">);</span>
+ <span class="p">}</span>
+
+ <span class="c1">// WeatherForecast.ts</span>
+ <span class="k">export</span> <span class="kr">interface</span> <span class="nx">WeatherForecast</span> <span class="p">{</span>
+     <span class="nl">date</span><span class="p">:</span> <span class="nb">Date</span><span class="p">;</span>
+     <span class="nl">temperatureC</span><span class="p">:</span> <span class="kr">number</span><span class="p">;</span>
+     <span class="nl">summary</span><span class="p">:</span> <span class="kr">string</span><span class="p">;</span>
+ <span class="p">}</span>
+
+ <span class="c1">// WeatherForecastView.tsx</span>
+ <span class="k">import</span> <span class="p">{</span> <span class="nx">useEffect</span><span class="p">,</span> <span class="nx">useState</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">react</span><span class="dl">"</span><span class="p">;</span>
+ <span class="k">import</span> <span class="p">{</span> <span class="nx">useApi</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">./hooks/useApi</span><span class="dl">"</span><span class="p">;</span>
+ <span class="k">import</span> <span class="p">{</span> <span class="nx">WeatherForecast</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">./types/WeatherForecast</span><span class="dl">"</span><span class="p">;</span>
+
+ <span class="k">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="nx">WeatherForecastView</span><span class="p">()</span> <span class="p">{</span>
+     <span class="kd">const</span> <span class="p">[</span><span class="kd">get</span><span class="p">]</span> <span class="o">=</span> <span class="nx">useApi</span><span class="p">();</span>
+     <span class="kd">const</span> <span class="p">[</span><span class="nx">forecast</span><span class="p">,</span> <span class="nx">setForecast</span><span class="p">]</span> <span class="o">=</span> <span class="nx">useState</span><span class="o">&lt;</span><span class="nx">WeatherForecast</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">([]);</span>
+
+     <span class="nx">useEffect</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+         <span class="kd">get</span><span class="p">().</span><span class="nx">then</span><span class="p">((</span><span class="nx">wf</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">setForecast</span><span class="p">(</span><span class="nx">wf</span><span class="p">));</span>
+     <span class="p">},</span> <span class="p">[]);</span>
+
+     <span class="k">return</span> <span class="p">(</span>
+         <span class="p">&lt;</span><span class="nt">table</span><span class="p">&gt;</span>
+         <span class="p">&lt;</span><span class="nt">thead</span><span class="p">&gt;</span>
+             <span class="p">&lt;</span><span class="nt">tr</span><span class="p">&gt;</span>
+             <span class="p">&lt;</span><span class="nt">th</span><span class="p">&gt;</span>Date<span class="p">&lt;/</span><span class="nt">th</span><span class="p">&gt;</span>
+             <span class="p">&lt;</span><span class="nt">th</span><span class="p">&gt;</span>Temperature<span class="p">&lt;/</span><span class="nt">th</span><span class="p">&gt;</span>
+             <span class="p">&lt;</span><span class="nt">th</span><span class="p">&gt;</span>Summary<span class="p">&lt;/</span><span class="nt">th</span><span class="p">&gt;</span>
+             <span class="p">&lt;/</span><span class="nt">tr</span><span class="p">&gt;</span>
+         <span class="p">&lt;/</span><span class="nt">thead</span><span class="p">&gt;</span>
+         <span class="p">&lt;</span><span class="nt">tbody</span><span class="p">&gt;</span>
+             <span class="si">{</span><span class="nx">forecast</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">f</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">(</span>
+             <span class="p">&lt;</span><span class="nt">tr</span><span class="p">&gt;</span>
+                 <span class="p">&lt;</span><span class="nt">td</span><span class="p">&gt;</span><span class="si">{</span><span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">date</span><span class="p">).</span><span class="nx">toDateString</span><span class="p">()</span><span class="si">}</span><span class="p">&lt;/</span><span class="nt">td</span><span class="p">&gt;</span>
+                 <span class="p">&lt;</span><span class="nt">td</span><span class="p">&gt;</span><span class="si">{</span><span class="nx">f</span><span class="p">.</span><span class="nx">temperatureC</span><span class="si">}</span><span class="p">&lt;/</span><span class="nt">td</span><span class="p">&gt;</span>
+                 <span class="p">&lt;</span><span class="nt">td</span><span class="p">&gt;</span><span class="si">{</span><span class="nx">f</span><span class="p">.</span><span class="nx">summary</span><span class="si">}</span><span class="p">&lt;/</span><span class="nt">td</span><span class="p">&gt;</span>
+             <span class="p">&lt;/</span><span class="nt">tr</span><span class="p">&gt;</span>
+             <span class="p">))</span><span class="si">}</span>
+         <span class="p">&lt;/</span><span class="nt">tbody</span><span class="p">&gt;</span>
+         <span class="p">&lt;/</span><span class="nt">table</span><span class="p">&gt;</span>
+     <span class="p">);</span>
+ <span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="dockerize-the-app">Dockerize the app</h3>
+
+<p>Now we are going to put both applications in a single Docker container. The dockerfile is pretty straightforward. It uses Node.js and .NET SDK images to build both of the applications and then makes the final container using an ASP.NET image. Note that built client application will be copied to the <code class="language-plaintext highlighter-rouge">wwwroot</code> folder.</p>
+
+<div class="language-dockerfile highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Stage 1: Frontend - React SPA (https://hub.docker.com/_/node)</span>
+<span class="k">FROM</span><span class="s"> node:18-alpine AS frontend-build</span>
+<span class="k">WORKDIR</span><span class="s"> /</span>
+<span class="k">COPY</span><span class="s"> ./client ./</span>
+<span class="k">RUN </span>npm i <span class="o">&amp;&amp;</span> npm run build
+
+<span class="c"># Stage 2: Backend - ASP.NET Core Web API (https://hub.docker.com/_/microsoft-dotnet-sdk/)</span>
+<span class="k">FROM</span><span class="s"> mcr.microsoft.com/dotnet/sdk:7.0-alpine AS backend-build</span>
+<span class="k">WORKDIR</span><span class="s"> /</span>
+
+<span class="c"># Copy projects and restore dependencies</span>
+<span class="k">COPY</span><span class="s"> ./server/*.csproj ./server/</span>
+<span class="k">RUN </span>dotnet restore ./server/
+
+<span class="c"># Copy everything else</span>
+<span class="k">COPY</span><span class="s"> . .</span>
+
+<span class="c"># Build app</span>
+<span class="k">WORKDIR</span><span class="s"> /server</span>
+<span class="k">RUN </span>dotnet publish <span class="nt">-c</span> release <span class="nt">-o</span> /app
+
+<span class="c"># Stage 3: Create final container</span>
+<span class="k">FROM</span><span class="s"> mcr.microsoft.com/dotnet/aspnet:7.0-alpine</span>
+<span class="k">WORKDIR</span><span class="s"> /app</span>
+<span class="k">COPY</span><span class="s"> --from=frontend-build /build ./wwwroot</span>
+<span class="k">COPY</span><span class="s"> --from=backend-build /app ./</span>
+<span class="k">ENTRYPOINT</span><span class="s"> ["dotnet", "server.dll"]</span>
+
+</code></pre></div></div>
+
+<p>I also created <code class="language-plaintext highlighter-rouge">docker-compose.yml</code> file to quickly run the container.</p>
+
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s2">"</span><span class="s">3.9"</span>
+
+<span class="na">services</span><span class="pi">:</span>
+  <span class="na">webapp</span><span class="pi">:</span>
+    <span class="na">container_name</span><span class="pi">:</span> <span class="s">secure-app</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">secure-app</span>
+    <span class="na">ports</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">5000:80</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">ASPNETCORE_URLS=http://+:80</span>
+</code></pre></div></div>
+
+<p>To make the client and the server work together we should do a small change in <code class="language-plaintext highlighter-rouge">Program.cs</code> file. This сhange allows the server to return a built client application i.e. static HTML-page.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">if</span> <span class="p">(</span><span class="n">builder</span><span class="p">.</span><span class="n">Environment</span><span class="p">.</span><span class="nf">IsDevelopment</span><span class="p">())</span>
+<span class="p">{</span>
+    <span class="c1">// other code</span>
+<span class="p">}</span>
+<span class="k">else</span>
+<span class="p">{</span>
+    <span class="n">app</span><span class="p">.</span><span class="nf">UseStaticFiles</span><span class="p">();</span> <span class="c1">// Enables static files serving from wwwroot folder</span>
+    <span class="n">app</span><span class="p">.</span><span class="nf">MapFallbackToFile</span><span class="p">(</span><span class="s">"index.html"</span><span class="p">);</span> <span class="c1">// Maps to index.html from wwwroot folder</span>
+<span class="p">}</span>
+
+<span class="c1">// other code</span>
+</code></pre></div></div>
+
+<p>To build and run the dockerized application execute the following commands.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker build <span class="nt">-t</span> secure-app <span class="nb">.</span>
+docker compose up 
+</code></pre></div></div>
+
+<h2 id="secure-the-app">Secure the app</h2>
+
+<h3 id="setup-keycloak">Setup Keycloak</h3>
+
+<p>The easiest way to run Keycloak instance is run it in docker container using the following command.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker run <span class="nt">-p</span> 8080:8080 <span class="nt">-e</span> <span class="nv">KEYCLOAK_ADMIN</span><span class="o">=</span>admin <span class="nt">-e</span> <span class="nv">KEYCLOAK_ADMIN_PASSWORD</span><span class="o">=</span>admin quay.io/keycloak/keycloak:21.1.2 start-dev
+</code></pre></div></div>
+
+<p>Or, what is easier, using <code class="language-plaintext highlighter-rouge">docker compose up</code> command with <code class="language-plaintext highlighter-rouge">docker-compose.yml</code> file.</p>
+
+<div class="language-yml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">version</span><span class="pi">:</span> <span class="s2">"</span><span class="s">3.9"</span>
+
+<span class="na">services</span><span class="pi">:</span>
+  <span class="na">webapp</span><span class="pi">:</span>
+    <span class="na">container_name</span><span class="pi">:</span> <span class="s">secure-app</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">secure-app</span>
+    <span class="na">ports</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">5000:80</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">ASPNETCORE_URLS=http://+:80</span>
+  <span class="na">keycloak</span><span class="pi">:</span>
+    <span class="na">container_name</span><span class="pi">:</span> <span class="s">keycloak</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">quay.io/keycloak/keycloak:21.1.2</span>
+    <span class="na">ports</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s2">"</span><span class="s">8080:8080"</span>
+    <span class="na">environment</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="s">KEYCLOAK_ADMIN=admin</span>
+      <span class="pi">-</span> <span class="s">KEYCLOAK_ADMIN_PASSWORD=admin</span>
+    <span class="na">command</span><span class="pi">:</span> <span class="pi">[</span><span class="s2">"</span><span class="s">start-dev"</span><span class="pi">]</span>
+</code></pre></div></div>
+
+<p>Basic Keycloak setup consist of the following steps:</p>
+
+<ol>
+  <li>Go to <a href="http://localhost:8080/admin">http://localhost:8080/admin</a> and log in as admin.</li>
+  <li>
+    <p>Create realm.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image03.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>Put some name for realm.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image04.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>Go to <code class="language-plaintext highlighter-rouge">Users</code>, press <code class="language-plaintext highlighter-rouge">Create new user</code> and create a new user.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image05.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>Go to <code class="language-plaintext highlighter-rouge">Credentials</code> tab, press <code class="language-plaintext highlighter-rouge">Set password</code> and create a creadentials for the user. You can uncheck <code class="language-plaintext highlighter-rouge">Temporary</code> so that you don’t have to change the password the first time you log in.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image06.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>Go to <code class="language-plaintext highlighter-rouge">Clients</code> and select <code class="language-plaintext highlighter-rouge">account</code>.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image07.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>On the <code class="language-plaintext highlighter-rouge">Settings</code> tab, add a new valid redirect URI and enter a value in the <code class="language-plaintext highlighter-rouge">Web Origin</code> field.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image08.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>Go to <code class="language-plaintext highlighter-rouge">Client scopes</code>, press <code class="language-plaintext highlighter-rouge">Create client scope</code> button and create <code class="language-plaintext highlighter-rouge">audience</code> scope. Note, that the     type should be <code class="language-plaintext highlighter-rouge">Default</code>.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image09.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>In the new <code class="language-plaintext highlighter-rouge">audience</code> scope go to the <code class="language-plaintext highlighter-rouge">Mappers</code> tab, press <code class="language-plaintext highlighter-rouge">Configure a new mapper</code> and select <code class="language-plaintext highlighter-rouge">Audience</code> mapper.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image10.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>Fill in the fields and press <code class="language-plaintext highlighter-rouge">Save</code>.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image11.png" alt="content" /></p>
+  </li>
+  <li>
+    <p>Return to the <code class="language-plaintext highlighter-rouge">Client</code>, select <code class="language-plaintext highlighter-rouge">account</code> scope, go to the <code class="language-plaintext highlighter-rouge">Client scopes</code> tab and press <code class="language-plaintext highlighter-rouge">Add client scope</code>. Select from the list the <code class="language-plaintext highlighter-rouge">audience</code> scope and add it as a default.</p>
+
+    <p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image12.png" alt="content" /></p>
+  </li>
+</ol>
+
+<p>You can <a href="https://www.keycloak.org/server/importExport">export and import</a> realms. For example, a configuration for the realm above can be found <a href="https://gitlab.com/alexeyfv/secure-app/-/blob/main/keycloak/realm-export.json">here</a>.</p>
+
+<h3 id="change-the-client">Change the client</h3>
+
+<ol>
+  <li>
+    <p>Install <a href="https://www.npmjs.com/package/react-oidc-context"><code class="language-plaintext highlighter-rouge">react-oidc-context</code></a> npm package. This library simplifies the process of OAuth2 authentication for React applications. More info can be found <a href="https://github.com/authts/react-oidc-context">here</a>.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> npm i react-oidc-context
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>After installation we should wrap <code class="language-plaintext highlighter-rouge">App</code> by <code class="language-plaintext highlighter-rouge">AuthProvider</code> and add an authentication check to the <code class="language-plaintext highlighter-rouge">App</code>. The client shows a <code class="language-plaintext highlighter-rouge">Log In</code> button if the user is not authenticated. Otherwise it shows a <code class="language-plaintext highlighter-rouge">WeatherForecast</code> component. Note, that I also added <code class="language-plaintext highlighter-rouge">bootstrap</code> just to make the UI more fancy.</p>
+
+    <div class="language-tsx highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c1">// index.tsx</span>
+ <span class="k">import</span> <span class="dl">"</span><span class="s2">bootstrap/dist/css/bootstrap.min.css</span><span class="dl">"</span><span class="p">;</span>
+ <span class="k">import</span> <span class="p">{</span> <span class="nx">AuthProvider</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">react-oidc-context</span><span class="dl">"</span><span class="p">;</span>
+
+ <span class="kd">const</span> <span class="nx">root</span> <span class="o">=</span> <span class="nx">ReactDOM</span><span class="p">.</span><span class="nx">createRoot</span><span class="p">(</span>
+ <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="dl">"</span><span class="s2">root</span><span class="dl">"</span><span class="p">)</span> <span class="k">as</span> <span class="nx">HTMLElement</span>
+ <span class="p">);</span>
+ <span class="nx">root</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span>
+ <span class="p">&lt;</span><span class="nc">React</span><span class="p">.</span><span class="nc">StrictMode</span><span class="p">&gt;</span>
+     <span class="p">&lt;</span><span class="nc">AuthProvider</span>
+     <span class="na">authority</span><span class="p">=</span><span class="si">{</span><span class="dl">"</span><span class="s2">http://localhost:8080/realms/secure-app</span><span class="dl">"</span><span class="si">}</span>
+     <span class="na">client_id</span><span class="p">=</span><span class="si">{</span><span class="dl">"</span><span class="s2">account</span><span class="dl">"</span><span class="si">}</span>
+     <span class="na">redirect_uri</span><span class="p">=</span><span class="si">{</span><span class="nb">window</span><span class="p">.</span><span class="nx">location</span><span class="p">.</span><span class="nx">origin</span><span class="si">}</span>
+     <span class="na">scope</span><span class="p">=</span><span class="s">"openid profile"</span>
+     <span class="na">automaticSilentRenew</span><span class="p">=</span><span class="si">{</span><span class="kc">true</span><span class="si">}</span>
+     <span class="na">loadUserInfo</span><span class="p">=</span><span class="si">{</span><span class="kc">true</span><span class="si">}</span>
+     <span class="p">&gt;</span>
+     <span class="p">&lt;</span><span class="nc">App</span> <span class="p">/&gt;</span>
+     <span class="p">&lt;/</span><span class="nc">AuthProvider</span><span class="p">&gt;</span>
+ <span class="p">&lt;/</span><span class="nc">React</span><span class="p">.</span><span class="nc">StrictMode</span><span class="p">&gt;</span>
+ <span class="p">);</span>
+
+ <span class="c1">// App.tsx</span>
+ <span class="k">import</span> <span class="nx">WeatherForecastView</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">./WeatherForecastView</span><span class="dl">"</span><span class="p">;</span>
+ <span class="k">import</span> <span class="p">{</span> <span class="nx">useAuth</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">react-oidc-context</span><span class="dl">"</span><span class="p">;</span>
+
+ <span class="k">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="nx">App</span><span class="p">()</span> <span class="p">{</span>
+ <span class="kd">const</span> <span class="nx">auth</span> <span class="o">=</span> <span class="nx">useAuth</span><span class="p">();</span>
+
+ <span class="k">return</span> <span class="p">(</span>
+     <span class="p">&lt;</span><span class="nt">div</span> <span class="na">className</span><span class="p">=</span><span class="s">"container mt-5 mb-5"</span><span class="p">&gt;</span>
+         <span class="si">{</span><span class="nx">auth</span><span class="p">.</span><span class="nx">isAuthenticated</span> <span class="p">?</span> <span class="p">(</span>
+             <span class="p">&lt;</span><span class="nt">div</span> <span class="na">className</span><span class="p">=</span><span class="s">"App"</span><span class="p">&gt;</span>
+             <span class="p">&lt;</span><span class="nc">WeatherForecastView</span> <span class="p">/&gt;</span>
+             <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+         <span class="p">)</span> <span class="p">:</span> <span class="p">(</span>
+             <span class="p">&lt;</span><span class="nt">div</span> <span class="na">className</span><span class="p">=</span><span class="s">"row"</span><span class="p">&gt;</span>
+             <span class="p">&lt;</span><span class="nt">div</span> <span class="na">className</span><span class="p">=</span><span class="s">"col text-center"</span><span class="p">&gt;</span>
+                 <span class="si">{</span><span class="nx">auth</span><span class="p">.</span><span class="nx">isLoading</span> <span class="p">?</span> <span class="p">(</span>
+                 <span class="p">&lt;</span><span class="nt">div</span> <span class="na">className</span><span class="p">=</span><span class="s">"spinner-border"</span> <span class="na">role</span><span class="p">=</span><span class="s">"status"</span><span class="p">&gt;</span>
+                     <span class="p">&lt;</span><span class="nt">span</span> <span class="na">className</span><span class="p">=</span><span class="s">"visually-hidden"</span><span class="p">&gt;</span>Loading...<span class="p">&lt;/</span><span class="nt">span</span><span class="p">&gt;</span>
+                 <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+                 <span class="p">)</span> <span class="p">:</span> <span class="nx">auth</span><span class="p">.</span><span class="nx">error</span> <span class="p">?</span> <span class="p">(</span>
+                 <span class="p">&lt;</span><span class="nt">div</span> <span class="na">className</span><span class="p">=</span><span class="s">"alert alert-danger"</span> <span class="na">role</span><span class="p">=</span><span class="s">"alert"</span><span class="p">&gt;</span>
+                     Error
+                 <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+                 <span class="p">)</span> <span class="p">:</span> <span class="p">(</span>
+                 <span class="p">&lt;</span><span class="nt">button</span>
+                     <span class="na">type</span><span class="p">=</span><span class="s">"button"</span>
+                     <span class="na">className</span><span class="p">=</span><span class="s">"btn btn-primary"</span>
+                     <span class="na">onClick</span><span class="p">=</span><span class="si">{</span><span class="p">()</span> <span class="o">=&gt;</span> <span class="k">void</span> <span class="nx">auth</span><span class="p">.</span><span class="nx">signinRedirect</span><span class="p">()</span><span class="si">}</span>
+                 <span class="p">&gt;</span>
+                     Log in
+                 <span class="p">&lt;/</span><span class="nt">button</span><span class="p">&gt;</span>
+                 <span class="p">)</span><span class="si">}</span>
+             <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+             <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+         <span class="p">)</span><span class="si">}</span>
+         <span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
+     <span class="p">);</span>
+ <span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>The last thing to change in the client is to update <code class="language-plaintext highlighter-rouge">useApi</code> hook. The hook will handle the authentication and authorization aspects by including the user’s access token in the request headers.</p>
+
+    <div class="language-tsx highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c1">// useApi.tsx</span>
+ <span class="k">import</span> <span class="p">{</span> <span class="nx">useAuth</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">react-oidc-context</span><span class="dl">"</span><span class="p">;</span>
+ <span class="k">import</span> <span class="p">{</span> <span class="nx">WeatherForecast</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">"</span><span class="s2">../types/WeatherForecast</span><span class="dl">"</span><span class="p">;</span>
+
+ <span class="k">export</span> <span class="kd">function</span> <span class="nx">useApi</span><span class="p">()</span> <span class="p">{</span>
+ <span class="kd">const</span> <span class="nx">auth</span> <span class="o">=</span> <span class="nx">useAuth</span><span class="p">();</span>
+ <span class="kd">const</span> <span class="kd">get</span> <span class="o">=</span> <span class="p">():</span> <span class="nb">Promise</span><span class="o">&lt;</span><span class="nx">WeatherForecast</span><span class="p">[]</span><span class="o">&gt;</span> <span class="o">=&gt;</span> <span class="p">{</span>
+     <span class="kd">const</span> <span class="nx">url</span> <span class="o">=</span> <span class="dl">"</span><span class="s2">http://localhost:5000/weatherforecast</span><span class="dl">"</span><span class="p">;</span>
+     <span class="kd">const</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+     <span class="na">method</span><span class="p">:</span> <span class="dl">"</span><span class="s2">GET</span><span class="dl">"</span><span class="p">,</span>
+     <span class="na">headers</span><span class="p">:</span> <span class="p">{</span>
+         <span class="na">Authorization</span><span class="p">:</span> <span class="s2">`Bearer </span><span class="p">${</span><span class="nx">auth</span><span class="p">.</span><span class="nx">user</span><span class="p">?.</span><span class="nx">access_token</span><span class="p">}</span><span class="s2">`</span><span class="p">,</span>
+         <span class="dl">"</span><span class="s2">Content-Type</span><span class="dl">"</span><span class="p">:</span> <span class="dl">"</span><span class="s2">application/json</span><span class="dl">"</span><span class="p">,</span>
+     <span class="p">},</span>
+     <span class="p">};</span>
+     <span class="kd">const</span> <span class="nx">request</span> <span class="o">=</span> <span class="k">async</span> <span class="p">():</span> <span class="nb">Promise</span><span class="o">&lt;</span><span class="nx">WeatherForecast</span><span class="p">[]</span><span class="o">&gt;</span> <span class="o">=&gt;</span> <span class="p">{</span>
+     <span class="kd">const</span> <span class="nx">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">fetch</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">options</span><span class="p">);</span>
+     <span class="kd">const</span> <span class="nx">response</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">json</span><span class="p">())</span> <span class="k">as</span> <span class="nx">WeatherForecast</span><span class="p">[];</span>
+     <span class="k">return</span> <span class="nx">response</span><span class="p">;</span>
+     <span class="p">};</span>
+     <span class="k">return</span> <span class="nx">request</span><span class="p">();</span>
+ <span class="p">};</span>
+
+ <span class="k">return</span> <span class="p">[</span><span class="kd">get</span><span class="p">];</span>
+ <span class="p">}</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="change-the-server">Change the server</h3>
+
+<ol>
+  <li>
+    <p>Install NuGet package <a href="https://www.nuget.org/packages/Microsoft.AspNetCore.Authentication.JwtBearer">Microsoft.AspNetCore.Authentication.JwtBearer</a>. This library enables support for JWT bearer based authentication.</p>
+
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer <span class="nt">--version</span> 7.0.9
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Set up JWT Bearer authentication, configure the necessary options for token validation, and add authorization support to the application. The application will now be able to authenticate users using JWT tokens and enforce authorization rules based on the received tokens.</p>
+
+    <div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c1">// other code </span>
+
+ <span class="n">services</span>
+     <span class="p">.</span><span class="nf">AddAuthentication</span><span class="p">(</span><span class="n">JwtBearerDefaults</span><span class="p">.</span><span class="n">AuthenticationScheme</span><span class="p">)</span>
+     <span class="p">.</span><span class="nf">AddJwtBearer</span><span class="p">(</span><span class="n">options</span> <span class="p">=&gt;</span>
+     <span class="p">{</span>
+         <span class="n">options</span><span class="p">.</span><span class="n">ConfigurationManager</span> <span class="p">=</span>
+             <span class="k">new</span> <span class="n">ConfigurationManager</span><span class="p">&lt;</span><span class="n">OpenIdConnectConfiguration</span><span class="p">&gt;(</span><span class="s">"http://keycloak:8080/realms/secure-app/.well-known/openid-configuration"</span><span class="p">,</span>
+                 <span class="k">new</span> <span class="nf">OpenIdConnectConfigurationRetriever</span><span class="p">(),</span>
+                 <span class="k">new</span> <span class="nf">HttpDocumentRetriever</span><span class="p">(</span><span class="k">new</span> <span class="nf">HttpClient</span><span class="p">())</span> <span class="p">{</span> <span class="n">RequireHttps</span> <span class="p">=</span> <span class="k">false</span> <span class="p">});</span>
+         <span class="n">options</span><span class="p">.</span><span class="n">RequireHttpsMetadata</span> <span class="p">=</span> <span class="k">false</span><span class="p">;</span>
+         <span class="n">options</span><span class="p">.</span><span class="n">SaveToken</span> <span class="p">=</span> <span class="k">true</span><span class="p">;</span>
+         <span class="n">options</span><span class="p">.</span><span class="n">Authority</span> <span class="p">=</span> <span class="s">""</span><span class="p">;</span>
+         <span class="n">options</span><span class="p">.</span><span class="n">TokenValidationParameters</span> <span class="p">=</span> <span class="k">new</span> <span class="n">TokenValidationParameters</span>
+         <span class="p">{</span>
+             <span class="n">ValidateIssuer</span> <span class="p">=</span> <span class="k">true</span><span class="p">,</span>
+             <span class="n">ValidateAudience</span> <span class="p">=</span> <span class="k">true</span><span class="p">,</span>
+             <span class="n">ValidateLifetime</span> <span class="p">=</span> <span class="k">true</span><span class="p">,</span>
+             <span class="n">ValidIssuer</span> <span class="p">=</span> <span class="s">"http://localhost:8080/realms/secure-app"</span><span class="p">,</span>
+             <span class="n">ValidAudience</span> <span class="p">=</span> <span class="s">"account"</span>
+         <span class="p">};</span>
+     <span class="p">});</span>
+ <span class="n">services</span><span class="p">.</span><span class="nf">AddAuthorization</span><span class="p">();</span>
+
+ <span class="c1">// other code</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Enable authentication and authorization support using <code class="language-plaintext highlighter-rouge">UseAuthentication()</code> and <code class="language-plaintext highlighter-rouge">UseAuthorization()</code> middlewares.</p>
+
+    <div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c1">// other code </span>
+
+ <span class="n">app</span><span class="p">.</span><span class="nf">UseAuthentication</span><span class="p">();</span>
+ <span class="n">app</span><span class="p">.</span><span class="nf">UseAuthorization</span><span class="p">();</span>
+
+ <span class="c1">// other code</span>
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>Apply authorization to the <code class="language-plaintext highlighter-rouge">/weatherforecast</code> endpoint using <code class="language-plaintext highlighter-rouge">RequireAuthorization()</code> method. By using <code class="language-plaintext highlighter-rouge">RequireAuthorization()</code> at the endpoint, you are making sure that authorization is enforced for the endpoint.</p>
+
+    <div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="n">app</span><span class="p">.</span><span class="nf">MapGet</span><span class="p">(</span><span class="s">"/weatherforecast"</span><span class="p">,</span> <span class="p">()</span> <span class="p">=&gt;</span> 
+ <span class="p">{</span>
+     <span class="c1">// some code</span>
+ <span class="p">}).</span><span class="nf">RequireAuthorization</span><span class="p">();</span>
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h3 id="run-it-all-together">Run it all together</h3>
+
+<p>The secured application now can be launched. Execute <code class="language-plaintext highlighter-rouge">docker compose up</code> and go to <a href="localhost:5000/">localhost:5000</a>.</p>
+
+<p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image14.png" alt="content" /></p>
+
+<p><img src="/assets/2023/07/2023-07-08-secure-app-with-keycloak/image15.png" alt="content" /></p>
+
+<h2 id="source-code">Source code</h2>
+
+<p>The code can be found <a href="https://gitlab.com/alexeyfv/secure-app/-/tree/main">here</a>.</p>
+
+<h2 id="summary">Summary</h2>
+
+<p>This step-by-step guide demonstrates how to create a secure full-stack application with OAuth2 authentication using Keycloak. Of course the provided example is pretty basic and lacks a lot of things that should be done for a production-level application. For example, the following things can be improved:</p>
+
+<ol>
+  <li>Hardcoded parameters should be extracted into <code class="language-plaintext highlighter-rouge">.env</code> file for the client or to the environment variables for the server.</li>
+  <li>Automatic realm configuration export to avoid manual configuration of Keycloak instance.</li>
+</ol>
+</div><a class="u-url" href="/2023/07/30/secure-app-with-keycloak.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

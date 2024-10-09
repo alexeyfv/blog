@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Performance issues when using a method as a parameter in C#. Are they real? | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Performance issues when using a method as a parameter in C#. Are they real?" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="There is an article on Habr about performance issues when passing a method as a parameter in C#. The author showed that passing an instance method as a parameter inside for loops may degrade performance and increase memory consumption due to unnecessary object allocations in the heap. In this short article, I want to repeat the original benchmark and compare how things have changed since the .NET 7 release." />
+<meta property="og:description" content="There is an article on Habr about performance issues when passing a method as a parameter in C#. The author showed that passing an instance method as a parameter inside for loops may degrade performance and increase memory consumption due to unnecessary object allocations in the heap. In this short article, I want to repeat the original benchmark and compare how things have changed since the .NET 7 release." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2023/10/18/method-as-a-parameter.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2023/10/18/method-as-a-parameter.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-10-18T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Performance issues when using a method as a parameter in C#. Are they real?" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"There is an article on Habr about performance issues when passing a method as a parameter in C#. The author showed that passing an instance method as a parameter inside for loops may degrade performance and increase memory consumption due to unnecessary object allocations in the heap. In this short article, I want to repeat the original benchmark and compare how things have changed since the .NET 7 release.","@type":"BlogPosting","headline":"Performance issues when using a method as a parameter in C#. Are they real?","dateModified":"2023-10-18T00:00:00+00:00","datePublished":"2023-10-18T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2023/10/18/method-as-a-parameter.html"},"url":"http://www.alexeyfv.xyz//2023/10/18/method-as-a-parameter.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Performance issues when using a method as a parameter in C#. Are they real?
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2023-10-18T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Oct 18, 2023
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/benchmark">#benchmark</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>There is an <a href="https://habr.com/ru/companies/skbkontur/articles/721822/">article</a> on Habr about performance issues when passing a method as a parameter in C#. The author showed that passing an instance method as a parameter inside <code class="language-plaintext highlighter-rouge">for</code> loops may degrade performance and increase memory consumption due to unnecessary object allocations in the heap. In this short article, I want to repeat the original benchmark and compare how things have changed since the .NET 7 release.</p>
+
+<h2 id="benchmark">Benchmark</h2>
+
+<p>In the original article, the author compared only two possible declarations of a method: a predefined delegate and an instance method. In addition to that, I decided to check other ways of method declaration. So, the final list is as follows:</p>
+
+<ul>
+  <li>predefined delegate;</li>
+  <li>lambda expression;</li>
+  <li>lambda expression that calls instance method;</li>
+  <li>lambda expression that calls static method;</li>
+  <li>static anonymous method;</li>
+  <li>static anonymous method that calls static method;</li>
+  <li>anonymous method;</li>
+  <li>anonymous method that calls instance method;</li>
+  <li>anonymous method that calls static method;</li>
+  <li>instance method;</li>
+  <li>static method.</li>
+</ul>
+
+<p>For benchmarking, I used the <a href="https://github.com/dotnet/BenchmarkDotNet">BenchmarkDotNet</a> library. The whole code of the benchmark class can be found <a href="https://gitlab.com/alexeyfv/method-as-parameter">here</a>.</p>
+
+<h2 id="results">Results</h2>
+
+<p>The benchmark results are in the diagram below. As we can see, .NET 7 shows better results for everything related with static methods (except anonymous method + static method).</p>
+
+<p><img src="/assets/2023/10/2023-10-18-method-as-a-parameter/image.png" alt="content" />
+<strong>The benchmark results</strong></p>
+
+<p>To understand why this happens, we have to go deeper and look at <a href="https://sharplab.io/#gist:ecc53add5167ad4f90126c4dabbbace3">IL code</a>. Basically, all these possible ways of method calling can be divided into two groups:</p>
+
+<ol>
+  <li>Which causes creation of a new object in the <code class="language-plaintext highlighter-rouge">for</code> loop on each iteration.</li>
+  <li>Which doesn’t cause creation of a new object in a <code class="language-plaintext highlighter-rouge">for</code> loop on each iteration</li>
+</ol>
+
+<p>For example, let’s compare the code for calling a static method (4th row in the diagram):</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="p">++)</span> <span class="p">{</span>
+    <span class="nf">CallAdd</span><span class="p">(</span><span class="n">StaticAdd</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In .NET 6, such code after compilation will look like:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="m">10000</span><span class="p">;</span> <span class="n">i</span><span class="p">++)</span> <span class="p">{</span>
+    <span class="c1">// A new Func instance created on each iteration.</span>
+    <span class="nf">CallAdd</span><span class="p">(</span><span class="k">new</span> <span class="n">Func</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;(</span>
+      <span class="p">(</span><span class="kt">object</span><span class="p">)</span> <span class="k">null</span><span class="p">,</span> 
+      <span class="nf">__methodptr</span><span class="p">(</span><span class="n">StaticAdd</span><span class="p">)</span>
+    <span class="p">),</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In .NET 7 the situation is different:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="m">10000</span><span class="p">;</span> <span class="p">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nf">CallAdd</span><span class="p">(</span>
+        <span class="c1">// A new Func instance created only once</span>
+        <span class="n">BenchmarkableClass</span><span class="p">.&lt;&gt;</span><span class="n">O</span><span class="p">.&lt;</span><span class="m">1</span><span class="p">&gt;</span><span class="n">__StaticAdd</span> <span class="p">??</span> <span class="p">(</span>
+            <span class="n">BenchmarkableClass</span><span class="p">.&lt;&gt;</span><span class="n">O</span><span class="p">.&lt;</span><span class="m">1</span><span class="p">&gt;</span><span class="n">__StaticAdd</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Func</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">,</span> <span class="kt">int</span><span class="p">&gt;(</span>
+                <span class="p">(</span><span class="kt">object</span><span class="p">)</span> <span class="k">null</span><span class="p">,</span> 
+                <span class="nf">__methodptr</span><span class="p">(</span><span class="n">StaticAdd</span><span class="p">)</span>
+                <span class="p">)),</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span>
+      <span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The compiler created a new hidden static class <code class="language-plaintext highlighter-rouge">&lt;&gt;O</code> with public field <code class="language-plaintext highlighter-rouge">&lt;1&gt;__StaticAdd</code> of type <code class="language-plaintext highlighter-rouge">Func&lt;int, int, int&gt;</code> and this field will be initialized only once at the first iteration. The same situation and for other cases with static method.</p>
+
+<p>Suboptimal .NET 6 code that creates new objects on each iteration <a href="https://gitlab.com/alexeyfv/method-as-parameter/-/blob/main/BenchmarkDotNet.Artifacts/BenchmarkableClass-20231018-082910.log#L2075">causes unnecessary heap allocations</a>. Therefore, it also causes garbage collection, which also affects performance.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Answering to the question in the title of this article: yes, the performance issues are still real, but the .NET platform becomes better.</p>
+
+<p>If you’re using .NET 6 for development, it’s better to predefine a delegate instance before <code class="language-plaintext highlighter-rouge">for</code> loop or use lambda expression with static method.</p>
+
+<p>For .NET 7 there are more options. You still can use predefined delegate or lambda expressions with static methods. But you can also pass a static method directly or pass an anonymous static method.</p>
+</div><a class="u-url" href="/2023/10/18/method-as-a-parameter.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>
