@@ -10,6 +10,8 @@ excerpt_separator: <!--more-->
 
 <img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image01.png" alt="content">
 
+*English version is [here]({{site.baseurl}}/2024/10/09/frozen-dictionary.html)*.
+
 <!--more-->
 
 ## Оглавление
