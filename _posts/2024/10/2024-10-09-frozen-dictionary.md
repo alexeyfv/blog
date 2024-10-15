@@ -19,7 +19,7 @@ With [.NET 8 release](https://learn.microsoft.com/en-us/dotnet/core/whats-new/do
 - [Table of Contents](#table-of-contents)
 - [Before we get started](#before-we-get-started)
 - [Disclaimer](#disclaimer)
-- [Group 1. Default dictoinaries](#group-1-default-dictoinaries)
+- [Group 1. Default dictionaries](#group-1-default-dictionaries)
   - [Search algorithm](#search-algorithm)
   - [Benchmark](#benchmark)
 - [Group 2. Dictionary for Int32 keys](#group-2-dictionary-for-int32-keys)
@@ -61,7 +61,7 @@ The results of the benchmarks are very conditional. I admit, that the benchmark 
 
 The source code and raw results are located in [this repo](https://github.com/alexeyfv/frozen-dictionary).
 
-## Group 1. Default dictoinaries
+## Group 1. Default dictionaries
 
 As I said earlier, the `FrozehHashTable` structure is used in `DefaultFrozenDictionary` and `ValueTypeDefaultComparerFrozenDictionary`. This structure, as you may guess from its name, is a hash table implementation. For better understanding how `FrozenHashTable` differs from `Dictionary`, need to remember how search is implemented in `Dictionary`. If you already know this part, you may skip the following explanation.
 
