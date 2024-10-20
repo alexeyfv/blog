@@ -2,7 +2,7 @@
 layout: post
 title: "Как данные влияют на производительность"
 date: 2024-09-30
-tags: csharp benchmark
+tags: csharp performance benchmark
 excerpt_separator: <!--more-->
 ---
 

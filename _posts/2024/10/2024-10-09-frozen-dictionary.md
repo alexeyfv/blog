@@ -2,14 +2,15 @@
 layout: post
 title: "FrozenDictionary under the hood: how fast is it comparing to Dictionary and why"
 date: 2024-10-09
-tags: csharp benchmark hashtable algorithms
+tags: csharp frozendictionary dictionary performance benchmark hashtable algorithms
 excerpt_separator: <!--more-->
 ---
 
 With [.NET 8 release](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-8/runtime#performance-focused-types), C# developers received a new type of generic collections – `FrozenDictionary`. The main feature of this dictionary is that it’s immutable, but allows reading the data faster comparing to a plain `Dictionary`. I split the results on the cover by a reason: the algorithms used in `FrozenDictionary` are highly depended on key type, the size of the array or even the number of the string keys with the same length. In this article, we’ll look into details how fast is `FrozenDictionary` and why.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image01.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image01.png" alt="FrozenDictionary performance comparing to Dictionary">
 
+*Version in Russian is [here]({{site.baseurl}}/2024/08/22/frozen-dictionary.html)*
 *Версия на русском [тут]({{site.baseurl}}/2024/08/22/frozen-dictionary.html)*.
 
 <!--more-->
@@ -40,7 +41,7 @@ With [.NET 8 release](https://learn.microsoft.com/en-us/dotnet/core/whats-new/do
 
 It’s important to notice, that `FrozenDictionary<TKey, TValue>` is an abstract class with [multiple derived classes](https://github.com/dotnet/runtime/tree/51e99e12a8a09c69e30fdcb004facf68f73173a6/src/libraries/System.Collections.Immutable/src/System/Collections/Frozen). To be precise, there are 18 classes. Instead of explaining which implementation is used when, just look at the diagram in Figure 1.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image02.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image02.png" alt="Choosing a FrozenDictionary implementation">
 <strong>
 Figure 1 – Choosing a FrozenDictionary implementation
 </strong>
@@ -87,7 +88,7 @@ When, for example, we search a value for `Fruit("fig")` key, the following are h
 2. Calculate the index of the bucket (`bucketIndex`).  
 3. If the key in the entry is equal to the searchable key, then we return the related value. Otherwise, we go to the next entry and repeat step 3.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image03.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image03.png" alt="Search in Dictionary">
 <strong>
 Figure 2 – Search in Dictionary
 </strong>
@@ -106,7 +107,7 @@ Using `FrozenDictionary`, searching for a value for the key `Fruit("fig")` would
 3. In a `bucket` array, receive values `start` and `end`. These values are boundaries in a `HashCodes` array.  
 4. Iterate the `HashCodes` array from `start` to `end` and search the key. If found, return the value. Otherwise, return null.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image04.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image04.png" alt="Search in DefaultFrozenDictionary">
 <strong>
 Figure 3 – Search in DefaultFrozenDictionary
 </strong>
@@ -115,12 +116,12 @@ Figure 3 – Search in DefaultFrozenDictionary
 
 The benchmarks results for `DefaultFrozenDictionary` and `ValueTypeDefaultComparerFrozenDictionary` are on Figure 4 and 5.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image05.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image05.png" alt="Reading speed from ValueTypeDefaultComparerFrozenDictionary comparing to Dictionary">
 <strong>
 Reading speed from ValueTypeDefaultComparerFrozenDictionary comparing to Dictionary
 </strong>
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image06.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image06.png" alt="Reading speed from DefaultFrozenDictionary comparing to Dictionary">
 <strong>
 Reading speed from DefaultFrozenDictionary comparing to Dictionary
 </strong>
@@ -147,7 +148,7 @@ This allows skipping the hash calculation during reads and [using the key’s va
 2. From the `bucket` array, we get the `start` and `end` values, which define the boundaries in the HashCodes array.  
 3. We iterate through the `HashCodes` array from `start` to `end`, looking for the target key and return the value when found.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image07.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image07.png" alt="Search in Int32FrozenDictionary">
 <strong>
 Figure 6 – Search in Int32FrozenDictionary
 </strong>
@@ -156,7 +157,7 @@ Figure 6 – Search in Int32FrozenDictionary
 
 Because of optimizations, reading from `Int32FrozenDictionary` is 34-42% faster (Figure 7).
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image08.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image08.png" alt="Reading speed from Int32FrozenDictionary comparing to Dictionary">
 <strong>
 Figure 7 – Reading speed from Int32FrozenDictionary comparing to Dictionary
 </strong>
@@ -184,7 +185,7 @@ There are keys with length of 3, 4 and 5 in the dictionary. Therefore, they can 
 2. Bucket for keys of length 4: `lime` and `kiwi`.  
 3. Bucket for keys of length 5: `apple`, `grape`, and `lemon`.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image09.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image09.png" alt="Distribution of the strings based on their length">
 <strong>
 Figure 8 – Distribution of the strings based on their length
 </strong>
@@ -199,7 +200,7 @@ The search is done in 3 steps (Figure 9):
 2. A linear search in the bucket finds the index of the desired key in `_keys`.  
 3. The value is returned.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image10.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image10.png" alt="Search in LengthBucketsFrozenDictionary">
 <strong>
 Figure 9 – Search in LengthBucketsFrozenDictionary
 </strong>
@@ -215,7 +216,7 @@ If either of these conditions is not met, one of the [OrdinalStringFrozenDiction
 
 The benchmark results show that reading from a `LengthBucketsFrozenDictionary` can be up to 99% faster than a regular `Dictionary`. However, if the dictionary has 5 or more keys with the same length, the performance of small dictionaries (up to 100 items) can be worse (see Figure 10).
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image11.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image11.png" alt="Reading speed LengthBucketsFrozenDictionary comparing to Dictionary">
 <strong>
 Figure 10 – Reading speed LengthBucketsFrozenDictionary comparing to Dictionary
 </strong>
@@ -230,7 +231,7 @@ Obviously, the longer the string, the slower the hash code calculation. Therefor
 
 First, `KeyAnalyzer` analyzes substrings of length 1 with left-aligned keys (see Figure 11).
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image12.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image12.png" alt="Single-char substrings with left and right algnment">
 <strong>
 Figure 11 – Single-char substrings with left and right algnment
 </strong>
@@ -255,21 +256,21 @@ Search in dictionaries based on `OrdinalStringFrozenDictionary` is [performed as
 
 According to the benchmark results, a `FrozenDictionary` with up to 75,000 elements is faster than a regular `Dictionary`. However, as the dictionary size increases, the search speed becomes worse (see Figure 12).
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image13.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image13.png" alt="Reading speed from OrdinalStringFrozenDictionary_LeftJustifiedSubstring comparing to Dictionary">
 <strong>
 Рисунок 12 – Reading speed from OrdinalStringFrozenDictionary_LeftJustifiedSubstring comparing to Dictionary
 </strong>
 
 The high speed of `FrozenDictionary` is due to the fast hash code calculation of keys. The algorithm used in `FrozenDictionary` is 75% to 90% faster than the one in a regular `Dictionary` (see Figure 13).
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image14.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image14.png" alt="FrozenDictionary and Dictionary hash calculation speed">
 <strong>
 Figure 13 – Hash calculation speed
 </strong>
 
 The performance drop in dictionaries with 75,000 elements or more is caused by the increasing number of hash collisions as the dictionary size grows (see Figure 14).
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image15.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image15.png" alt="FrozenDictionary and Dictinoary hash collisions count">
 <strong>
 Figure 14 – Hash collisions count
 </strong>
@@ -284,7 +285,7 @@ As shown in the figures, the algorithm used in `FrozenDictionary` significantly 
 
 Strictly speaking, the classes `SmallValueTypeComparableFrozenDictionary`, `SmallValueTypeDefaultComparerFrozenDictionary`, and `SmallFrozenDictionary` are not hash tables. The search for a value in these classes is performed using a simple linear search via a `for` loop (Figure 15).
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image16.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image16.png" alt="Search in SmallValueTypeComparableFrozenDictionary">
 <strong>
 Figure 15 – Search in SmallValueTypeComparableFrozenDictionary
 </strong>
@@ -297,7 +298,7 @@ The implementations of `SmallValueTypeDefaultComparerFrozenDictionary` and `Smal
 
 Despite all the optimizations in these classes, the benchmark results do not look impressive (see Figure 16). Even the slight speedup that these classes can provide amounts to just a few tens of nanoseconds.
 
-<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image17.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image17.png" alt="Reading speed from SmallValueTypeComparableFrozenDictionary, SmallValueTypeDefaultComparerFrozenDictionary and SmallFrozenDictionary comparing to Dictionary">
 <strong>
 Figure 16 – Reading speed from SmallValueTypeComparableFrozenDictionary, SmallValueTypeDefaultComparerFrozenDictionary and SmallFrozenDictionary comparing to Dictionary
 </strong>

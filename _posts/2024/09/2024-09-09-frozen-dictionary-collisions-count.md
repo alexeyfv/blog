@@ -2,7 +2,7 @@
 layout: post
 title: "Как в FrozenDictionary подсчитываются коллизии хэша"
 date: 2024-09-07
-tags: csharp benchmark hashtable algorithms
+tags: csharp frozendictionary benchmark hashtable algorithms
 ---
 
 Второй короткий пост о деталях реализации `FrozenDictionary`, которые остались за кадром. Сегодня об [алгоритме подсчёта количества коллизий хэша](https://github.com/dotnet/runtime/blob/1c4755daf8f25f067a360c1dcae0d19df989e4e7/src/libraries/System.Collections.Immutable/src/System/Collections/Frozen/FrozenHashTable.cs#L277).

@@ -2,7 +2,7 @@
 layout: post
 title: "Быстрый расчёт остатка от деления"
 date: 2024-08-29
-tags: csharp benchmark hashtable algorithms
+tags: csharp performance benchmark hashcode hashtable algorithms
 ---
 
 В процессе работы над [статьёй про FrozenDictionary]({{site.baseurl}}/2024/08/22/frozen-dictionary.html) заметил немало интересных деталей, о которых хочется рассказать. Начнём с простого, поэтому сегодня о быстром алгоритме расчёта остатка от деления.

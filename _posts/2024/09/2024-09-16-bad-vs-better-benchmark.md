@@ -2,7 +2,7 @@
 layout: post
 title: "Как ошибки в бенчмарке могут привести к неправильным выводам"
 date: 2024-09-16
-tags: csharp benchmark
+tags: csharp performance benchmark bestpractices
 excerpt_separator: <!--more-->
 ---
 

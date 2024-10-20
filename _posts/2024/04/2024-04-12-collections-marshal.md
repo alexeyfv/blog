@@ -2,7 +2,7 @@
 layout: post
 title: "Ускоряем Dictionary в C# при помощи структур и CollectionsMarshal"
 date: 2024-04-12
-tags: csharp benchmark hashtable
+tags: csharp dictionary collectionsmarshal performance benchmark hashtable
 ---
 
 Если вы C# разработчик, то наверняка вам знаком класс Dictionary. В качестве значений вы, скорее всего, использовали классы. Но что если я скажу, что в Dictionary можно использовать структуры? Не стоит бояться того, что структуры копируются при передаче в метод или возврате из него. Есть способ этого избежать, и это работает быстро.

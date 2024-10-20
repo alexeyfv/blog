@@ -2,13 +2,13 @@
 layout: post
 title: "Заглядываем под капот FrozenDictionary: насколько он быстрее Dictionary и почему"
 date: 2024-08-22
-tags: csharp benchmark hashtable algorithms
+tags: csharp frozendictionary dictionary benchmark hashtable algorithms
 excerpt_separator: <!--more-->
 ---
 
 С [релизом .NET 8](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-8/runtime\#performance-focused-types) в арсенале C# разработчиков появилась новая коллекция – `FrozenDictionary`. Особенность этого словаря в том, что он неизменяемый, но при этом обеспечивает более быстрое чтение по сравнению с обычным `Dictionary`. Я неспроста разбил результаты на обложке по типам – используемые во `FrozenDictinoary` алгоритмы сильно зависят от типа ключа, размера словаря или даже, например, количества строковых ключей одинаковой длины. В этой статье подробно разберем, насколько `FrozenDictionary` быстрее и почему.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image01.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image01.png" alt="Производительность FrozenDictionary по сравнению с Dictionary">
 
 *English version is [here]({{site.baseurl}}/2024/10/09/frozen-dictionary.html)*.
 
@@ -40,7 +40,7 @@ excerpt_separator: <!--more-->
 
 Прежде чем начать ~~битву~~ сравнение с `Dictionary`, важно заметить, что `FrozenDictionary<TKey, TValue>` – это абстрактный класс с [множеством реализаций](https://github.com/dotnet/runtime/tree/51e99e12a8a09c69e30fdcb004facf68f73173a6/src/libraries/System.Collections.Immutable/src/System/Collections/Frozen). Точнее, их 18. Вместо объяснений, когда какая реализация используется, проще показать на схеме, поэтому смотрим рисунок 1.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image02.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image02.png" alt="Выбор реализации FrozenDictionary">
 <strong>Рисунок 1 – Выбор реализации FrozenDictionary</strong>
 
 Пугаться не стоит, реализации можно разделить на 5 групп по принципу работы:
@@ -85,7 +85,7 @@ public record Fruit(string Value);
 2. Рассчитывается индекса бакета `bucketIndex`.  
 3. Если ключ в бакете равен искомому, то возвращается значение. Иначе переходим к следующему ключу с таким же хэш-кодом и повторяем п. 3.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image03.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image03.png" alt="Как осуществляется поиск элементов в Dictionary">
 <strong>Рисунок 2 – Пример поиска в Dictionary</strong>
 
 ### Алгоритм поиска
@@ -102,7 +102,7 @@ public record Fruit(string Value);
 3. В массиве `bucket` получаем значения `start` и `end`, задающие границы в массиве `HashCodes`.  
 4. Итерируем массив `HashCodes` от `start` до `end`, в поисках искомого ключа и возвращаем значение при нахождении.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image04.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image04.png" alt="Как осуществляется поиск в DefaultFrozenDictionary">
 <strong>
 Рисунок 3 – Пример поиска в DefaultFrozenDictionary
 </strong>
@@ -111,12 +111,12 @@ public record Fruit(string Value);
 
 Результаты бенчмарков для `DefaultFrozenDictionary` и `ValueTypeDefaultComparerFrozenDictionary` на рисунках 4 и 5.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image05.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image05.png" alt="Скорость чтения из ValueTypeDefaultComparerFrozenDictionary по сравнению с Dictionary">
 <strong>
 Рисунок 4 – Скорость чтения из ValueTypeDefaultComparerFrozenDictionary по сравнению с Dictionary
 </strong>
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image06.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image06.png" alt="Скорость чтения из DefaultFrozenDictionary по сравнению с Dictionary">
 <strong>
 Рисунок 5 – Скорость чтения из DefaultFrozenDictionary по сравнению с Dictionary
 </strong>
@@ -143,7 +143,7 @@ dict.Add(123, 2); // System.ArgumentException: An item with the same key has alr
 2. В массиве `bucket` получаем значения `start` и `end`, задающие границы в массиве `HashCodes`.  
 3. Итерируем массив `HashCodes` от `start` до `end`, в поисках искомого ключа и возвращаем значение при нахождении.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image07.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image07.png" alt="Как осуществляется поиск в Int32FrozenDictionary">
 <strong>
 Рисунок 6 – Пример поиска в Int32FrozenDictionary
 </strong>
@@ -152,7 +152,7 @@ dict.Add(123, 2); // System.ArgumentException: An item with the same key has alr
 
 Благодаря оптимизациям, чтение из `Int32FrozenDictionary` быстрее на 34-42% (рисунок 7).
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image08.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image08.png" alt="Скорость чтения из Int32FrozenDictionary по сравнению с Dictionary">
 <strong>
 Рисунок 7 – Скорость чтения из Int32FrozenDictionary по сравнению с Dictionary
 </strong>
@@ -180,7 +180,7 @@ var frozenDictionary = dictionary.ToFrozenDictionary();
 2. Бакет для ключей длиной 4: `lime` и `kiwi`.  
 3. Бакет для ключей длиной 5: `apple`, `grape` и `lemon`.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image09.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image09.png" alt="Распределение строк по бакетам на основе их длины">
 <strong>
 Рисунок 8 – Распределение строк по бакетам на основе их длины
 </strong>
@@ -195,7 +195,7 @@ var frozenDictionary = dictionary.ToFrozenDictionary();
 2. Линейным поиском в бакете определяется индекс искомого ключа в `_keys`.  
 3. Возвращается значение.
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image10.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image10.png" alt="Как осуществляется поиск в LengthBucketsFrozenDictionary">
 <strong>
 Рисунок 9 – Пример поиска в LengthBucketsFrozenDictionary
 </strong>
@@ -211,7 +211,7 @@ var frozenDictionary = dictionary.ToFrozenDictionary();
 
 Результаты бенчмарка показывают, что чтение из `LengthBucketsFrozenDictionary` может быть до 99% быстрее обычного `Dictionary`. Но если в словаре количество ключей с одинаковой длиной достигает 5, то производительность небольших словарей (до 100 элементов) может быть хуже (рисунок 10).
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image11.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image11.png" alt="Скорость чтения из LengthBucketsFrozenDictionary по сравнению с Dictionary">
 <strong>
 Рисунок 10 – Скорость чтения из LengthBucketsFrozenDictionary по сравнению с Dictionary
 </strong>
@@ -226,7 +226,7 @@ var frozenDictionary = dictionary.ToFrozenDictionary();
 
 Сперва `KeyAnalyzer` анализирует подстроки длиной в 1 символ при левостороннем выравнивании ключей (рисунок 11).
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image12.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image12.png" alt="Подстроки длиной в 1 символ при левостороннем и правостороннем выравнивании ключей">
 <strong>
 Рисунок 11 – Подстроки длиной в 1 символ при левостороннем и правостороннем выравнивании ключей
 </strong>
@@ -250,21 +250,21 @@ var frozenDictionary = dictionary.ToFrozenDictionary();
 
 По результатам бенчмарка, `FrozenDictionary` размером до 75 тыс. элементов быстрее обычного `Dictionary`. Однако при дальнейшем увеличении размера словаря скорость поиска снижается (рисунок 12).
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image13.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image13.png" alt="Скорость чтения из OrdinalStringFrozenDictionary_LeftJustifiedSubstring по сравнению с Dictionary">
 <strong>
 Рисунок 12 – Скорость чтения из OrdinalStringFrozenDictionary_LeftJustifiedSubstring по сравнению с Dictionary
 </strong>
 
 Высокая скорость `FrozenDictionary` обусловлена быстрым расчётом хэш-кода ключей. Алгоритм, используемый в `FrozenDictionary`, на 75% – 90% быстрее алгоритма обычного `Dictionary` (рисунок 13).
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image14.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image14.png" alt="Сравнение скорости расчёта хэша">
 <strong>
 Рисунок 13 – Сравнение скорости расчёта хэша
 </strong>
 
 Падение производительности в словарях размером 75 тыс. элементов и более вызвано возрастающим количеством коллизий хэша при увеличении размера словаря (рисунок 14).
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image15.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image15.png" alt="Количество коллизий при расчёте хэшей">
 <strong>
 Рисунок 14 – Количество коллизий при расчёте хэшей
 </strong>
@@ -279,7 +279,7 @@ var frozenDictionary = dictionary.ToFrozenDictionary();
 
 Строго говоря, классы `SmallValueTypeComparableFrozenDictionary`, `SmallValueTypeDefaultComparerFrozenDictionary` и `SmallFrozenDictionary` – это не хэш-таблицы. Поиск значения в них осуществляется простым линейным поиском через `for` (рисунок 15).
 
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image16.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image16.png" alt="Как осуществляется поиск в SmallValueTypeComparableFrozenDictionary">
 <strong>
 Рисунок 15 – Пример поиска в SmallValueTypeComparableFrozenDictionary
 </strong>
@@ -291,7 +291,7 @@ var frozenDictionary = dictionary.ToFrozenDictionary();
 ### Бенчмарк
 
 Несмотря на все оптимизации в этих классах, результаты бенчмарков не выглядят впечатляющими (рисунок 16). Даже то небольшое ускорение, которое могут дать эти классы, составляет всего лишь несколько десятков наносекунд.
-<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image17.png" alt="content">
+<img src="{{site.baseurl}}/assets/2024/08/2024-08-22-frozen-dictionary/image17.png" alt="Скорость чтения из SmallValueTypeComparableFrozenDictionary, SmallValueTypeDefaultComparerFrozenDictionary и SmallFrozenDictionary по сравнению с Dictionary">
 <strong>
 Рисунок 16 – Скорость чтения из SmallValueTypeComparableFrozenDictionary, SmallValueTypeDefaultComparerFrozenDictionary и SmallFrozenDictionary по сравнению с Dictionary
 </strong>
