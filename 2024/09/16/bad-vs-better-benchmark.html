@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Как ошибки в бенчмарке могут привести к неправильным выводам | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Как ошибки в бенчмарке могут привести к неправильным выводам" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Видел я однажды пост в LinkedIn, заголовок которого утверждал, что .NET 9 медленнее, чем .NET 8. Сильное заявление. Проверять я его конечно буду. Ведь я сам большой любитель замеров производительности. Перейдём сразу к тому, что не так с бенчмарком." />
+<meta property="og:description" content="Видел я однажды пост в LinkedIn, заголовок которого утверждал, что .NET 9 медленнее, чем .NET 8. Сильное заявление. Проверять я его конечно буду. Ведь я сам большой любитель замеров производительности. Перейдём сразу к тому, что не так с бенчмарком." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2024/09/16/bad-vs-better-benchmark.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2024/09/16/bad-vs-better-benchmark.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-09-16T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Как ошибки в бенчмарке могут привести к неправильным выводам" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"Видел я однажды пост в LinkedIn, заголовок которого утверждал, что .NET 9 медленнее, чем .NET 8. Сильное заявление. Проверять я его конечно буду. Ведь я сам большой любитель замеров производительности. Перейдём сразу к тому, что не так с бенчмарком.","@type":"BlogPosting","headline":"Как ошибки в бенчмарке могут привести к неправильным выводам","dateModified":"2024-09-16T00:00:00+00:00","datePublished":"2024-09-16T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2024/09/16/bad-vs-better-benchmark.html"},"url":"http://www.alexeyfv.xyz//2024/09/16/bad-vs-better-benchmark.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Как ошибки в бенчмарке могут привести к неправильным выводам
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2024-09-16T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Sep 16, 2024
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/performance">#performance</a>
+    
+    <a class="post" href="/tag/benchmark">#benchmark</a>
+    
+    <a class="post" href="/tag/bestpractices">#bestpractices</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p><img src="/assets/2024/09/2024-09-16-bad-vs-better-benchmark/image01.png" alt="content" /></p>
+
+<p>Видел я однажды <a href="https://www.linkedin.com/posts/sa-es-ir_csharp-dotnet-forloops-activity-7188563012553773056-K0z0">пост в LinkedIn</a>, заголовок которого утверждал, что .NET 9 медленнее, чем .NET 8. Сильное заявление. Проверять я его конечно буду. Ведь я сам большой любитель замеров производительности. Перейдём сразу к тому, что не так с <a href="https://github.com/sa-es-ir/ForLoopComparison">бенчмарком</a>.</p>
+
+<!--more-->
+
+<p>❌ Методы не возвращают результат</p>
+
+<p>Современные компиляторы умные. Они могут понять, когда выполняемый код не влияет на результат программы, и просто удаляют его. Такая оптимизация называется <a href="https://en.wikipedia.org/wiki/Dead-code_elimination">dead-code elimination</a> (DCE). В данном случае, метод <code class="language-plaintext highlighter-rouge">DoSomeThing</code> фактически не делает ничего, поэтому компилятор удаляет его в методе <code class="language-plaintext highlighter-rouge">For</code>. Но в методе <code class="language-plaintext highlighter-rouge">ForEach_Linq</code> такое сделать нельзя, т.к. в нём создаётся делегат. В результате получается сравнение методов с разным поведением (рисунок 2).</p>
+
+<p>✅ Всегда возвращайте результат из методов</p>
+
+<p>Исправленный вариант может выглядеть так. Нам неважно, что будет в переменной sum. Главное, что её использование предотвращает DCE и не оказывает значительного влияния на результаты бенчмарка.</p>
+
+<p><img src="/assets/2024/09/2024-09-16-bad-vs-better-benchmark/image02.png" alt="content" /></p>
+
+<p>❌ Слепое сравнивание foreach</p>
+
+<p>Как мы знаем, <code class="language-plaintext highlighter-rouge">foreach</code> предназначен для итерации по коллекциям, которые возвращают <code class="language-plaintext highlighter-rouge">Enumerator</code>. Но даже если коллекция возвращает <code class="language-plaintext highlighter-rouge">Enumerator</code>, это не гарантирует, что он будет использоваться. Рассмотрим <a href="https://sharplab.io/#gist:c3a7b45510a9bfe1d34f11677f0af5b5">пример</a> на рисунке 3:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">foreach</code> с массивом будет преобразован в <code class="language-plaintext highlighter-rouge">while</code> c индексаторов;</li>
+  <li><code class="language-plaintext highlighter-rouge">foreach</code> со списком – в <code class="language-plaintext highlighter-rouge">while</code> с <code class="language-plaintext highlighter-rouge">List&lt;int&gt;.Enumerator</code>;</li>
+  <li><code class="language-plaintext highlighter-rouge">foreach</code> с <code class="language-plaintext highlighter-rouge">ICollection&lt;int&gt;</code> – в <code class="language-plaintext highlighter-rouge">while</code> с <code class="language-plaintext highlighter-rouge">IEnumerator&lt;int&gt;</code>.</li>
+</ul>
+
+<p>✅ Сравнивать производительность foreach нужно с разными типами</p>
+
+<p>Поскольку <code class="language-plaintext highlighter-rouge">foreach</code> компилируется в различный код в зависимости от коллекции, производительность может значительно отличаться. Поэтому важно сравнивать каждый тип отдельно. Не исключаю, что эта деталь реализации может измениться в будущем.</p>
+
+<p><img src="/assets/2024/09/2024-09-16-bad-vs-better-benchmark/image03.png" alt="content" /></p>
+
+<p>❌ Передача метода в виде параметра</p>
+
+<p>При передаче метода в виде параметра создаётся делегат. В нашем примере – <code class="language-plaintext highlighter-rouge">Action&lt;int&gt;</code> (рисунок 4). Делегат, как известно ссылочный тип, то есть его создание – аллокация памяти, которая влияет на результаты бечмарка.</p>
+
+<p>✅ При передаче метода в виде параметра нужно заранее создать экземпляр делегата</p>
+
+<p>Правильнее было бы проинициализировать делегат в методе <code class="language-plaintext highlighter-rouge">GlobalSetup</code>, который выполняется перед бенчмарками.</p>
+
+<p><img src="/assets/2024/09/2024-09-16-bad-vs-better-benchmark/image04.png" alt="content" /></p>
+
+<h2 id="выводы">Выводы</h2>
+
+<p>Теперь посмотрим на результаты <a href="https://github.com/alexeyfv/for-benchmark">исправленного бенчмарка</a>. Bad – изначальный бенчмарк, Better – после исправления.</p>
+
+<p><img src="/assets/2024/09/2024-09-16-bad-vs-better-benchmark/image05.png" alt="content" /></p>
+
+<p>В бенчмарке Bad, который я запустил на своём ноутбуке, метод <code class="language-plaintext highlighter-rouge">ForEach_LinqParallel</code> отработал на .NET 9 чуть быстрее, чем на .NET 8. То есть та разница в, о которой говорил автор, была в рамках погрешности.</p>
+
+<p>В бенчмарке Better, метод <code class="language-plaintext highlighter-rouge">ForEach_LinqParallel</code> отработал на .NET 9 медленнее чем на .NET 8 на 90 мкс. Такую разницу я бы тоже отнёс к погрешности и не стал акцентировать внимание.</p>
+
+<p>В целом, результаты во всех трёх версиях .NET кажутся плюс-минус одинаковыми. Поэтому, я бы не стал заявлять о том, что .NET 9 медленнее .NET 8.</p>
+</div><a class="u-url" href="/2024/09/16/bad-vs-better-benchmark.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

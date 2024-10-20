@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>What’s wrong with the Options pattern in C#? | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="What’s wrong with the Options pattern in C#?" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="In .NET, there is a so-called Options pattern that simplifies the way we handle application configuration. To use it, developers just need to follow three steps. First, add the necessary configuration provider. Second, set up Service Provider using Configure extension method. Third, inject either IOptions&lt;T&gt;, or IOptionsMonitor&lt;T&gt;, or IOptionsSnapshot&lt;T&gt; into the target class through constructor injecting." />
+<meta property="og:description" content="In .NET, there is a so-called Options pattern that simplifies the way we handle application configuration. To use it, developers just need to follow three steps. First, add the necessary configuration provider. Second, set up Service Provider using Configure extension method. Third, inject either IOptions&lt;T&gt;, or IOptionsMonitor&lt;T&gt;, or IOptionsSnapshot&lt;T&gt; into the target class through constructor injecting." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2024/01/08/whats-wrong-with-options-pattern.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2024/01/08/whats-wrong-with-options-pattern.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-01-08T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="What’s wrong with the Options pattern in C#?" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"In .NET, there is a so-called Options pattern that simplifies the way we handle application configuration. To use it, developers just need to follow three steps. First, add the necessary configuration provider. Second, set up Service Provider using Configure extension method. Third, inject either IOptions&lt;T&gt;, or IOptionsMonitor&lt;T&gt;, or IOptionsSnapshot&lt;T&gt; into the target class through constructor injecting.","@type":"BlogPosting","headline":"What’s wrong with the Options pattern in C#?","dateModified":"2024-01-08T00:00:00+00:00","datePublished":"2024-01-08T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2024/01/08/whats-wrong-with-options-pattern.html"},"url":"http://www.alexeyfv.xyz//2024/01/08/whats-wrong-with-options-pattern.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      What&#39;s wrong with the Options pattern in C#?
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2024-01-08T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Jan 8, 2024
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>In .NET, there is a so-called <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/options">Options</a> pattern that simplifies the way we handle application configuration. To use it, developers just need to follow three steps. First, add the necessary <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers">configuration provider</a>. Second, set up Service Provider using <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.optionsconfigurationservicecollectionextensions.configure"><code class="language-plaintext highlighter-rouge">Configure</code></a> extension method. Third, inject either <code class="language-plaintext highlighter-rouge">IOptions&lt;T&gt;</code>, or <code class="language-plaintext highlighter-rouge">IOptionsMonitor&lt;T&gt;</code>, or <code class="language-plaintext highlighter-rouge">IOptionsSnapshot&lt;T&gt;</code>  into the target class through constructor injecting.</p>
+
+<p>Microsoft provides default configuration providers, like the JSON configuration provider with the <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.jsonconfigurationextensions.addjsonfile"><code class="language-plaintext highlighter-rouge">AddJsonFile</code></a> extension method. However, there are no providers for obtaining the configuration from database. In this article, we will consider several approaches to how to do it.</p>
+
+<h2 id="the-problem">The problem</h2>
+
+<p>Let’s imagine the implementation of the following application scenario. We have a <code class="language-plaintext highlighter-rouge">Configuration Updater</code> responsible for updating configuration in the database. On the other side, there’s a <code class="language-plaintext highlighter-rouge">Configuration Consumer</code> that retrieves configuration when needed.</p>
+
+<p><img src="/assets/2024/01/2024-01-09-whats-wrong-with-options-pattern/image1.png" alt="content" /></p>
+
+<p>Below is <code class="language-plaintext highlighter-rouge">AppConfig</code> class that defines configuration.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">AppConfig</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">Id</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="n">init</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">Version</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">required</span> <span class="kt">string</span> <span class="n">Guid</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">void</span> <span class="nf">Update</span><span class="p">(</span><span class="kt">string</span> <span class="n">guid</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Guid</span> <span class="p">=</span> <span class="n">guid</span><span class="p">;</span>
+        <span class="n">Version</span><span class="p">++;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The configuration in the database is updated by the Configuration Updater service every second.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">var</span> <span class="n">db</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">DatabaseContext</span><span class="p">(</span><span class="s">"DataSource=./../Database/db.sqlite"</span><span class="p">);</span>
+
+<span class="k">while</span> <span class="p">(</span><span class="k">true</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">guid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="nf">NewGuid</span><span class="p">().</span><span class="nf">ToString</span><span class="p">();</span>
+
+    <span class="kt">var</span> <span class="n">appConfig</span> <span class="p">=</span> <span class="n">db</span><span class="p">.</span><span class="n">AppConfigs</span><span class="p">.</span><span class="nf">FirstOrDefault</span><span class="p">();</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">appConfig</span> <span class="k">is</span> <span class="k">null</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">db</span><span class="p">.</span><span class="n">AppConfigs</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="k">new</span> <span class="nf">AppConfig</span><span class="p">()</span> <span class="p">{</span> <span class="n">Guid</span> <span class="p">=</span> <span class="n">guid</span><span class="p">,</span> <span class="p">});</span>
+    <span class="p">}</span>
+    <span class="k">else</span>
+    <span class="p">{</span>
+        <span class="n">appConfig</span><span class="p">.</span><span class="nf">Update</span><span class="p">(</span><span class="n">guid</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="n">db</span><span class="p">.</span><span class="nf">SaveChanges</span><span class="p">();</span>
+
+    <span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">"Configuration updated: {0}"</span><span class="p">,</span> <span class="n">guid</span><span class="p">);</span>
+
+    <span class="k">await</span> <span class="n">Task</span><span class="p">.</span><span class="nf">Delay</span><span class="p">(</span><span class="m">1000</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In the same time, the Configuration Consumer service reads the configuration every second.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">ConsumerClass</span><span class="p">(</span><span class="n">IOptionsMonitor</span><span class="p">&lt;</span><span class="n">AppConfig</span><span class="p">&gt;</span> <span class="n">_optionsMonitor</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">async</span> <span class="n">Task</span> <span class="nf">DoWork</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="k">while</span> <span class="p">(</span><span class="k">true</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">config</span> <span class="p">=</span> <span class="n">_optionsMonitor</span><span class="p">.</span><span class="n">CurrentValue</span><span class="p">;</span>
+            <span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">"Consume config: {0}"</span><span class="p">,</span> <span class="n">config</span><span class="p">.</span><span class="n">Guid</span><span class="p">);</span>
+            <span class="k">await</span> <span class="n">Task</span><span class="p">.</span><span class="nf">Delay</span><span class="p">(</span><span class="m">1000</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Now we should implement the functionality that obtains configuration from the database. There are examples, that show how to achieve this using custom configuration providers, for instance:</p>
+
+<ol>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/custom-configuration-provider">Implement a custom configuration provider - .NET | Microsoft Learn</a></li>
+  <li><a href="https://medium.com/@gokerakce/implement-a-custom-configuration-provider-in-net-7-c0a195dcd05f">Implement a Custom Configuration Provider in .NET 7 | by Goker Akce | Medium</a></li>
+  <li><a href="https://mousavi310.github.io/posts/a-refreshable-sql-server-configuration-provider-for-net-core/">A Refreshable SQL Server Configuration Provider for .NET Core | Morteza Mousavi</a></li>
+</ol>
+
+<p>The main idea of all these examples is to implement 2 custom classes: configuration source and configuration provider. Let’s take a look at the possible implementation.</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">DatabaseConfigurationProvider</code> class retrieves the configuration from the database, converts it to a JSON string, and loads into the <code class="language-plaintext highlighter-rouge">Data</code> dictionary using the internal implementation of <code class="language-plaintext highlighter-rouge">JsonConfigurationProvider.</code></p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">DatabaseConfigurationProvider</span><span class="p">(</span><span class="kt">string</span> <span class="n">_connectionString</span><span class="p">,</span> <span class="n">JsonConfigurationSource</span> <span class="n">source</span><span class="p">)</span> <span class="p">:</span> <span class="nf">JsonConfigurationProvider</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="kt">string</span> <span class="n">Prefix</span> <span class="p">=&gt;</span> <span class="k">nameof</span><span class="p">(</span><span class="n">AppConfig</span><span class="p">);</span>
+
+    <span class="k">public</span> <span class="k">override</span> <span class="k">void</span> <span class="nf">Load</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="k">using</span> <span class="nn">var</span> <span class="n">db</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">DatabaseContext</span><span class="p">(</span><span class="n">_connectionString</span><span class="p">);</span>
+
+        <span class="kt">var</span> <span class="n">appConfig</span> <span class="p">=</span> <span class="n">db</span><span class="p">.</span><span class="n">AppConfigs</span><span class="p">.</span><span class="nf">FirstOrDefault</span><span class="p">()</span> <span class="p">??</span> <span class="k">throw</span> <span class="k">new</span> <span class="nf">InvalidOperationException</span><span class="p">(</span><span class="s">"Configuration"</span><span class="p">);</span>
+
+        <span class="kt">var</span> <span class="n">json</span> <span class="p">=</span> <span class="n">JsonSerializer</span><span class="p">.</span><span class="nf">Serialize</span><span class="p">(</span><span class="k">new</span> <span class="p">{</span> <span class="n">AppConfig</span> <span class="p">=</span> <span class="n">appConfig</span> <span class="p">});</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="kt">string</span><span class="p">.</span><span class="nf">IsNullOrWhiteSpace</span><span class="p">(</span><span class="n">json</span><span class="p">))</span> <span class="k">return</span><span class="p">;</span>
+
+        <span class="kt">var</span> <span class="n">bytes</span> <span class="p">=</span> <span class="n">Encoding</span><span class="p">.</span><span class="n">UTF8</span><span class="p">.</span><span class="nf">GetBytes</span><span class="p">(</span><span class="n">json</span><span class="p">);</span>
+
+        <span class="k">using</span> <span class="nn">var</span> <span class="n">stream</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">MemoryStream</span><span class="p">(</span><span class="n">bytes</span><span class="p">);</span>
+
+        <span class="nf">Load</span><span class="p">(</span><span class="n">stream</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The <code class="language-plaintext highlighter-rouge">DatabaseConfigurationSource</code> class serves for building the provider. It should be added to the <code class="language-plaintext highlighter-rouge">ConfigurationBuilder</code> instance when defining dependencies in the <a href="https://blog.ploeh.dk/2011/07/28/CompositionRoot/">composition root</a>.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">DatabaseConfigurationSource</span><span class="p">(</span><span class="kt">string</span> <span class="n">_connectionString</span><span class="p">)</span> <span class="p">:</span> <span class="n">JsonConfigurationSource</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">override</span> <span class="n">IConfigurationProvider</span> <span class="nf">Build</span><span class="p">(</span><span class="n">IConfigurationBuilder</span> <span class="n">builder</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">"Build configuration source"</span><span class="p">);</span>
+        <span class="nf">EnsureDefaults</span><span class="p">(</span><span class="n">builder</span><span class="p">);</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">DatabaseConfigurationProvider</span><span class="p">(</span><span class="n">_connectionString</span><span class="p">,</span> <span class="k">this</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="k">class</span> <span class="nc">DatabaseConfigurationExtensions</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="n">IConfigurationBuilder</span> <span class="nf">AddDatabaseConfiguration</span><span class="p">(</span><span class="k">this</span> <span class="n">IConfigurationBuilder</span> <span class="n">builder</span><span class="p">,</span> <span class="kt">string</span> <span class="n">connectionString</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="n">builder</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="k">new</span> <span class="nf">DatabaseConfigurationSource</span><span class="p">(</span><span class="n">connectionString</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This solution compiles and works well, but only once. The reason is that the <code class="language-plaintext highlighter-rouge">DatabaseConfigurationSource</code> will read the configuration only on application startup. The examples we mentioned earlier propose a solution to this problem based on <a href="https://learn.microsoft.com/en-us/dotnet/api/system.timers.timer"><code class="language-plaintext highlighter-rouge">Timer</code></a> or <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/change-tokens"><code class="language-plaintext highlighter-rouge">ChangeToken</code></a> class. The idea is to periodically update configuration. However, there are several issues with this approach:</p>
+
+<ol>
+  <li><strong>Unnecessary database calls:</strong> The configuration provider makes a call to the database even if the database state hasn’t changed.</li>
+  <li><strong>Data consistency:</strong> The configuration in the database may be updated, but the timer is not triggered yet, and the configuration provider hasn’t obtained the updated version. Therefore, the Consumer Service may receive an outdated version of the configuration.</li>
+</ol>
+
+<h2 id="proposed-solution">Proposed solution</h2>
+
+<p>If the Consumer Service has to have the latest version of the configuration, a simpler solution is just to implement <code class="language-plaintext highlighter-rouge">IOptionsMonitor&lt;AppConfig&gt;</code> and register it as a singleton:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">DatabaseConfigurationMonitor</span><span class="p">(</span><span class="kt">string</span> <span class="n">_connectionString</span><span class="p">)</span> <span class="p">:</span> <span class="n">IOptionsMonitor</span><span class="p">&lt;</span><span class="n">AppConfig</span><span class="p">&gt;</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="n">AppConfig</span> <span class="n">CurrentValue</span> <span class="p">=&gt;</span> <span class="nf">Get</span><span class="p">();</span>
+
+    <span class="k">public</span> <span class="n">AppConfig</span> <span class="nf">Get</span><span class="p">(</span><span class="kt">string</span><span class="p">?</span> <span class="n">name</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="nf">Get</span><span class="p">();</span>
+
+    <span class="k">private</span> <span class="n">AppConfig</span> <span class="nf">Get</span><span class="p">()</span> <span class="p">=&gt;</span>
+        <span class="k">new</span> <span class="nf">DatabaseContext</span><span class="p">(</span><span class="n">_connectionString</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">AppConfigs</span>
+            <span class="p">.</span><span class="nf">FirstOrDefault</span><span class="p">()</span> <span class="p">??</span> <span class="k">throw</span> <span class="k">new</span> <span class="nf">InvalidOperationException</span><span class="p">(</span><span class="s">"Configuration"</span><span class="p">);</span>
+
+    <span class="k">public</span> <span class="n">IDisposable</span><span class="p">?</span> <span class="nf">OnChange</span><span class="p">(</span><span class="n">Action</span><span class="p">&lt;</span><span class="n">AppConfig</span><span class="p">,</span> <span class="kt">string</span><span class="p">?&gt;</span> <span class="n">listener</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nf">NotImplementedException</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="k">class</span> <span class="nc">DatabaseConfigurationExtensions</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="n">IServiceCollection</span> <span class="nf">ConfigureDatabaseOptionsMonitor</span><span class="p">(</span><span class="k">this</span> <span class="n">IServiceCollection</span> <span class="n">collection</span><span class="p">,</span> <span class="kt">string</span> <span class="n">connectionString</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="n">collection</span><span class="p">.</span><span class="n">AddSingleton</span><span class="p">&lt;</span><span class="n">IOptionsMonitor</span><span class="p">&lt;</span><span class="n">AppConfig</span><span class="p">&gt;&gt;(</span><span class="n">provider</span> <span class="p">=&gt;</span> <span class="k">new</span> <span class="nf">DatabaseConfigurationMonitor</span><span class="p">(</span><span class="n">connectionString</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In this scenario, accessing <code class="language-plaintext highlighter-rouge">_optionsMonitor.CurrentValue</code> will consistently provide the most up-to-date configuration from the database.</p>
+
+<p>But this approach also has a drawback: if you decide to switch from <code class="language-plaintext highlighter-rouge">IOptionsMonitor&lt;T&gt;</code> to <code class="language-plaintext highlighter-rouge">IOptions&lt;T&gt;</code>, you will also need to implement <code class="language-plaintext highlighter-rouge">IOptions&lt;T&gt;</code>.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>In applications using the Options pattern, there’s a missing feature for fetching configuration directly from databases. Developers often need to create custom solutions, typically through custom classes based on the <code class="language-plaintext highlighter-rouge">ConfigurationProvider</code> class. However, this approach can lead to issues such as unnecessary database calls and data inconsistency.</p>
+
+<p>For a straightforward solution that always fetches the latest configuration, implementing the <code class="language-plaintext highlighter-rouge">IOptionsMonitor&lt;T&gt;</code> or <code class="language-plaintext highlighter-rouge">IOptions&lt;T&gt;</code> interfaces proves to be simpler and more effective.</p>
+</div><a class="u-url" href="/2024/01/08/whats-wrong-with-options-pattern.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

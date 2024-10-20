@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Ускоряем Dictionary в C# при помощи структур и CollectionsMarshal | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Ускоряем Dictionary в C# при помощи структур и CollectionsMarshal" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Если вы C# разработчик, то наверняка вам знаком класс Dictionary. В качестве значений вы, скорее всего, использовали классы. Но что если я скажу, что в Dictionary можно использовать структуры? Не стоит бояться того, что структуры копируются при передаче в метод или возврате из него. Есть способ этого избежать, и это работает быстро." />
+<meta property="og:description" content="Если вы C# разработчик, то наверняка вам знаком класс Dictionary. В качестве значений вы, скорее всего, использовали классы. Но что если я скажу, что в Dictionary можно использовать структуры? Не стоит бояться того, что структуры копируются при передаче в метод или возврате из него. Есть способ этого избежать, и это работает быстро." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2024/04/12/collections-marshal.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2024/04/12/collections-marshal.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-04-12T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Ускоряем Dictionary в C# при помощи структур и CollectionsMarshal" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"Если вы C# разработчик, то наверняка вам знаком класс Dictionary. В качестве значений вы, скорее всего, использовали классы. Но что если я скажу, что в Dictionary можно использовать структуры? Не стоит бояться того, что структуры копируются при передаче в метод или возврате из него. Есть способ этого избежать, и это работает быстро.","@type":"BlogPosting","headline":"Ускоряем Dictionary в C# при помощи структур и CollectionsMarshal","dateModified":"2024-04-12T00:00:00+00:00","datePublished":"2024-04-12T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2024/04/12/collections-marshal.html"},"url":"http://www.alexeyfv.xyz//2024/04/12/collections-marshal.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Ускоряем Dictionary в C# при помощи структур и CollectionsMarshal
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2024-04-12T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Apr 12, 2024
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/dictionary">#dictionary</a>
+    
+    <a class="post" href="/tag/collectionsmarshal">#collectionsmarshal</a>
+    
+    <a class="post" href="/tag/performance">#performance</a>
+    
+    <a class="post" href="/tag/benchmark">#benchmark</a>
+    
+    <a class="post" href="/tag/hashtable">#hashtable</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>Если вы C# разработчик, то наверняка вам знаком класс Dictionary. В качестве значений вы, скорее всего, использовали классы. Но что если я скажу, что в Dictionary можно использовать структуры? Не стоит бояться того, что структуры копируются при передаче в метод или возврате из него. Есть способ этого избежать, и это работает быстро.</p>
+
+<h2 id="дисклеймер">Дисклеймер</h2>
+
+<p>Информация в этой статье верна только при определённых условиях. Я допускаю, что бенчмарк может показать другие результаты на другом железе, с другим компилятором, во время другой фазы луны или при другом сценарии использования рассматриваемого функционала языка. Всегда проверяйте ваш код и не полагайтесь лишь на статьи из интернета.</p>
+
+<h2 id="сценарий-использования">Сценарий использования</h2>
+
+<p>Представим, что есть некоторый массив данных <code class="language-plaintext highlighter-rouge">data</code>. От нас требуется реализовать следующий функционал:</p>
+
+<ol>
+  <li>Преобразовать <code class="language-plaintext highlighter-rouge">data</code> в словарь для последующего поиска.</li>
+  <li>По некоторому ключу найти в словаре объект и изменить его.</li>
+  <li>Повторить п. 2 столько раз, сколько требуется.</li>
+</ol>
+
+<p>Напишем код, который имитирует такое поведение:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Инициализация словаря  </span>
+<span class="kt">var</span> <span class="n">dict</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Dictionary</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">SomeClass</span><span class="p">&gt;(</span><span class="n">Length</span><span class="p">);</span>
+
+<span class="c1">// Заполнение словаря  </span>
+<span class="k">foreach</span> <span class="p">(</span><span class="kt">var</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span> <span class="k">in</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span>  
+    <span class="n">dict</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">obj</span><span class="p">);</span>  
+<span class="p">}</span>
+
+<span class="c1">// Поиск значения и изменение данных  </span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="n">Length</span><span class="p">;</span> <span class="n">i</span><span class="p">++)</span> <span class="p">{</span>  
+    <span class="n">dict</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="nf">DoWork</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>  
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Код выше работает как задумано. Давайте попробуем его ускорить. Заменим класс SomeClass на структуру SomeStruct и сравним производительность обоих вариантов.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Инициализация словаря  </span>
+<span class="kt">var</span> <span class="n">dict</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Dictionary</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">,</span> <span class="n">SomeClass</span><span class="p">&gt;(</span><span class="n">Length</span><span class="p">);</span>
+
+<span class="c1">// Заполнение словаря  </span>
+<span class="k">foreach</span> <span class="p">(</span><span class="kt">var</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span> <span class="k">in</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span>  
+    <span class="n">dict</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">obj</span><span class="p">);</span>  
+<span class="p">}</span>
+
+<span class="c1">// Поиск значения и изменение данных  </span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="n">Length</span><span class="p">;</span> <span class="n">i</span><span class="p">++)</span> <span class="p">{</span>  
+    <span class="kt">var</span> <span class="n">obj</span> <span class="p">=</span> <span class="n">dict</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>  
+    <span class="n">obj</span><span class="p">.</span><span class="nf">DoWork</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>  
+    <span class="n">dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">=</span> <span class="n">obj</span><span class="p">;</span>  
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="бенчмарк">Бенчмарк</h2>
+
+<p>Замер производительности осуществлялся на массиве данных в 100 000 элементов. Размер классов (без заголовка) и структур менялся от 4 до 128 байт. Для замеров производительности я использовал библиотеку <a href="https://github.com/dotnet/BenchmarkDotNet">BenchmarkDotNet</a>. Код бенчмарка и результаты можно найти в <a href="https://github.com/alexeyfv/speed-up-the-dictionary">GitHub</a>.</p>
+
+<p><img src="/assets/2024/04/2024-04-12-collections-marshal/image01.png" alt="content" />
+<strong>Среднее время выполнения бенчмарка в зависимости от размера сущности</strong></p>
+
+<p>Результаты бенчмарка показывают ухудшение производительности при использовании структур размером больше 20 байт. В реализации со структурами происходит их многократное копирование, а поиск в словаре осуществляется дважды. Это негативно сказывается на производительности. Давайте разобьем замеры кода на части, чтобы понять, что можно улучшить.</p>
+
+<h3 id="инициализация-словаря">Инициализация словаря</h3>
+
+<p>Бенчмарк показал ожидаемые результаты. Время инициализации и размер словаря со структурами линейно возрастают с увеличением размера структур.</p>
+
+<p><img src="/assets/2024/04/2024-04-12-collections-marshal/image02.png" alt="content" />
+<strong>
+Среднее время инициализации словаря в зависимости от размера сущности
+</strong></p>
+
+<p>Связано это с тем, что массив <a href="https://github.com/dotnet/runtime/blob/552b5e9b3249e61f87ac5cc73976c55b104971de/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/Dictionary.cs#L27">entries</a> в таком случае хранит непосредственно значения, а не ссылки. Соответственно, для хранения такого словаря нужно банально больше памяти.</p>
+
+<p>Справедливости ради нужно отметить, что для классов CLR выделила памяти даже больше, просто это произошло ранее – во время инициализации массива <code class="language-plaintext highlighter-rouge">data</code>. Если замерять время, затраченное на инициализацию массива классов и структур, то результаты будут не в пользу классов. Но это выходит за рамки статьи.</p>
+
+<h3 id="заполнение-словаря">Заполнение словаря</h3>
+
+<p>И снова ожидаемые результаты. Время копирования структур, происходящее при заполнении словаря, линейно зависит от размера структур. Хотя разница между структурами и классами практически не заметна вплоть до 20 байт.</p>
+
+<p><img src="/assets/2024/04/2024-04-12-collections-marshal/image03.png" alt="content" />
+<strong>
+Среднее время заполнения словаря в зависимости от размера сущности
+</strong></p>
+
+<h3 id="поиск-значения-и-его-изменение">Поиск значения и его изменение</h3>
+
+<p>И в третий раз результаты не в пользу структур.</p>
+
+<p><img src="/assets/2024/04/2024-04-12-collections-marshal/image04.png" alt="content" />
+<strong>
+Среднее время поиска значения и его изменения в зависимости от размера сущности
+</strong></p>
+
+<p>Связано это с тем, что поиск по ключу и копирование структур осуществляется дважды:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">SomeStruct</span> <span class="n">s</span> <span class="p">=</span> <span class="n">dict</span><span class="p">[</span><span class="n">i</span><span class="p">];</span> <span class="c1">// 1-й поиск по ключу и копирование структуры  </span>
+<span class="n">s</span><span class="p">.</span><span class="nf">DoWork</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>  
+<span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">=</span> <span class="n">s</span><span class="p">;</span> <span class="c1">// 2-й поиск по ключу и копирование структуры</span>
+</code></pre></div></div>
+
+<p>Вот тут нам и поможет класс <code class="language-plaintext highlighter-rouge">CollectionsMarshal</code>.</p>
+
+<h2 id="кто-такой-этот-ваш-collectionsmarshal">Кто такой этот ваш CollectionsMarshal?</h2>
+
+<p>Если кратко, то это <a href="https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.collectionsmarshal">класс</a> с четырьмя extension-методами:</p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">AsSpan&lt;T&gt;</code> – возвращает <code class="language-plaintext highlighter-rouge">Span&lt;T&gt;</code> для элементов <code class="language-plaintext highlighter-rouge">List&lt;T&gt;</code>.</li>
+  <li><code class="language-plaintext highlighter-rouge">GetValueRefOrAddDefault&lt;TKey, TValue&gt;</code> – по ключу возвращает из словаря ссылку на элемент <code class="language-plaintext highlighter-rouge">TValue</code>, создавая <code class="language-plaintext highlighter-rouge">default</code> значение если элемента не существует.</li>
+  <li><code class="language-plaintext highlighter-rouge">GetValueRefOrNullRef&lt;TKey, TValue&gt;</code> – по ключу возвращает из словаря ссылку на элемент <code class="language-plaintext highlighter-rouge">TValue</code> или ссылку на <code class="language-plaintext highlighter-rouge">null</code>, если элемента не существует.</li>
+  <li><code class="language-plaintext highlighter-rouge">SetCount&lt;T&gt;</code> – устанавливает значение <code class="language-plaintext highlighter-rouge">Count</code> для <code class="language-plaintext highlighter-rouge">List&lt;T&gt;</code>.</li>
+</ol>
+
+<p>Нас интересуют только <code class="language-plaintext highlighter-rouge">GetValueRefOrAddDefault</code> и <code class="language-plaintext highlighter-rouge">GetValueRefOrNullRef</code>. При помощи этих методов можно извлечь значения из словаря по ссылке, что позволит избежать двойного поиска по ключу и двойного копирования структуры. Например, код выше можно переписать следующим образом:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">ref</span> <span class="n">SomeStruct</span> <span class="n">s</span> <span class="p">=</span> <span class="k">ref</span> <span class="n">CollectionsMarshal</span><span class="p">.</span><span class="nf">GetValueRefOrNullRef</span><span class="p">(</span><span class="n">dict</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span>  
+<span class="n">s</span><span class="p">.</span><span class="nf">DoWork</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="ещё-немного-бенчмарков">Ещё немного бенчмарков</h2>
+
+<p>Сделаем замеры реализации с <code class="language-plaintext highlighter-rouge">GetValueRefOrNullRef</code> и сравним с предыдущими результатами:</p>
+
+<p><img src="/assets/2024/04/2024-04-12-collections-marshal/image05.png" alt="content" />
+<strong>
+Среднее время поиска значения и его изменения в зависимости от размера сущности
+</strong></p>
+
+<p>Время выполнения кода с <code class="language-plaintext highlighter-rouge">CollectionsMarshal</code> даже быстрее, чем с классами. Чтобы компенсировать потери производительности при инициализации и заполнении словаря, количество операций поиска должно быть многократно больше, чем размер массива.</p>
+
+<p><img src="/assets/2024/04/2024-04-12-collections-marshal/image06.png" alt="content" />
+<strong>
+Время выполнения бенчмарка. Графики разбиты по количеству операций поиска.
+</strong></p>
+
+<h2 id="особенности-collectionsmarshal">Особенности CollectionsMarshal</h2>
+
+<h3 id="проверка-на-default-и-null">Проверка на default и null</h3>
+
+<p>Как упоминалось ранее, методы GetValueRefOrAddDefault и GetValueRefOrNullRef возвращают ссылку на <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/default#default-literal">default</a> структуру и ссылку на null.</p>
+
+<p>Проверить, дефолтная ли структура, т.е. все поля имеют дефолтное значение, довольно просто – нужно проверить флаг exists:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">ref</span> <span class="kt">var</span> <span class="n">element</span> <span class="p">=</span> <span class="k">ref</span> <span class="n">CollectionsMarshal</span><span class="p">.</span><span class="nf">GetValueRefOrAddDefault</span><span class="p">(</span>  
+    <span class="n">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="k">out</span> <span class="kt">bool</span> <span class="n">exist</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">exist</span><span class="p">)</span> <span class="p">{</span>  
+    <span class="c1">// some code here  </span>
+<span class="p">}</span> 
+</code></pre></div></div>
+
+<p>Со ссылкой на <code class="language-plaintext highlighter-rouge">null</code> ситуация другая. Булевого флага нет, а при сравнении с <code class="language-plaintext highlighter-rouge">null</code> будет выброшено исключение NullReferenceException. Лучше воспользоваться методом <a href="https://learn.microsoft.com/en-us/dotnet/api/system.runtime.compilerservices.unsafe.isnullref?view=net-8.0">Unsafe.IsNullRef&lt;T&gt;(ref T source)</a>.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">ref</span> <span class="kt">var</span> <span class="n">element</span> <span class="p">=</span> <span class="k">ref</span> <span class="n">CollectionsMarshal</span><span class="p">.</span><span class="nf">GetValueRefOrNullRef</span><span class="p">(</span><span class="n">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">);</span>  
+<span class="k">if</span> <span class="p">(</span><span class="n">Unsafe</span><span class="p">.</span><span class="n">IsNullRef</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="k">ref</span> <span class="n">element</span><span class="p">))</span> <span class="p">{</span>  
+    <span class="c1">// some code here  </span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h3 id="изменение-словаря-после-получения-ссылки-на-структуру">Изменение словаря после получения ссылки на структуру</h3>
+
+<p>В документации к методам <code class="language-plaintext highlighter-rouge">GetValueRefOrAddDefault</code> и <code class="language-plaintext highlighter-rouge">GetValueRefOrNullRef</code> прямым текстом указано, что нельзя изменять словарь после того, как была получена ссылка на структуру. Почему так делать не надо продемонстрировано на примере ниже. После изменения словаря, любые изменения структуры, полученной по ссылке, не повлияют на значение в словаре.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">ref</span> <span class="kt">var</span> <span class="n">element</span> <span class="p">=</span> <span class="k">ref</span> <span class="n">CollectionsMarshal</span><span class="p">.</span><span class="nf">GetValueRefOrNullRef</span><span class="p">(</span><span class="n">dict</span><span class="p">,</span> <span class="n">key</span><span class="p">);</span>
+
+<span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">$"ref element: </span><span class="p">{</span><span class="n">element</span><span class="p">.</span><span class="n">Item1</span><span class="p">}</span><span class="s">"</span><span class="p">);</span> <span class="c1">// 30  </span>
+<span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">$"dict[key]: </span><span class="p">{</span><span class="n">dict</span><span class="p">[</span><span class="n">key</span><span class="p">].</span><span class="n">Item1</span><span class="p">}</span><span class="s">"</span><span class="p">);</span> <span class="c1">// 30</span>
+
+<span class="n">element</span><span class="p">.</span><span class="n">Item1</span> <span class="p">=</span> <span class="m">50</span><span class="p">;</span> <span class="c1">// change #1</span>
+
+<span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">$"ref element: </span><span class="p">{</span><span class="n">element</span><span class="p">.</span><span class="n">Item1</span><span class="p">}</span><span class="s">"</span><span class="p">);</span> <span class="c1">// 50  </span>
+<span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">$"dict[key]: </span><span class="p">{</span><span class="n">dict</span><span class="p">[</span><span class="n">key</span><span class="p">].</span><span class="n">Item1</span><span class="p">}</span><span class="s">"</span><span class="p">);</span> <span class="c1">// 50</span>
+
+<span class="n">dict</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="m">100</span><span class="p">,</span> <span class="k">new</span> <span class="p">(</span><span class="m">100</span><span class="p">));</span> <span class="c1">// add a new element  </span>
+<span class="n">element</span><span class="p">.</span><span class="n">Item1</span> <span class="p">=</span> <span class="m">60</span><span class="p">;</span> <span class="c1">// change #2</span>
+
+<span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">$"ref element: </span><span class="p">{</span><span class="n">element</span><span class="p">.</span><span class="n">Item1</span><span class="p">}</span><span class="s">"</span><span class="p">);</span> <span class="c1">// 60  </span>
+<span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span><span class="s">$"dict[key]: </span><span class="p">{</span><span class="n">dict</span><span class="p">[</span><span class="n">key</span><span class="p">].</span><span class="n">Item1</span><span class="p">}</span><span class="s">"</span><span class="p">);</span> <span class="c1">// 50</span>
+</code></pre></div></div>
+
+<h2 id="выводы">Выводы</h2>
+
+<p>Структуры – недооценённые элементы C#, которые, при определённых условиях, способны ускорить ваше приложение. При использовании структур в качестве значений для <code class="language-plaintext highlighter-rouge">Dictionary</code> лучше воспользоваться классом <code class="language-plaintext highlighter-rouge">CollectionsMarshal</code>. Методы этого класса <code class="language-plaintext highlighter-rouge">GetValueRefOrAddDefault</code> и <code class="language-plaintext highlighter-rouge">GetValueRefOrNullRef</code> позволяют получать элементы словаря по ссылке. Это, в свою очередь, может положительно сказаться на производительности кода при относительно большом количестве операций поиска в словаре.</p>
+</div><a class="u-url" href="/2024/04/12/collections-marshal.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

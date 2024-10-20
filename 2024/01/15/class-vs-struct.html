@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>The 16-Byte Rule: Unraveling the Performance Mystery of C# Structures | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="The 16-Byte Rule: Unraveling the Performance Mystery of C# Structures" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Many C# developers are familiar with the following statements. By default, when passing to or returning from a method, an instance of a value type is copied, while an instance of a reference type is passed by reference. This has led to a belief that utilizing structures may degrade the overall app performance, especially if the structure has a size greater than 16 bytes. The discussion about this is still ongoing. In this article, we will try to find the truth." />
+<meta property="og:description" content="Many C# developers are familiar with the following statements. By default, when passing to or returning from a method, an instance of a value type is copied, while an instance of a reference type is passed by reference. This has led to a belief that utilizing structures may degrade the overall app performance, especially if the structure has a size greater than 16 bytes. The discussion about this is still ongoing. In this article, we will try to find the truth." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2024/01/15/class-vs-struct.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2024/01/15/class-vs-struct.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-01-15T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="The 16-Byte Rule: Unraveling the Performance Mystery of C# Structures" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"Many C# developers are familiar with the following statements. By default, when passing to or returning from a method, an instance of a value type is copied, while an instance of a reference type is passed by reference. This has led to a belief that utilizing structures may degrade the overall app performance, especially if the structure has a size greater than 16 bytes. The discussion about this is still ongoing. In this article, we will try to find the truth.","@type":"BlogPosting","headline":"The 16-Byte Rule: Unraveling the Performance Mystery of C# Structures","dateModified":"2024-01-15T00:00:00+00:00","datePublished":"2024-01-15T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2024/01/15/class-vs-struct.html"},"url":"http://www.alexeyfv.xyz//2024/01/15/class-vs-struct.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      The 16-Byte Rule: Unraveling the Performance Mystery of C# Structures
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2024-01-15T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Jan 15, 2024
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/benchmark">#benchmark</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>Many C# developers are familiar with the following statements. By default, when passing to or returning from a method, an instance of a value type is copied, while an instance of a reference type is passed by reference. This has led to a belief that utilizing structures may degrade the overall app performance, especially if the structure has a size greater than 16 bytes. The discussion about this is <a href="https://www.reddit.com/r/csharp/comments/yhsjjf/only_use_structs_if_they_are_under_16_bytes_but/">still ongoing</a>. In this article, we will try to find the truth.</p>
+
+<h2 id="disclaimer">Disclaimer</h2>
+
+<p>The information from this article is а true only under specific conditions. I admit that the benchmark may yield different results on a machine with a different CPU or using different structures and classes. Always verify <strong>your code</strong> on <strong>your specific hardware</strong> and don’t rely solely on only articles from the internet. :)</p>
+
+<h2 id="benchmark">Benchmark</h2>
+
+<p>The benchmark is very straightforward.  It contains structures and classes with sizes ranging 4 to 160 bytes, incrementing by 4 bytes (int value).</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="n">record</span> <span class="k">struct</span> <span class="nc">Struct04</span><span class="p">(</span><span class="kt">int</span> <span class="n">Param</span><span class="p">);</span>
+
+<span class="c1">// other structures</span>
+
+<span class="k">public</span> <span class="n">record</span> <span class="k">struct</span> <span class="nc">Struct160</span><span class="p">(</span>
+<span class="kt">int</span> <span class="n">Param1</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param2</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param3</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param4</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param5</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param6</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param7</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param8</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param9</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param10</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param11</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param12</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param13</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param14</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param15</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param16</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param17</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param18</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param19</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param20</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param21</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param22</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param23</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param24</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param25</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param26</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param27</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param28</span><span class="p">,</span>
+<span class="kt">int</span> <span class="n">Param29</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param30</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param31</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param32</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param33</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param34</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param35</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param36</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param37</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param38</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param39</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param40</span><span class="p">);</span>
+
+<span class="k">public</span> <span class="n">record</span> <span class="k">struct</span> <span class="nc">Class04</span><span class="p">(</span><span class="kt">int</span> <span class="n">Param</span><span class="p">);</span>
+
+<span class="c1">// other classes</span>
+
+<span class="k">public</span> <span class="n">record</span> <span class="k">class</span> <span class="nc">Class160</span><span class="p">(</span>
+<span class="kt">int</span> <span class="n">Param1</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param2</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param3</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param4</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param5</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param6</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param7</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param8</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param9</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param10</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param11</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param12</span><span class="p">,</span>
+<span class="kt">int</span> <span class="n">Param13</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param14</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param15</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param16</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param17</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param18</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param19</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param20</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param21</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param22</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param23</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param24</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param25</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param26</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param27</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param28</span><span class="p">,</span>
+<span class="kt">int</span> <span class="n">Param29</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param30</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param31</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param32</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param33</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param34</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param35</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param36</span><span class="p">,</span> 
+<span class="kt">int</span> <span class="n">Param37</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param38</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param39</span><span class="p">,</span> <span class="kt">int</span> <span class="n">Param40</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>For each structure and class, there is an appropriate method that creates an instance from a single <code class="language-plaintext highlighter-rouge">int</code> value.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// other methods</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">Struct20</span> <span class="nf">GetStruct20</span><span class="p">(</span><span class="kt">int</span> <span class="k">value</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="k">new</span><span class="p">(</span><span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">);</span>
+
+<span class="c1">// other methods</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">Class20</span> <span class="nf">GetClass20</span><span class="p">(</span><span class="kt">int</span> <span class="k">value</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="k">new</span><span class="p">(</span><span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">,</span> <span class="k">value</span><span class="p">);</span>
+
+<span class="c1">// other methods</span>
+</code></pre></div></div>
+
+<p>In the end, there are benchmark methods, each creating a list of structures or classes with a size of 1000.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="kt">int</span> <span class="n">Iterations</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="m">1000</span><span class="p">;</span>
+
+<span class="k">private</span> <span class="k">static</span> <span class="k">void</span> <span class="n">Add</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="n">List</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">list</span><span class="p">,</span> <span class="n">T</span> <span class="k">value</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="n">list</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="k">value</span><span class="p">);</span>
+
+<span class="p">[</span><span class="nf">Benchmark</span><span class="p">(</span><span class="n">Baseline</span> <span class="p">=</span> <span class="k">true</span><span class="p">)]</span>
+<span class="k">public</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">Struct04</span><span class="p">&gt;</span> <span class="nf">GetStruct4</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">list</span> <span class="p">=</span> <span class="k">new</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">Struct04</span><span class="p">&gt;(</span><span class="n">Iterations</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="n">Iterations</span><span class="p">;</span> <span class="n">i</span><span class="p">++)</span> <span class="nf">Add</span><span class="p">(</span><span class="n">list</span><span class="p">,</span> <span class="nf">GetStruct04</span><span class="p">(</span><span class="n">i</span><span class="p">));</span>
+    <span class="k">return</span> <span class="n">list</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// other benchmark methods</span>
+
+<span class="p">[</span><span class="nf">Benchmark</span><span class="p">(</span><span class="n">Baseline</span> <span class="p">=</span> <span class="k">true</span><span class="p">)]</span>
+<span class="k">public</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">Class04</span><span class="p">&gt;</span> <span class="nf">GetClass4</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">list</span> <span class="p">=</span> <span class="k">new</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">Class04</span><span class="p">&gt;(</span><span class="n">Iterations</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="n">Iterations</span><span class="p">;</span> <span class="n">i</span><span class="p">++)</span> <span class="nf">Add</span><span class="p">(</span><span class="n">list</span><span class="p">,</span> <span class="nf">GetClass04</span><span class="p">(</span><span class="n">i</span><span class="p">));</span>
+    <span class="k">return</span> <span class="n">list</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// other benchmark methods</span>
+</code></pre></div></div>
+
+<p>As usual, for benchmarking, I used the <a href="https://github.com/dotnet/BenchmarkDotNet">BenchmarkDotNet</a> library. The whole code of the benchmark class can be found <a href="https://github.com/alexeyfv/class-vs-struct">here</a>.</p>
+
+<h2 id="results">Results</h2>
+
+<h3 id="time-measurements">Time measurements</h3>
+
+<p>The plot indicates that structures yield better results when their size is 64 bytes or fewer.</p>
+
+<p><img src="/assets/2024/01/2024-01-15-class-vs-struct/image1.png" alt="content" /></p>
+
+<p>If we take a closer look at the execution time for entities up to 64 bytes, we see, that using structures can be 40-70% faster than using classes.</p>
+
+<p><img src="/assets/2024/01/2024-01-15-class-vs-struct/image2.png" alt="content" /></p>
+
+<p>To understand why .NET behaves in this way, we need to examine the complied code. Let’s take a look at <code class="language-plaintext highlighter-rouge">GetStruct64</code> and <code class="language-plaintext highlighter-rouge">GetStruct128</code> methods, for example. At the screenshot below, we can observe that these methods are compiled to <a href="https://sharplab.io/#gist:d1ddca6000c43cd364b84c894ce74528">the same IL code</a>. The only difference is in names.</p>
+
+<p><img src="/assets/2024/01/2024-01-15-class-vs-struct/image3.png" alt="content" /></p>
+
+<p>It means that we have to delve deeper and examine the assembly code generated by the JIT compiler. Hopefully, BenchmarkDotNet <a href="https://benchmarkdotnet.org/articles/features/disassembler.html">provides such functionality</a>.</p>
+
+<p>Comparing both methods shows that there is no invocation of the <code class="language-plaintext highlighter-rouge">GetStruct64(int value)</code> method. Instead, multiple  <code class="language-plaintext highlighter-rouge">mov</code> operations (<code class="language-plaintext highlighter-rouge">mov</code> operation moves data between registers and memory) are present. These operations actually initialize <code class="language-plaintext highlighter-rouge">Struct64</code>. But where is <code class="language-plaintext highlighter-rouge">GetStruct64(int value)</code>? The JIT compiler optimized the code and replaced the method invocation by its body. This optimization is known as <strong>function or method inlining</strong>.</p>
+
+<p><img src="/assets/2024/01/2024-01-15-class-vs-struct/image4.png" alt="content" /></p>
+
+<p>Another interesting observation is that <strong>there are no stack allocations for structures</strong>. The JIT compiler optimized the code in such a way that only registers are used, even for structures of 128 bytes or more (thanks to <a href="https://en.wikipedia.org/wiki/Advanced_Vector_Extensions">AVX 256-bit registers</a>).</p>
+
+<h3 id="memory-measurements">Memory measurements</h3>
+
+<p>The memory usage graph displays a smooth pattern without sudden spikes. It indicates that the difference in memory consumption between structures and classes remains constant. Thus, as the size of the entity increases, the use of structures becomes less advantageous in relative terms, but still advantageous. For structures with a size less or equal to 64 bytes, memory usage less from 27% to 87%.</p>
+
+<p><img src="/assets/2024/01/2024-01-15-class-vs-struct/image5.png" alt="content" /></p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>This article proved, that utilizing structures not always degrades application performance. JIT compiler is smart enough to optimize the code during runtime, so structs may behave better than classes. Using structures up to 64 bytes more efficient in terms of both execution time and memory consumption.</p>
+</div><a class="u-url" href="/2024/01/15/class-vs-struct.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

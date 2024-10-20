@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Fastest way to extract a substring in C# | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Fastest way to extract a substring in C#" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Today, we’ll dive back into a microbenchmarking and a concise article about performance in C#. Our focus will be on strings and the most effective way for extracting a substring from the original string." />
+<meta property="og:description" content="Today, we’ll dive back into a microbenchmarking and a concise article about performance in C#. Our focus will be on strings and the most effective way for extracting a substring from the original string." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2023/10/28/substring.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2023/10/28/substring.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-10-28T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Fastest way to extract a substring in C#" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"Today, we’ll dive back into a microbenchmarking and a concise article about performance in C#. Our focus will be on strings and the most effective way for extracting a substring from the original string.","@type":"BlogPosting","headline":"Fastest way to extract a substring in C#","dateModified":"2023-10-28T00:00:00+00:00","datePublished":"2023-10-28T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2023/10/28/substring.html"},"url":"http://www.alexeyfv.xyz//2023/10/28/substring.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Fastest way to extract a substring in C#
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2023-10-28T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Oct 28, 2023
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/benchmark">#benchmark</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>Today, we’ll dive back into a microbenchmarking and a concise article about performance in C#. Our focus will be on strings and the most effective way for extracting a substring from the original string.</p>
+
+<h2 id="benchmark">Benchmark</h2>
+
+<p>In this benchmark, we’ll consider the following ways of extracting substring:</p>
+
+<ol>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.substring"><code class="language-plaintext highlighter-rouge">Substring</code></a> method.</li>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/csharp/tutorials/ranges-indexes"><code class="language-plaintext highlighter-rouge">Range</code></a> operator.</li>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/csharp/how-to/parse-strings-using-split"><code class="language-plaintext highlighter-rouge">Split</code></a> method.</li>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/api/system.readonlyspan-1"><code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code></a> Struct.</li>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex"><code class="language-plaintext highlighter-rouge">Regex</code></a> Class;</li>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.skipwhile"><code class="language-plaintext highlighter-rouge">SkipWhile</code></a> method.</li>
+</ol>
+
+<p>For benchmarking, I used the <a href="https://github.com/dotnet/BenchmarkDotNet">BenchmarkDotNet</a> library. The whole code of the benchmark class can be found <a href="https://gitlab.com/alexeyfv/substring-benchmark">here</a>.</p>
+
+<h2 id="results">Results</h2>
+
+<p>As usual, I run the benchmark on both .NET 6 and .NET 7 platforms. The results show minimal variation between the two.</p>
+
+<h3 id="execution-time">Execution time</h3>
+
+<p><img src="/assets/2023/10/2023-10-28-substring/results.png" alt="content" />
+<strong>The benchmark results</strong></p>
+
+<p>We observe that <code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code>, <code class="language-plaintext highlighter-rouge">Substring</code> and <code class="language-plaintext highlighter-rouge">Range</code> operator show fairly similar performance results. <code class="language-plaintext highlighter-rouge">Split</code>, <code class="language-plaintext highlighter-rouge">Regex</code> and <code class="language-plaintext highlighter-rouge">SkipWhile</code> are notably slower, being 2.5, 8.5 and 23.5 times respectively.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th style="text-align: right">Mean, ns</th>
+      <th style="text-align: right">Percent</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code></td>
+      <td style="text-align: right">687.6</td>
+      <td style="text-align: right">100</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Substring</code></td>
+      <td style="text-align: right">698.5</td>
+      <td style="text-align: right">102</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Range</code></td>
+      <td style="text-align: right">710.5</td>
+      <td style="text-align: right">103</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Split</code></td>
+      <td style="text-align: right">1696.3</td>
+      <td style="text-align: right">247</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Regex</code></td>
+      <td style="text-align: right">5830.4</td>
+      <td style="text-align: right">848</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">SkipWhile</code></td>
+      <td style="text-align: right">16211.7</td>
+      <td style="text-align: right">2358</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>If we’ll look at <a href="https://sharplab.io/#gist:3b742eef5a5606d724dbeeaed47fc093">decompiled C# code</a>, it becomes apparent that <code class="language-plaintext highlighter-rouge">Range</code> operator’s implementation is very similar to the implementation of <code class="language-plaintext highlighter-rouge">Substring</code>.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Range Operator after decompiling</span>
+<span class="kt">string</span> <span class="n">text</span> <span class="p">=</span> <span class="n">data</span><span class="p">[</span><span class="n">num</span><span class="p">];</span>
+<span class="kt">int</span> <span class="n">num2</span> <span class="p">=</span> <span class="n">text</span><span class="p">.</span><span class="nf">IndexOf</span><span class="p">(</span><span class="n">_symbol</span><span class="p">);</span>
+<span class="kt">string</span> <span class="n">text2</span> <span class="p">=</span> <span class="n">text</span><span class="p">;</span>
+<span class="kt">int</span> <span class="n">num3</span> <span class="p">=</span> <span class="n">num2</span><span class="p">;</span>
+<span class="n">list</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="n">text2</span><span class="p">.</span><span class="nf">Substring</span><span class="p">(</span><span class="n">num3</span><span class="p">,</span> <span class="n">text2</span><span class="p">.</span><span class="n">Length</span> <span class="p">-</span> <span class="n">num3</span><span class="p">));</span>
+<span class="n">num</span><span class="p">++;</span>
+</code></pre></div></div>
+
+<p>The only difference is that <code class="language-plaintext highlighter-rouge">Substring</code> implementation has fewer local variables.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Substring after decompiling</span>
+<span class="kt">string</span> <span class="n">text</span> <span class="p">=</span> <span class="n">data</span><span class="p">[</span><span class="n">num</span><span class="p">];</span>
+<span class="kt">int</span> <span class="n">startIndex</span> <span class="p">=</span> <span class="n">text</span><span class="p">.</span><span class="nf">IndexOf</span><span class="p">(</span><span class="n">_symbol</span><span class="p">);</span>
+<span class="n">list</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="n">text</span><span class="p">.</span><span class="nf">Substring</span><span class="p">(</span><span class="n">startIndex</span><span class="p">));</span>
+<span class="n">num</span><span class="p">++;</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code> shows better results. It looks like getting memory span and creating a new string from it is slightly faster, than getting substring by <code class="language-plaintext highlighter-rouge">string.Substring</code> method. I’m assuming that the reason of that is index bounds checks inside <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/String.Manipulation.cs#L2091">internal implementation</a> of <code class="language-plaintext highlighter-rouge">Substring</code> method.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// ReadOnlySpan&lt;T&gt; after decompiling</span>
+<span class="kt">string</span> <span class="n">obj</span> <span class="p">=</span> <span class="n">data</span><span class="p">[</span><span class="n">num</span><span class="p">];</span>
+<span class="kt">int</span> <span class="n">start</span> <span class="p">=</span> <span class="n">obj</span><span class="p">.</span><span class="nf">IndexOf</span><span class="p">(</span><span class="n">_symbol</span><span class="p">);</span>
+<span class="n">ReadOnlySpan</span><span class="p">&lt;</span><span class="kt">char</span><span class="p">&gt;</span> <span class="k">value</span> <span class="p">=</span> <span class="n">MemoryExtensions</span><span class="p">.</span><span class="nf">AsSpan</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">start</span><span class="p">);</span>
+<span class="n">list</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="k">new</span> <span class="kt">string</span><span class="p">(</span><span class="k">value</span><span class="p">));</span>
+<span class="n">num</span><span class="p">++;</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">Split</code> is slower because its <a href="https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/String.Manipulation.cs#L1625">internal implementation</a> and use of this method to obtain a substring is incorrect.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Split after decompiling</span>
+<span class="kt">string</span> <span class="n">text</span> <span class="p">=</span> <span class="n">data</span><span class="p">[</span><span class="n">num</span><span class="p">];</span>
+<span class="n">list</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="n">text</span><span class="p">.</span><span class="nf">Split</span><span class="p">(</span><span class="sc">':'</span><span class="p">)[</span><span class="m">1</span><span class="p">]);</span>
+<span class="n">num</span><span class="p">++;</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">Regex</code> is a good option when you need to get a substring with a more complex pattern rather than a single char. But in this particular case it’s like breaking a butterfly on a wheel.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Regex after decompiling</span>
+<span class="kt">string</span> <span class="n">input</span> <span class="p">=</span> <span class="n">data</span><span class="p">[</span><span class="n">num</span><span class="p">];</span>
+<span class="n">list</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="n">Regex</span><span class="p">.</span><span class="nf">Match</span><span class="p">(</span><span class="n">input</span><span class="p">,</span> <span class="n">_pattern</span><span class="p">).</span><span class="n">Groups</span><span class="p">[</span><span class="m">1</span><span class="p">].</span><span class="n">Value</span><span class="p">);</span>
+<span class="n">num</span><span class="p">++;</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">SkipWhile</code> is super slow because:</p>
+
+<ol>
+  <li>It creates a new delegate <code class="language-plaintext highlighter-rouge">Func&lt;char, bool&gt;</code>.</li>
+  <li><code class="language-plaintext highlighter-rouge">Enumerable.SkipWhile</code> calls this delegate for each char in the string.</li>
+  <li><code class="language-plaintext highlighter-rouge">Enumerable.ToArray</code> converts <code class="language-plaintext highlighter-rouge">IEnumerable&lt;char&gt;</code> to <code class="language-plaintext highlighter-rouge">char[]</code>.</li>
+</ol>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// SkipWhile after decompiling</span>
+<span class="kt">string</span> <span class="n">source</span> <span class="p">=</span> <span class="n">data</span><span class="p">[</span><span class="n">num</span><span class="p">];</span>
+<span class="n">list</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="k">new</span> <span class="kt">string</span><span class="p">(</span>
+    <span class="n">Enumerable</span><span class="p">.</span><span class="nf">ToArray</span><span class="p">(</span>
+        <span class="n">Enumerable</span><span class="p">.</span><span class="nf">SkipWhile</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="k">new</span> <span class="n">Func</span><span class="p">&lt;</span><span class="kt">char</span><span class="p">,</span> <span class="kt">bool</span><span class="p">&gt;(&lt;</span><span class="n">SkipWhile</span><span class="p">&gt;</span><span class="n">b__5_0</span><span class="p">)))));</span>
+<span class="n">num</span><span class="p">++;</span>
+</code></pre></div></div>
+
+<h3 id="memory">Memory</h3>
+
+<p>Speaking about memory allocations, <code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code>, <code class="language-plaintext highlighter-rouge">Substring</code> and <code class="language-plaintext highlighter-rouge">Range</code> shows the same results. Other implementations require more memory.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Method</th>
+      <th style="text-align: right">Gen0</th>
+      <th style="text-align: right">Gen1</th>
+      <th style="text-align: right">Allocated</th>
+      <th style="text-align: right">Percent</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code></td>
+      <td style="text-align: right">0.3901</td>
+      <td style="text-align: right">0.0057</td>
+      <td style="text-align: right">4.79 KB</td>
+      <td style="text-align: right">100</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Substring</code></td>
+      <td style="text-align: right">0.3901</td>
+      <td style="text-align: right">0.0057</td>
+      <td style="text-align: right">4.79 KB</td>
+      <td style="text-align: right">100</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Range</code></td>
+      <td style="text-align: right">0.3901</td>
+      <td style="text-align: right">0.0057</td>
+      <td style="text-align: right">4.79 KB</td>
+      <td style="text-align: right">100</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Split</code></td>
+      <td style="text-align: right">0.7362</td>
+      <td style="text-align: right">0.0114</td>
+      <td style="text-align: right">9.03 KB</td>
+      <td style="text-align: right">188</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Regex</code></td>
+      <td style="text-align: right">1.9150</td>
+      <td style="text-align: right">0.0305</td>
+      <td style="text-align: right">23.5 KB</td>
+      <td style="text-align: right">490</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">SkipWhile</code></td>
+      <td style="text-align: right">2.2888</td>
+      <td style="text-align: right">0.0305</td>
+      <td style="text-align: right">28.23 KB</td>
+      <td style="text-align: right">589</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>The most efficient methods for extracting a substring in C# are <code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code>, <code class="language-plaintext highlighter-rouge">Substring</code> and <code class="language-plaintext highlighter-rouge">Range</code>. I favor the <code class="language-plaintext highlighter-rouge">Range</code> operator due to its cleaner appearance compared to other implementations. However, it is worth noting that it is 1-3% slower than <code class="language-plaintext highlighter-rouge">ReadOnlySpan&lt;T&gt;</code> and <code class="language-plaintext highlighter-rouge">Substring</code>.</p>
+</div><a class="u-url" href="/2023/10/28/substring.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

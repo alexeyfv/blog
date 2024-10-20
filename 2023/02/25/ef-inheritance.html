@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Impact of EF mapping strategy on SQL queries performance | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Impact of EF mapping strategy on SQL queries performance" />
+<meta name="author" content="© 2024 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Entity Framework (EF) is a popular object-relational mapping framework used to interact with databases in .NET applications. EF offers different mapping strategies, each of which affects the database schema and how EF interacts with the hierarchy of .NET types. In this article, we will examine how these mapping strategies affects performance in SQL Server." />
+<meta property="og:description" content="Entity Framework (EF) is a popular object-relational mapping framework used to interact with databases in .NET applications. EF offers different mapping strategies, each of which affects the database schema and how EF interacts with the hierarchy of .NET types. In this article, we will examine how these mapping strategies affects performance in SQL Server." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2023/02/25/ef-inheritance.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2023/02/25/ef-inheritance.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-02-25T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Impact of EF mapping strategy on SQL queries performance" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"© 2024 Alexey Fedorov"},"description":"Entity Framework (EF) is a popular object-relational mapping framework used to interact with databases in .NET applications. EF offers different mapping strategies, each of which affects the database schema and how EF interacts with the hierarchy of .NET types. In this article, we will examine how these mapping strategies affects performance in SQL Server.","@type":"BlogPosting","headline":"Impact of EF mapping strategy on SQL queries performance","dateModified":"2023-02-25T00:00:00+00:00","datePublished":"2023-02-25T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2023/02/25/ef-inheritance.html"},"url":"http://www.alexeyfv.xyz//2023/02/25/ef-inheritance.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Impact of EF mapping strategy on SQL queries performance
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2023-02-25T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Feb 25, 2023
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/efcore">#efcore</a>
+    
+    <a class="post" href="/tag/sqlserver">#sqlserver</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>Entity Framework (EF) is a popular object-relational mapping framework used to interact with databases in .NET applications. EF offers different mapping strategies, each of which affects the database schema and how EF interacts with the hierarchy of .NET types. In this article, we will examine how these mapping strategies affects performance in SQL Server.</p>
+
+<h2 id="mapping-strategies-in-entity-framework">Mapping strategies in Entity Framework</h2>
+
+<p>The official Microsoft documentation <a href="https://learn.microsoft.com/en-us/ef/core/modeling/inheritance">describes</a> 3 mapping strategies:</p>
+
+<ul>
+  <li>Table-per-hierarchy (TPH);</li>
+  <li>Table-per-class (TPC);</li>
+  <li>Table-per-type (TPT).</li>
+</ul>
+
+<p>In my experience, I have also encountered another mapping strategy that I refer to as <code class="language-plaintext highlighter-rouge">TPH with JSON</code>. The main idea behind this strategy is to convert properties from the derived classes to a JSON payload and add a discriminator column, similar to the default <code class="language-plaintext highlighter-rouge">TPH</code> strategy.</p>
+
+<p>Let’s have a look at the hierarchy below:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">Root</span>
+<span class="p">{</span>
+    <span class="c1">// Root properties</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">ChildA</span> <span class="p">:</span> <span class="n">Root</span>
+<span class="p">{</span>
+    <span class="c1">// ChildA propertie</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">ChildB</span> <span class="p">:</span> <span class="n">Root</span>
+<span class="p">{</span>
+    <span class="c1">// ChildB properties</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">ChildC</span> <span class="p">:</span> <span class="n">Root</span>
+<span class="p">{</span>
+    <span class="c1">// ChildC properties</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The database schemas for this hierarchy will be as follows:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>TPH</th>
+      <th>TPC</th>
+      <th>TPT</th>
+      <th>TPH with JSON</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><img src="/assets/2023/02/2023-02-25-ef-inheritance/diagram-tph.png" alt="content" /></td>
+      <td><img src="/assets/2023/02/2023-02-25-ef-inheritance/diagram-tpc.png" alt="content" /></td>
+      <td><img src="/assets/2023/02/2023-02-25-ef-inheritance/diagram-tpt.png" alt="content" /></td>
+      <td><img src="/assets/2023/02/2023-02-25-ef-inheritance/diagram-tphjson.png" alt="content" /></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>As shown below:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">TPH</code> table contains all the properties from all the types.</li>
+  <li><code class="language-plaintext highlighter-rouge">TPC</code> child tables are non related to the parent <code class="language-plaintext highlighter-rouge">Roots</code> table.</li>
+  <li><code class="language-plaintext highlighter-rouge">TPT</code> child tables contains only type specific columns and related to the parent <code class="language-plaintext highlighter-rouge">Roots</code> table.</li>
+  <li><code class="language-plaintext highlighter-rouge">TPH with JSON</code> looks very similar to plain <code class="language-plaintext highlighter-rouge">TPH</code>, except all the columns for child properties replaced by one JSON column <code class="language-plaintext highlighter-rouge">Payload</code>. Column <code class="language-plaintext highlighter-rouge">PayloadType</code> corresponds to <code class="language-plaintext highlighter-rouge">Discriminator</code> column in <code class="language-plaintext highlighter-rouge">TPH</code>.</li>
+</ul>
+
+<p>Now let’s find out how all these mapping strategies affect on performance in SQL Server.</p>
+
+<h2 id="benchmark">Benchmark</h2>
+
+<p>The benchmark project has <a href="https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Contexts/Contexts.cs">4 instances</a> of <code class="language-plaintext highlighter-rouge">DbContext</code> for each kind of mapping strategy. <code class="language-plaintext highlighter-rouge">TPH</code>, <code class="language-plaintext highlighter-rouge">TPC</code> and <code class="language-plaintext highlighter-rouge">TPT</code> are pretty simple. <code class="language-plaintext highlighter-rouge">TPH with JSON</code> requires <a href="https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Models/Models.cs">additional wrapper class</a> to transform child DB objects to JSON payload:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">RootWrapper</span> <span class="p">:</span> <span class="n">Root</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Payload</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span> <span class="p">=</span> <span class="kt">string</span><span class="p">.</span><span class="n">Empty</span><span class="p">;</span>
+
+    <span class="p">[</span><span class="n">NotMapped</span><span class="p">]</span>
+    <span class="k">public</span> <span class="n">Root</span> <span class="n">OriginalEntity</span>
+    <span class="p">{</span>
+        <span class="k">get</span>
+        <span class="p">{</span>
+            <span class="c1">// code for deserializing JSON to ChildA, ChildB or ChildC</span>
+        <span class="p">}</span>
+        <span class="k">set</span>
+        <span class="p">{</span>
+            <span class="c1">// code for serializing ChildA, ChildB or ChildC to JSON </span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+
+    <span class="k">public</span> <span class="n">PayloadTypes</span> <span class="n">PayloadType</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">enum</span> <span class="n">PayloadTypes</span>
+    <span class="p">{</span>
+        <span class="n">Root</span><span class="p">,</span>
+        <span class="n">ChildA</span><span class="p">,</span>
+        <span class="n">ChildB</span><span class="p">,</span>
+        <span class="n">ChildC</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>I also used <a href="https://www.nuget.org/packages/Bogus"><code class="language-plaintext highlighter-rouge">Bogus</code></a> library for <a href="https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Fakers/Fakers.cs">generating fake data</a> and <a href="https://www.nuget.org/packages/BenchmarkDotNet"><code class="language-plaintext highlighter-rouge">BenchmarkDotNet</code></a> library for <a href="https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/Benchmarks/Default">benchmarking itself</a>.</p>
+
+<p>There are 2 benchmarks in the projects - for <a href="https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Benchmarks/Default/InsertBenchmark.cs"><code class="language-plaintext highlighter-rouge">INSERT</code></a> and <a href="https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Benchmarks/Default/SelectBenchmark.cs"><code class="language-plaintext highlighter-rouge">SELECT</code></a> data. I didn’t test <code class="language-plaintext highlighter-rouge">UPDATE</code> and <code class="language-plaintext highlighter-rouge">DELETE</code> because it requires to specify the filter predicate and it’s little bit complicated due to randomized fake data.</p>
+
+<h3 id="results">Results</h3>
+
+<p>Here are the benchmark <a href="https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/BenchmarkDotNet.Artifacts">results</a>. As we can see from the figures below, <code class="language-plaintext highlighter-rouge">TPT</code> has the worst performance for <code class="language-plaintext highlighter-rouge">SELECT</code> as well as <code class="language-plaintext highlighter-rouge">INSERT</code>. This strategy is about 40-60% slower than <code class="language-plaintext highlighter-rouge">TPH</code> which is default for EF. <code class="language-plaintext highlighter-rouge">TPC</code> performs slightly better in selecting data, but slightly worse in inserting data compared to <code class="language-plaintext highlighter-rouge">TPH</code>. The most interesting fact is that <code class="language-plaintext highlighter-rouge">TPH with JSON</code> performance better than <code class="language-plaintext highlighter-rouge">TPH</code> performance.</p>
+
+<div class="glide">
+  <div class="glide__track" data-glide-el="track">
+    <ul class="glide__slides" style="padding-left: 0px">
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/mapping-strategies-insert-ratio-entities.png" alt="Image 1" />
+        <strong>Figure 1 - Execution time for inserting data</strong>
+      </li>
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/mapping-strategies-select-ratio-entities.png" alt="Image 2" />
+        <strong>Figure 2 - Execution time for selecting data</strong>
+      </li>
+    </ul>
+  </div>
+  <div class="glide__arrows" data-glide-el="controls">
+    <button class="glide__arrow glide__arrow--left" data-glide-dir="&lt;">&lt;</button>
+    <button class="glide__arrow glide__arrow--right" data-glide-dir="&gt;">&gt;</button>
+  </div>
+</div>
+
+<h2 id="tph-vs-tph-with-json"><code class="language-plaintext highlighter-rouge">TPH</code> vs <code class="language-plaintext highlighter-rouge">TPH with JSON</code></h2>
+
+<p>I was curious why <code class="language-plaintext highlighter-rouge">TPH with JSON</code> shows better performance that <code class="language-plaintext highlighter-rouge">TPH</code>, so I created another benchmark. This benchmark <a href="https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/Contexts">uses</a> instances of <code class="language-plaintext highlighter-rouge">DbContext</code> with entities that have 3, 5, 8, 13 and 21 properties for each type of mapping strategy (10 in total).</p>
+
+<p>As we can see from figure 3 and 4, <code class="language-plaintext highlighter-rouge">TPH with JSON</code> strategy has almost the same insertion time, while the <code class="language-plaintext highlighter-rouge">TPH</code> execution time increases with both the number of properties and the number of entities.</p>
+
+<div class="glide">
+  <div class="glide__track" data-glide-el="track">
+    <ul class="glide__slides" style="padding-left: 0px">
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/tph-vs-tphjson-insert.png" />
+        <strong>Figure 3 - Dependence of inserting time on the number of entities and the number of properties</strong>
+      </li>
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/tph-vs-tphjson-insert-ratio-entities.png" />
+        <strong>Figure 4 - Ratio of `TPH` execution time to `TPH with JSON` execution time for inserting data</strong>
+      </li>
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/tph-vs-tphjson-insert-ratio-props.png" />
+        <strong>Figure 5 - Ratio of `TPH` execution time to `TPH with JSON` execution time for inserting data</strong>
+      </li>
+    </ul>
+  </div>
+  <div class="glide__arrows" data-glide-el="controls">
+    <button class="glide__arrow glide__arrow--left" data-glide-dir="&lt;">&lt;</button>
+    <button class="glide__arrow glide__arrow--right" data-glide-dir="&gt;">&gt;</button>
+  </div>
+</div>
+
+<p>Apparently, <code class="language-plaintext highlighter-rouge">TPH</code> has worse performance due to two things:</p>
+
+<ol>
+  <li>EF Core creates separate <code class="language-plaintext highlighter-rouge">INSERT</code> queries for each of type in the hierarchy.</li>
+  <li>EF Core creates parameters for each property.</li>
+</ol>
+
+<p>In this particular example, EF Core created 4 <code class="language-plaintext highlighter-rouge">INSERT</code> queries and 82 parameters:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">INSERT</span> <span class="k">INTO</span> <span class="p">[</span><span class="n">tph21</span><span class="p">].[</span><span class="n">Roots</span><span class="p">]</span> <span class="p">([</span><span class="n">ChildAProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp10</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp11</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp12</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp13</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp14</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp15</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp16</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp17</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp18</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp19</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp20</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp21</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp4</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp5</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp6</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp7</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp8</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildAProp9</span><span class="p">],</span> <span class="p">[</span><span class="n">Discriminator</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp4</span><span class="p">])</span>
+<span class="k">OUTPUT</span> <span class="n">INSERTED</span><span class="p">.[</span><span class="n">Id</span><span class="p">]</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="o">@</span><span class="n">p0</span><span class="p">,</span> <span class="o">@</span><span class="n">p1</span><span class="p">,</span> <span class="o">@</span><span class="n">p2</span><span class="p">,</span> <span class="o">@</span><span class="n">p3</span><span class="p">,</span> <span class="o">@</span><span class="n">p4</span><span class="p">,</span> <span class="o">@</span><span class="n">p5</span><span class="p">,</span> <span class="o">@</span><span class="n">p6</span><span class="p">,</span> <span class="o">@</span><span class="n">p7</span><span class="p">,</span> <span class="o">@</span><span class="n">p8</span><span class="p">,</span> <span class="o">@</span><span class="n">p9</span><span class="p">,</span> <span class="o">@</span><span class="n">p10</span><span class="p">,</span> <span class="o">@</span><span class="n">p11</span><span class="p">,</span> <span class="o">@</span><span class="n">p12</span><span class="p">,</span> <span class="o">@</span><span class="n">p13</span><span class="p">,</span> <span class="o">@</span><span class="n">p14</span><span class="p">,</span> <span class="o">@</span><span class="n">p15</span><span class="p">,</span> <span class="o">@</span><span class="n">p16</span><span class="p">,</span> <span class="o">@</span><span class="n">p17</span><span class="p">,</span> <span class="o">@</span><span class="n">p18</span><span class="p">,</span> <span class="o">@</span><span class="n">p19</span><span class="p">,</span> <span class="o">@</span><span class="n">p20</span><span class="p">,</span> <span class="o">@</span><span class="n">p21</span><span class="p">,</span> <span class="o">@</span><span class="n">p22</span><span class="p">,</span> <span class="o">@</span><span class="n">p23</span><span class="p">,</span> <span class="o">@</span><span class="n">p24</span><span class="p">,</span> <span class="o">@</span><span class="n">p25</span><span class="p">);</span>
+
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="p">[</span><span class="n">tph21</span><span class="p">].[</span><span class="n">Roots</span><span class="p">]</span> <span class="p">([</span><span class="n">ChildBProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp10</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp11</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp12</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp13</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp14</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp15</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp16</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp17</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp18</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp19</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp20</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp21</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp4</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp5</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp6</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp7</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp8</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildBProp9</span><span class="p">],</span> <span class="p">[</span><span class="n">Discriminator</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp4</span><span class="p">])</span>
+<span class="k">OUTPUT</span> <span class="n">INSERTED</span><span class="p">.[</span><span class="n">Id</span><span class="p">]</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="o">@</span><span class="n">p26</span><span class="p">,</span> <span class="o">@</span><span class="n">p27</span><span class="p">,</span> <span class="o">@</span><span class="n">p28</span><span class="p">,</span> <span class="o">@</span><span class="n">p29</span><span class="p">,</span> <span class="o">@</span><span class="n">p30</span><span class="p">,</span> <span class="o">@</span><span class="n">p31</span><span class="p">,</span> <span class="o">@</span><span class="n">p32</span><span class="p">,</span> <span class="o">@</span><span class="n">p33</span><span class="p">,</span> <span class="o">@</span><span class="n">p34</span><span class="p">,</span> <span class="o">@</span><span class="n">p35</span><span class="p">,</span> <span class="o">@</span><span class="n">p36</span><span class="p">,</span> <span class="o">@</span><span class="n">p37</span><span class="p">,</span> <span class="o">@</span><span class="n">p38</span><span class="p">,</span> <span class="o">@</span><span class="n">p39</span><span class="p">,</span> <span class="o">@</span><span class="n">p40</span><span class="p">,</span> <span class="o">@</span><span class="n">p41</span><span class="p">,</span> <span class="o">@</span><span class="n">p42</span><span class="p">,</span> <span class="o">@</span><span class="n">p43</span><span class="p">,</span> <span class="o">@</span><span class="n">p44</span><span class="p">,</span> <span class="o">@</span><span class="n">p45</span><span class="p">,</span> <span class="o">@</span><span class="n">p46</span><span class="p">,</span> <span class="o">@</span><span class="n">p47</span><span class="p">,</span> <span class="o">@</span><span class="n">p48</span><span class="p">,</span> <span class="o">@</span><span class="n">p49</span><span class="p">,</span> <span class="o">@</span><span class="n">p50</span><span class="p">,</span> <span class="o">@</span><span class="n">p51</span><span class="p">);</span>
+
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="p">[</span><span class="n">tph21</span><span class="p">].[</span><span class="n">Roots</span><span class="p">]</span> <span class="p">([</span><span class="n">ChildCProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp10</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp11</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp12</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp13</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp14</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp15</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp16</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp17</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp18</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp19</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp20</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp21</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp4</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp5</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp6</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp7</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp8</span><span class="p">],</span> <span class="p">[</span><span class="n">ChildCProp9</span><span class="p">],</span> <span class="p">[</span><span class="n">Discriminator</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp4</span><span class="p">])</span>
+<span class="k">OUTPUT</span> <span class="n">INSERTED</span><span class="p">.[</span><span class="n">Id</span><span class="p">]</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="o">@</span><span class="n">p52</span><span class="p">,</span> <span class="o">@</span><span class="n">p53</span><span class="p">,</span> <span class="o">@</span><span class="n">p54</span><span class="p">,</span> <span class="o">@</span><span class="n">p55</span><span class="p">,</span> <span class="o">@</span><span class="n">p56</span><span class="p">,</span> <span class="o">@</span><span class="n">p57</span><span class="p">,</span> <span class="o">@</span><span class="n">p58</span><span class="p">,</span> <span class="o">@</span><span class="n">p59</span><span class="p">,</span> <span class="o">@</span><span class="n">p60</span><span class="p">,</span> <span class="o">@</span><span class="n">p61</span><span class="p">,</span> <span class="o">@</span><span class="n">p62</span><span class="p">,</span> <span class="o">@</span><span class="n">p63</span><span class="p">,</span> <span class="o">@</span><span class="n">p64</span><span class="p">,</span> <span class="o">@</span><span class="n">p65</span><span class="p">,</span> <span class="o">@</span><span class="n">p66</span><span class="p">,</span> <span class="o">@</span><span class="n">p67</span><span class="p">,</span> <span class="o">@</span><span class="n">p68</span><span class="p">,</span> <span class="o">@</span><span class="n">p69</span><span class="p">,</span> <span class="o">@</span><span class="n">p70</span><span class="p">,</span> <span class="o">@</span><span class="n">p71</span><span class="p">,</span> <span class="o">@</span><span class="n">p72</span><span class="p">,</span> <span class="o">@</span><span class="n">p73</span><span class="p">,</span> <span class="o">@</span><span class="n">p74</span><span class="p">,</span> <span class="o">@</span><span class="n">p75</span><span class="p">,</span> <span class="o">@</span><span class="n">p76</span><span class="p">,</span> <span class="o">@</span><span class="n">p77</span><span class="p">);</span>
+     
+<span class="k">INSERT</span> <span class="k">INTO</span> <span class="p">[</span><span class="n">tph21</span><span class="p">].[</span><span class="n">Roots</span><span class="p">]</span> <span class="p">([</span><span class="n">Discriminator</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp4</span><span class="p">])</span>
+<span class="k">OUTPUT</span> <span class="n">INSERTED</span><span class="p">.[</span><span class="n">Id</span><span class="p">]</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="o">@</span><span class="n">p78</span><span class="p">,</span> <span class="o">@</span><span class="n">p79</span><span class="p">,</span> <span class="o">@</span><span class="n">p80</span><span class="p">,</span> <span class="o">@</span><span class="n">p81</span><span class="p">,</span> <span class="o">@</span><span class="n">p82</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>For <code class="language-plaintext highlighter-rouge">TPH with JSON</code> EF Core created only one <code class="language-plaintext highlighter-rouge">INSERT</code> query because all types in hierarchy were converted into single wrapper class. The number of parameters is 23 which is also almost 4 times less:</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">MERGE</span> <span class="p">[</span><span class="n">tphjson21</span><span class="p">].[</span><span class="n">Roots</span><span class="p">]</span> <span class="k">USING</span> <span class="p">(</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="o">@</span><span class="n">p0</span><span class="p">,</span> <span class="o">@</span><span class="n">p1</span><span class="p">,</span> <span class="o">@</span><span class="n">p2</span><span class="p">,</span> <span class="o">@</span><span class="n">p3</span><span class="p">,</span> <span class="o">@</span><span class="n">p4</span><span class="p">,</span> <span class="o">@</span><span class="n">p5</span><span class="p">,</span> <span class="mi">0</span><span class="p">),(</span><span class="o">@</span><span class="n">p6</span><span class="p">,</span> <span class="o">@</span><span class="n">p7</span><span class="p">,</span> <span class="o">@</span><span class="n">p8</span><span class="p">,</span> <span class="o">@</span><span class="n">p9</span><span class="p">,</span> <span class="o">@</span><span class="n">p10</span><span class="p">,</span> <span class="o">@</span><span class="n">p11</span><span class="p">,</span> <span class="mi">1</span><span class="p">),(</span><span class="o">@</span><span class="n">p12</span><span class="p">,</span> <span class="o">@</span><span class="n">p13</span><span class="p">,</span> <span class="o">@</span><span class="n">p14</span><span class="p">,</span> <span class="o">@</span><span class="n">p15</span><span class="p">,</span> <span class="o">@</span><span class="n">p16</span><span class="p">,</span> <span class="o">@</span><span class="n">p17</span><span class="p">,</span> <span class="mi">2</span><span class="p">),(</span><span class="o">@</span><span class="n">p18</span><span class="p">,</span> <span class="o">@</span><span class="n">p19</span><span class="p">,</span> <span class="o">@</span><span class="n">p20</span><span class="p">,</span> <span class="o">@</span><span class="n">p21</span><span class="p">,</span> <span class="o">@</span><span class="n">p22</span><span class="p">,</span> <span class="o">@</span><span class="n">p23</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="k">AS</span> <span class="n">i</span> <span class="p">([</span><span class="n">Payload</span><span class="p">],</span> <span class="p">[</span><span class="n">PayloadType</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp4</span><span class="p">],</span> <span class="n">_Position</span><span class="p">)</span> <span class="k">ON</span> <span class="mi">1</span><span class="o">=</span><span class="mi">0</span>
+<span class="k">WHEN</span> <span class="k">NOT</span> <span class="n">MATCHED</span> <span class="k">THEN</span>
+<span class="k">INSERT</span> <span class="p">([</span><span class="n">Payload</span><span class="p">],</span> <span class="p">[</span><span class="n">PayloadType</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">RootProp4</span><span class="p">])</span>
+<span class="k">VALUES</span> <span class="p">(</span><span class="n">i</span><span class="p">.[</span><span class="n">Payload</span><span class="p">],</span> <span class="n">i</span><span class="p">.[</span><span class="n">PayloadType</span><span class="p">],</span> <span class="n">i</span><span class="p">.[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="n">i</span><span class="p">.[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="n">i</span><span class="p">.[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="n">i</span><span class="p">.[</span><span class="n">RootProp4</span><span class="p">])</span>
+<span class="k">OUTPUT</span> <span class="n">INSERTED</span><span class="p">.[</span><span class="n">Id</span><span class="p">],</span> <span class="n">i</span><span class="p">.</span><span class="n">_Position</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>The situation for selecting data is a bit different. According to the benchmark results, <code class="language-plaintext highlighter-rouge">TPH</code> is slightly worse than <code class="language-plaintext highlighter-rouge">TPH with JSON</code> when properties count is less than 8. For all other cases, <code class="language-plaintext highlighter-rouge">TPH</code> has better execution time.</p>
+
+<div class="glide">
+  <div class="glide__track" data-glide-el="track">
+    <ul class="glide__slides" style="padding-left: 0px">
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/tph-vs-tphjson-select.png" />
+        <strong>Figure 6 - Dependence of selecting time on the number of entities and the number of properties</strong>
+      </li>
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/tph-vs-tphjson-select-ratio-entities.png" />
+        <strong>Figure 7 - Ratio of `TPH` execution time to `TPH with JSON` execution time for selecting data</strong>
+      </li>
+      <li class="glide__slide">
+        <img src="/assets/2023/02/2023-02-25-ef-inheritance/tph-vs-tphjson-select-ratio-props.png" />
+        <strong>Figure 8 - Ratio of `TPH` execution time to `TPH with JSON` execution time for selecting data</strong>
+      </li>
+    </ul>
+  </div>
+  <div class="glide__arrows" data-glide-el="controls">
+    <button class="glide__arrow glide__arrow--left" data-glide-dir="&lt;">&lt;</button>
+    <button class="glide__arrow glide__arrow--right" data-glide-dir="&gt;">&gt;</button>
+  </div>
+</div>
+
+<p>For both mapping strategies, EF Core created a single <code class="language-plaintext highlighter-rouge">SELECT</code> query. The only difference is in columns count. It seems that JSON serialization can only affect performance with a relatively large number of properties.</p>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">Id</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">Discriminator</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp4</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp10</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp11</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp12</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp13</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp14</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp15</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp16</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp17</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp18</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp19</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp20</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp21</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp4</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp5</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp6</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp7</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp8</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildAProp9</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp10</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp11</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp12</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp13</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp14</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp15</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp16</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp17</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp18</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp19</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp20</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp21</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp4</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp5</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp6</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp7</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp8</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildBProp9</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp10</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp11</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp12</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp13</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp14</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp15</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp16</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp17</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp18</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp19</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp20</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp21</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp4</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp5</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp6</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp7</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp8</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">ChildCProp9</span><span class="p">]</span>
+<span class="k">FROM</span> <span class="p">[</span><span class="n">tph21</span><span class="p">].[</span><span class="n">Roots</span><span class="p">]</span> <span class="k">AS</span> <span class="p">[</span><span class="n">r</span><span class="p">]</span>
+</code></pre></div></div>
+
+<div class="language-sql highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">SELECT</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">Id</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">Payload</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">PayloadType</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp1</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp2</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp3</span><span class="p">],</span> <span class="p">[</span><span class="n">r</span><span class="p">].[</span><span class="n">RootProp4</span><span class="p">]</span>
+<span class="k">FROM</span> <span class="p">[</span><span class="n">tphjson21</span><span class="p">].[</span><span class="n">Roots</span><span class="p">]</span> <span class="k">AS</span> <span class="p">[</span><span class="n">r</span><span class="p">]</span>
+</code></pre></div></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>In conclusion, the benchmark conducted in this article sheds light on the differences between various mapping strategies in EF Core. The summarized results are presented in the table below.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Place</th>
+      <th>Mapping strategy</th>
+      <th>Pros</th>
+      <th>Cons</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td><code class="language-plaintext highlighter-rouge">TPH with JSON</code></td>
+      <td>Better performance when inserting and selecting data compared to other strategies almost in all cases</td>
+      <td>- Requires additional coding to implement wrapper class <br /> - Worse that <code class="language-plaintext highlighter-rouge">TPH</code> in selecting data from tables with relatively large number of columns <br /> - Requires the creation of computed columns to create JSON indexes</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td><code class="language-plaintext highlighter-rouge">TPH</code></td>
+      <td>- Default EF Core strategy that doesn’t require any additional configuration <br /> - Relatively good performance almost in all cases</td>
+      <td>Performance degradation when there are many types in hierarchy</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><code class="language-plaintext highlighter-rouge">TPC</code></td>
+      <td>Slightly better than <code class="language-plaintext highlighter-rouge">TPH</code> in inserting data</td>
+      <td>Slightly worse than <code class="language-plaintext highlighter-rouge">TPH</code> in selecting data</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><code class="language-plaintext highlighter-rouge">TPT</code></td>
+      <td>???</td>
+      <td>The worst performance in all cases</td>
+    </tr>
+  </tbody>
+</table>
+</div><a class="u-url" href="/2023/02/25/ef-inheritance.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2024 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>
