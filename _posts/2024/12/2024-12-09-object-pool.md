@@ -1,16 +1,33 @@
 ---
 layout: post
 title: "Object Pools in C#: Examples, Internals and Performance Benchmarks"
-date: 2024-12-08
+date: 2024-12-09
 tags: csharp objectpool performance benchmark algorithms
 excerpt_separator: <!--more-->
 ---
 
 Object Pool is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. It is widely used, especially in game development and applications where low memory usage is critically important. In this article, we will look at how this pattern is implemented in C# and how it can improve performance.
 
+<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/cover.jpg" alt="Object Pools in C#: Examples, Internals and Performance Benchmarks">
+
 *This article is presented as a part of [C# Advent 2024](https://www.csadvent.christmas/).*
 
 <!--more-->
+
+# Table Of Contents
+
+- [Table Of Contents](#table-of-contents)
+- [Disclaimer](#disclaimer)
+- [What is Object Pool?](#what-is-object-pool)
+- [ObjectPool class](#objectpool-class)
+  - [How it works](#how-it-works)
+  - [Performance](#performance)
+- [ArrayPool](#arraypool)
+  - [How it works](#how-it-works-1)
+    - [SharedArrayPool](#sharedarraypool)
+    - [ConfigurableArrayPool](#configurablearraypool)
+  - [Performance](#performance-1)
+- [Conclusion](#conclusion)
 
 # Disclaimer
 
