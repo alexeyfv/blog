@@ -11,6 +11,7 @@ With [.NET 8 release](https://learn.microsoft.com/en-us/dotnet/core/whats-new/do
 <img src="{{site.baseurl}}/assets/2024/10/2024-10-09-frozen-dictionary/image01.png" alt="FrozenDictionary performance comparing to Dictionary">
 
 *Version in Russian is [here]({{site.baseurl}}/2024/08/22/frozen-dictionary.html)*
+
 *Версия на русском [тут]({{site.baseurl}}/2024/08/22/frozen-dictionary.html)*.
 
 <!--more-->
