@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Code Generators in C#"
-date: 2024-03-10
+date: 2025-03-10
 tags: csharp sourcegenerators eventsourcing ddd
 excerpt_separator: <!--more-->
 ---
