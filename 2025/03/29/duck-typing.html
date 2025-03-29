@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Duck Typing in C# | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Duck Typing in C#" />
+<meta name="author" content="© 2025 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Experienced C# developers know the answer to the question: “What is needed to iterate over objects using foreach?” You don’t have to inherit from the IEnumerable interface. It is enough for a class to have a public GetEnumerator method that returns an object implementing IEnumerator. // This code compiles var obj = new MyType(); foreach (var item in obj); class MyType { public IEnumerator GetEnumerator() { throw new Exception(); } } This behavior is sometimes called duck typing — the compiler doesn’t care if a class implements IEnumerable or not. The only requirement is that it has a method returning an enumerator." />
+<meta property="og:description" content="Experienced C# developers know the answer to the question: “What is needed to iterate over objects using foreach?” You don’t have to inherit from the IEnumerable interface. It is enough for a class to have a public GetEnumerator method that returns an object implementing IEnumerator. // This code compiles var obj = new MyType(); foreach (var item in obj); class MyType { public IEnumerator GetEnumerator() { throw new Exception(); } } This behavior is sometimes called duck typing — the compiler doesn’t care if a class implements IEnumerable or not. The only requirement is that it has a method returning an enumerator." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2025/03/29/duck-typing.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2025/03/29/duck-typing.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-03-29T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Duck Typing in C#" />
+<script type="application/ld+json">
+{"mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2025/03/29/duck-typing.html"},"url":"http://www.alexeyfv.xyz//2025/03/29/duck-typing.html","author":{"@type":"Person","name":"© 2025 Alexey Fedorov"},"@type":"BlogPosting","headline":"Duck Typing in C#","dateModified":"2025-03-29T00:00:00+00:00","datePublished":"2025-03-29T00:00:00+00:00","description":"Experienced C# developers know the answer to the question: “What is needed to iterate over objects using foreach?” You don’t have to inherit from the IEnumerable interface. It is enough for a class to have a public GetEnumerator method that returns an object implementing IEnumerator. // This code compiles var obj = new MyType(); foreach (var item in obj); class MyType { public IEnumerator GetEnumerator() { throw new Exception(); } } This behavior is sometimes called duck typing — the compiler doesn’t care if a class implements IEnumerable or not. The only requirement is that it has a method returning an enumerator.","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Duck Typing in C#
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2025-03-29T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Mar 29, 2025
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>Experienced C# developers know the answer to the question: “What is needed to iterate over objects using <code class="language-plaintext highlighter-rouge">foreach</code>?”</p>
+
+<p>You don’t have to inherit from the <code class="language-plaintext highlighter-rouge">IEnumerable</code> interface. It is enough for a class to have a public <code class="language-plaintext highlighter-rouge">GetEnumerator</code> method that returns an object implementing <code class="language-plaintext highlighter-rouge">IEnumerator</code>.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// This code compiles</span>
+<span class="kt">var</span> <span class="n">obj</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">MyType</span><span class="p">();</span>
+<span class="k">foreach</span> <span class="p">(</span><span class="kt">var</span> <span class="n">item</span> <span class="k">in</span> <span class="n">obj</span><span class="p">);</span>
+
+<span class="k">class</span> <span class="nc">MyType</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="n">IEnumerator</span> <span class="nf">GetEnumerator</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nf">Exception</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This behavior is sometimes called duck typing — the compiler doesn’t care if a class implements <code class="language-plaintext highlighter-rouge">IEnumerable</code> or not. The only requirement is that it has a method returning an enumerator.</p>
+
+<p><img src="/assets/2025/03/2025-03-29-duck-typing/cover.png" alt="Duck Typing in C# Cover" /></p>
+
+<!--more-->
+
+<p>A similar behavior occurs when working with <code class="language-plaintext highlighter-rouge">async-await</code>. To “await” a type, it only needs a <code class="language-plaintext highlighter-rouge">GetAwaiter()</code> method that returns a <code class="language-plaintext highlighter-rouge">TaskAwaiter</code> or <code class="language-plaintext highlighter-rouge">ValueTaskAwaiter</code> type. This method doesn’t even have to be inside the awaited type itself.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// This code also compiles</span>
+<span class="kt">var</span> <span class="n">obj</span> <span class="p">=</span> <span class="k">new</span> <span class="nf">MyType</span><span class="p">();</span>
+<span class="k">await</span> <span class="n">obj</span><span class="p">;</span>
+
+<span class="k">class</span> <span class="nc">MyType</span> <span class="p">{</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="k">class</span> <span class="nc">MyTypeExtensions</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="n">TaskAwaiter</span> <span class="nf">GetAwaiter</span><span class="p">(</span><span class="k">this</span> <span class="n">MyType</span> <span class="n">@object</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nf">Exception</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Recently, I found another example of something similar to duck typing. Since C# 12, there is a simplified way to initialize collections:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span><span class="p">[]</span> <span class="n">array</span> <span class="p">=</span> <span class="p">[</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">4</span><span class="p">,</span> <span class="m">5</span><span class="p">];</span>
+<span class="n">List</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;</span> <span class="n">list</span> <span class="p">=</span> <span class="p">[</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">4</span><span class="p">,</span> <span class="m">5</span><span class="p">];</span>
+</code></pre></div></div>
+
+<p>This concise syntax does not work with all collections. For example, the following code will not compile:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Queue</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;</span> <span class="n">queue</span> <span class="p">=</span> <span class="p">[</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">4</span><span class="p">,</span> <span class="m">5</span><span class="p">];</span>
+<span class="n">Stack</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;</span> <span class="n">stack</span> <span class="p">=</span> <span class="p">[</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">,</span> <span class="m">4</span><span class="p">,</span> <span class="m">5</span><span class="p">];</span>
+</code></pre></div></div>
+
+<p>The compiler expects the collection type to have an <code class="language-plaintext highlighter-rouge">Add</code> method, but <code class="language-plaintext highlighter-rouge">Queue</code> uses <code class="language-plaintext highlighter-rouge">Enqueue</code> instead, and <code class="language-plaintext highlighter-rouge">Stack</code> uses <code class="language-plaintext highlighter-rouge">Push</code>. Since we cannot modify these types, we can use an extension method to help the compiler find <code class="language-plaintext highlighter-rouge">Add</code>.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">static</span> <span class="k">class</span> <span class="nc">CollectionExtensions</span> <span class="p">{</span>
+    
+    <span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="n">Add</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">Queue</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">collection</span><span class="p">,</span> <span class="n">T</span> <span class="n">item</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="n">collection</span><span class="p">.</span><span class="nf">Enqueue</span><span class="p">(</span><span class="n">item</span><span class="p">);</span>
+
+    <span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="n">Add</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">Stack</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">collection</span><span class="p">,</span> <span class="n">T</span> <span class="n">item</span><span class="p">)</span> <span class="p">=&gt;</span> 
+        <span class="n">collection</span><span class="p">.</span><span class="nf">Push</span><span class="p">(</span><span class="n">item</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This syntax also works with custom collections, as long as they have an <code class="language-plaintext highlighter-rouge">Add</code> method—whether inside the type itself or as an extension method.</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">MyType</span> <span class="n">collection</span> <span class="p">=</span> <span class="p">[</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span><span class="p">];</span>
+
+<span class="k">class</span> <span class="nc">MyType</span> <span class="p">:</span> <span class="n">IEnumerable</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="n">IEnumerator</span> <span class="nf">GetEnumerator</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nf">Exception</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">static</span> <span class="k">class</span> <span class="nc">MyTypeExtensions</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">Add</span><span class="p">(</span><span class="k">this</span> <span class="n">MyType</span> <span class="n">o</span><span class="p">,</span> <span class="kt">int</span> <span class="k">value</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+</div><a class="u-url" href="/2025/03/29/duck-typing.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2025 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>

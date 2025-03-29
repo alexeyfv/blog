@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" sizes="16x16 32x32 48x48" href="/assets/favicon/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Object Pools in C#: Examples, Internals and Performance Benchmarks | alexeyfv</title>
+<meta name="generator" content="Jekyll v4.2.1" />
+<meta property="og:title" content="Object Pools in C#: Examples, Internals and Performance Benchmarks" />
+<meta name="author" content="© 2025 Alexey Fedorov" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Object Pool is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. It is widely used, especially in game development and applications where low memory usage is critically important. In this article, we will look at how this pattern is implemented in C# and how it can improve performance. This article is presented as a part of C# Advent 2024." />
+<meta property="og:description" content="Object Pool is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. It is widely used, especially in game development and applications where low memory usage is critically important. In this article, we will look at how this pattern is implemented in C# and how it can improve performance. This article is presented as a part of C# Advent 2024." />
+<link rel="canonical" href="http://www.alexeyfv.xyz//2024/12/09/object-pool.html" />
+<meta property="og:url" content="http://www.alexeyfv.xyz//2024/12/09/object-pool.html" />
+<meta property="og:site_name" content="alexeyfv" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-12-09T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Object Pools in C#: Examples, Internals and Performance Benchmarks" />
+<script type="application/ld+json">
+{"mainEntityOfPage":{"@type":"WebPage","@id":"http://www.alexeyfv.xyz//2024/12/09/object-pool.html"},"url":"http://www.alexeyfv.xyz//2024/12/09/object-pool.html","author":{"@type":"Person","name":"© 2025 Alexey Fedorov"},"@type":"BlogPosting","headline":"Object Pools in C#: Examples, Internals and Performance Benchmarks","dateModified":"2024-12-09T00:00:00+00:00","datePublished":"2024-12-09T00:00:00+00:00","description":"Object Pool is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. It is widely used, especially in game development and applications where low memory usage is critically important. In this article, we will look at how this pattern is implemented in C# and how it can improve performance. This article is presented as a part of C# Advent 2024.","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://www.alexeyfv.xyz//feed.xml" title="alexeyfv" />
+</head><body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">alexeyfv</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">Tags</a><a class="page-link" href="/cv/">CV</a><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article
+  class="post h-entry"
+  itemscope
+  itemtype="http://schema.org/BlogPosting"
+>
+  <link rel="stylesheet" href="/static/glide/css/glide.core.min.css" />
+  <link rel="stylesheet" href="/static/glide/css/glide.theme.min.css" />
+  <script type="text/javascript" src="/static/glide/glide.min.js"></script>
+  <link href="/static/syntax-highlighting.css" rel="stylesheet" />
+  <link href="/static/image.css" rel="stylesheet" />
+  <script>
+    function initGlideCarousel() {
+      var sliders = document.querySelectorAll(".glide");
+      const conf = {};
+      sliders.forEach((item) => {
+        new Glide(item, conf).mount();
+      });
+    }
+    document.addEventListener("DOMContentLoaded", initGlideCarousel);
+  </script>
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">
+      Object Pools in C#: Examples, Internals and Performance Benchmarks
+    </h1>
+    <p class="post-meta"><time
+        class="dt-published"
+        datetime="2024-12-09T00:00:00+00:00"
+        itemprop="datePublished"
+      >
+        Dec 9, 2024
+      </time></p>
+    
+    <a class="post" href="/tag/csharp">#csharp</a>
+    
+    <a class="post" href="/tag/objectpool">#objectpool</a>
+    
+    <a class="post" href="/tag/performance">#performance</a>
+    
+    <a class="post" href="/tag/benchmark">#benchmark</a>
+    
+    <a class="post" href="/tag/algorithms">#algorithms</a>
+    
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody"><p>Object Pool is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. It is widely used, especially in game development and applications where low memory usage is critically important. In this article, we will look at how this pattern is implemented in C# and how it can improve performance.</p>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/cover.jpg" alt="Object Pools in C#: Examples, Internals and Performance Benchmarks" /></p>
+
+<p><em>This article is presented as a part of <a href="https://www.csadvent.christmas/">C# Advent 2024</a>.</em></p>
+
+<!--more-->
+
+<h1 id="table-of-contents">Table Of Contents</h1>
+
+<ul>
+  <li><a href="#table-of-contents">Table Of Contents</a></li>
+  <li><a href="#disclaimer">Disclaimer</a></li>
+  <li><a href="#what-is-object-pool">What is Object Pool?</a></li>
+  <li><a href="#objectpool-class">ObjectPool class</a>
+    <ul>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#performance">Performance</a></li>
+    </ul>
+  </li>
+  <li><a href="#arraypool">ArrayPool</a>
+    <ul>
+      <li><a href="#how-it-works-1">How it works</a>
+        <ul>
+          <li><a href="#sharedarraypool">SharedArrayPool</a></li>
+          <li><a href="#configurablearraypool">ConfigurableArrayPool</a></li>
+        </ul>
+      </li>
+      <li><a href="#performance-1">Performance</a></li>
+    </ul>
+  </li>
+  <li><a href="#conclusion">Conclusion</a></li>
+</ul>
+
+<h1 id="disclaimer">Disclaimer</h1>
+
+<p>The results of the benchmarks in this article are very conditional. I admit, that the benchmark may show different results on a different computer, with a different CPU, with a different compiler or in a different scenario. Always check your code in your specific conditions and don’t trust to the articles from the internet.</p>
+
+<p>The source code and raw results are located in <a href="https://github.com/alexeyfv/object-pool">this repo</a>.</p>
+
+<h1 id="what-is-object-pool">What is Object Pool?</h1>
+
+<p><a href="https://en.wikipedia.org/wiki/Object_pool_pattern">Object Pool</a> is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. The typical usage of an object pool consists of these steps:</p>
+
+<ol>
+  <li>Rent an object from the pool.</li>
+  <li>Use the object to perform some work.</li>
+  <li>Return the object to the pool.</li>
+  <li>Optionally, the object pool can reset the object’s state when it is returned.</li>
+</ol>
+
+<p>The pseudocode for using an object pool looks like this:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">var</span> <span class="n">obj</span> <span class="p">=</span> <span class="n">objectPool</span><span class="p">.</span><span class="nf">Get</span><span class="p">();</span>
+
+<span class="k">try</span>  
+<span class="p">{</span>  
+    <span class="c1">// do some work with obj  </span>
+<span class="p">}</span>  
+<span class="k">finally</span>  
+<span class="p">{</span>  
+    <span class="n">objectPool</span><span class="p">.</span><span class="nf">Return</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">reset</span><span class="p">:</span> <span class="k">true</span><span class="p">);</span>  
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The Object Pool pattern is widely used, especially in game development and applications where low memory usage is critically important.</p>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image01.png" alt="Example of searching Object Pool in GitHub" />
+<strong>
+Example of searching Object Pool in GitHub
+</strong></p>
+
+<p>.NET provides several classes that implement the Object Pool pattern:</p>
+
+<ul>
+  <li><a href="https://learn.microsoft.com/en-us/aspnet/core/performance/objectpool">ObjectPool</a>: A general-purpose object pool.</li>
+  <li><a href="https://learn.microsoft.com/en-us/dotnet/api/system.buffers.arraypool-1">ArrayPool</a>: A class designed specifically for pooling arrays.</li>
+</ul>
+
+<p>These classes may look similar, but their implementation is different. We will consider them separately.</p>
+
+<h1 id="objectpool-class">ObjectPool class</h1>
+
+<p>The <code class="language-plaintext highlighter-rouge">ObjectPool</code> class is available by default only in ASP.NET Core applications. You can find Its <a href="https://github.com/dotnet/aspnetcore/tree/eb68e016a554b4da50d7fb0aeffe897cfabf36c7/src/ObjectPool/src">source code</a> here. For other types of C# applications, you need to install the <a href="https://www.nuget.org/packages/Microsoft.Extensions.ObjectPool/">Microsoft.Extensions.ObjectPool package</a>.</p>
+
+<p>To use a pool, call the <code class="language-plaintext highlighter-rouge">Create&lt;T&gt;</code> method from the static ObjectPool class:</p>
+
+<div class="language-csharp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">var</span> <span class="n">pool</span> <span class="p">=</span> <span class="n">ObjectPool</span><span class="p">.</span><span class="n">Create</span><span class="p">&lt;</span><span class="n">SomeType</span><span class="p">&gt;();</span>  
+<span class="kt">var</span> <span class="n">obj</span> <span class="p">=</span> <span class="n">pool</span><span class="p">.</span><span class="nf">Get</span><span class="p">();</span>
+</code></pre></div></div>
+
+<p>You can also define a custom pooling policy and pass it to the <code class="language-plaintext highlighter-rouge">Create&lt;T&gt;</code> method. A policy lets you control how objects are created and cleaned up. For example, to reuse a list of integers, you can define the following policy:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">public</span> <span class="k">class</span> <span class="nc">ListPolicy</span> <span class="p">:</span> <span class="n">IPooledObjectPolicy</span><span class="p">&lt;</span><span class="n">List</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;&gt;</span>  
+<span class="p">{</span>  
+    <span class="k">public</span> <span class="n">List</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;</span> <span class="nf">Create</span><span class="p">()</span> <span class="p">=&gt;</span> <span class="p">[];</span>
+
+    <span class="k">public</span> <span class="kt">bool</span> <span class="nf">Return</span><span class="p">(</span><span class="n">List</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;</span> <span class="n">obj</span><span class="p">)</span>  
+    <span class="p">{</span>  
+        <span class="n">obj</span><span class="p">.</span><span class="nf">Clear</span><span class="p">();</span>  
+        <span class="k">return</span> <span class="k">true</span><span class="p">;</span>  
+    <span class="p">}</span>  
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Now let’s take a look at how the <code class="language-plaintext highlighter-rouge">ObjectPool</code> class works internally.</p>
+
+<h2 id="how-it-works">How it works</h2>
+
+<p>When <a href="https://github.com/dotnet/aspnetcore/blob/eb68e016a554b4da50d7fb0aeffe897cfabf36c7/src/ObjectPool/src/DefaultObjectPool.cs#L48">retrieving an object from the pool</a>, the <code class="language-plaintext highlighter-rouge">ObjectPool</code> works as follows:</p>
+
+<ol>
+  <li>It checks if <code class="language-plaintext highlighter-rouge">_fastItem</code> is not null and can be taken by the current thread using <code class="language-plaintext highlighter-rouge">Interlocked.CompareExchange</code>.</li>
+  <li>If <code class="language-plaintext highlighter-rouge">_fastItem</code> is <code class="language-plaintext highlighter-rouge">null</code> or already taken by another thread, it tries to dequeue an object from the <code class="language-plaintext highlighter-rouge">ConcurrentQueue _items</code>.</li>
+  <li>If both <code class="language-plaintext highlighter-rouge">_fastItem</code> and the queue are empty, a new object is created using the factory function.</li>
+</ol>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image02.png" alt="ObjectPool\&lt;T\&gt; internals" />
+<strong>
+ObjectPool&lt;T&gt; internals
+</strong></p>
+
+<p>When <a href="https://github.com/dotnet/aspnetcore/blob/eb68e016a554b4da50d7fb0aeffe897cfabf36c7/src/ObjectPool/src/DefaultObjectPool.cs#L76">returning an object to the pool</a>, the <code class="language-plaintext highlighter-rouge">ObjectPool</code> works in an opposite way:</p>
+
+<ol>
+  <li>It checks if the object passes the <code class="language-plaintext highlighter-rouge">_returnFunc</code> validation. If not, it means that the object should be discarded by <a href="https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.objectpool.ipooledobjectpolicy-1?view=net-9.0-pp">policy</a>.</li>
+  <li>If <code class="language-plaintext highlighter-rouge">_fastItem</code> is <code class="language-plaintext highlighter-rouge">null</code>, the object is stored there using <code class="language-plaintext highlighter-rouge">Interlocked.CompareExchange</code>.</li>
+  <li>If <code class="language-plaintext highlighter-rouge">_fastItem</code> is already in use, the object is added to the <code class="language-plaintext highlighter-rouge">ConcurrentQueue</code> if the total number of items is within the maximum capacity.</li>
+  <li>If the pool is full, the object is discarded, and the item count is adjusted.</li>
+</ol>
+
+<h2 id="performance">Performance</h2>
+
+<p>To test how <code class="language-plaintext highlighter-rouge">ObjectPool&lt;T&gt;</code> affects performance, I created <a href="https://github.com/alexeyfv/object-pool/blob/main/ObjectPoolBenchmark.cs">two benchmarks</a>:</p>
+
+<ul>
+  <li>without pooling (creates a new list for each operation);</li>
+  <li>with the object pool.</li>
+</ul>
+
+<p>Each benchmark does the following in a loop:</p>
+
+<ol>
+  <li>Creates a new list or rents from the pool.</li>
+  <li>Adds the values in the list.</li>
+  <li>Returns the list to the pool (if pooling is used).</li>
+</ol>
+
+<p>The benchmarks repeat this process 100 times for each thread. The threads count varies from 1 to 32. The list size varies from 10 to 1,000,000.</p>
+
+<p>The <a href="https://github.com/alexeyfv/object-pool/tree/main/BenchmarkDotNet.Artifacts/results">results</a> are shown in the diagram below. The x-axis is a logarithmic scale, and the y-axis shows the percentage difference compared to the baseline without pooling.</p>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image03.png" alt="ObjectPool&lt;T&gt; benchmark results. Percentage difference compared to the baseline without pooling." />
+<strong>
+ObjectPool&lt;T&gt; benchmark results. Percentage difference compared to the baseline without pooling.
+</strong></p>
+
+<p>From the results, we can see that using <code class="language-plaintext highlighter-rouge">ObjectPool</code> in a single-thread scenario is 10% – 50% faster, compared to creating a new list for each iteration. However, in a multithreaded scenario, <code class="language-plaintext highlighter-rouge">ObjectPool</code> performs worse for relatively small objects. This is most probably due to thread synchronization latency when accessing to the <code class="language-plaintext highlighter-rouge">_fastItem</code> and <code class="language-plaintext highlighter-rouge">ConcurrentQueue</code>.</p>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image04.png" alt="ObjectPool&lt;T&gt; benchmark results. Absolute values." />
+<strong>
+ObjectPool&lt;T&gt; benchmark results. Absolute values.
+</strong></p>
+
+<h1 id="arraypool">ArrayPool</h1>
+
+<p><code class="language-plaintext highlighter-rouge">ArrayPool&lt;T&gt;</code> is a class which is available from any C# application. It locates in <code class="language-plaintext highlighter-rouge">System.Buffers</code> namespace. You can find its source code <a href="https://github.com/dotnet/runtime/tree/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers">here</a>. The <code class="language-plaintext highlighter-rouge">ArrayPool</code> class is an abstract and has 2 implemenations: <a href="https://github.com/dotnet/runtime/blob/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers/SharedArrayPool.cs">SharedArrayPool</a> and <a href="https://github.com/dotnet/runtime/blob/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers/ConfigurableArrayPool.cs">ConfigurableArrayPool</a>.</p>
+
+<p>The usage of <code class="language-plaintext highlighter-rouge">ArrayPool&lt;T&gt;</code> follows the typical object pool pattern and is quite simple. Here’s an example that uses the shared pool internally.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">var</span> <span class="n">pool</span> <span class="p">=</span> <span class="n">ArrayPool</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;.</span><span class="n">Shared</span><span class="p">;</span>  
+<span class="kt">var</span> <span class="n">buffer</span> <span class="p">=</span> <span class="n">pool</span><span class="p">.</span><span class="nf">Rent</span><span class="p">(</span><span class="m">10</span><span class="p">);</span>  
+<span class="k">try</span>  
+<span class="p">{</span>  
+    <span class="c1">// do some work with array  </span>
+<span class="p">}</span>  
+<span class="k">finally</span>  
+<span class="p">{</span>  
+    <span class="n">pool</span><span class="p">.</span><span class="nf">Return</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">clear</span><span class="p">:</span> <span class="k">true</span><span class="p">);</span>  
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>You can also configure the pool. Static method Create returns a <code class="language-plaintext highlighter-rouge">ConfigurableArrayPool</code> instance.</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">var</span> <span class="n">pool</span> <span class="p">=</span> <span class="n">ArrayPool</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;.</span><span class="nf">Create</span><span class="p">(</span>
+    <span class="n">maxArrayLength</span><span class="p">:</span> <span class="m">1000</span><span class="p">,</span> 
+    <span class="n">maxArraysPerBucket</span><span class="p">:</span> <span class="m">20</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>This method lets you specify the maximum array length and the maximum number of arrays per bucket (we’ll learn about buckets later). By default, these values are <code class="language-plaintext highlighter-rouge">2^20</code> and <code class="language-plaintext highlighter-rouge">50</code> respectively.</p>
+
+<p>It’s important to note that the size of the array returned will always meet the requested size, but it may be larger:</p>
+
+<div class="language-cs highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">using</span> <span class="nn">System.Buffers</span><span class="p">;</span>
+
+<span class="kt">var</span> <span class="p">(</span><span class="n">pow</span><span class="p">,</span> <span class="n">cnt</span><span class="p">)</span> <span class="p">=</span> <span class="p">(</span><span class="m">4</span><span class="p">,</span> <span class="m">0</span><span class="p">);</span>  
+<span class="k">while</span> <span class="p">(</span><span class="n">pow</span> <span class="p">&lt;=</span> <span class="m">30</span><span class="p">)</span>  
+<span class="p">{</span>  
+    <span class="kt">var</span> <span class="n">x</span> <span class="p">=</span> <span class="p">(</span><span class="m">1</span> <span class="p">&lt;&lt;</span> <span class="n">pow</span><span class="p">)</span> <span class="p">-</span> <span class="m">1</span><span class="p">;</span>  
+    <span class="kt">var</span> <span class="n">arr</span> <span class="p">=</span> <span class="n">ArrayPool</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;.</span><span class="n">Shared</span><span class="p">.</span><span class="nf">Rent</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  
+    <span class="n">Console</span><span class="p">.</span><span class="nf">WriteLine</span><span class="p">(</span>  
+        <span class="s">"Renting #{0}. Requested size: {1}. Actual size: {2}."</span><span class="p">,</span>   
+        <span class="p">++</span><span class="n">cnt</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">arr</span><span class="p">.</span><span class="n">Length</span><span class="p">);</span>  
+    <span class="n">pow</span><span class="p">++;</span>  
+<span class="p">}</span>
+
+<span class="c1">// Renting #1. Requested size: 15. Actual size: 16.  </span>
+<span class="c1">// Renting #2. Requested size: 31. Actual size: 32.  </span>
+<span class="c1">// Renting #3. Requested size: 63. Actual size: 64.  </span>
+<span class="c1">// ...  </span>
+<span class="c1">// Renting #26. Requested size: 536870911. Actual size: 536870912.  </span>
+<span class="c1">// Renting #27. Requested size: 1073741823. Actual size: 1073741824.</span>
+</code></pre></div></div>
+
+<h2 id="how-it-works-1">How it works</h2>
+
+<p>As said earlier, <code class="language-plaintext highlighter-rouge">ArrayPool&lt;T&gt;</code> has 2 implementations. We will consider them separately.</p>
+
+<h3 id="sharedarraypool">SharedArrayPool</h3>
+
+<p>SharedArrayPool has 2 tiers of cache: per-thread and shared caches.</p>
+
+<p>The per-thread cache is implemented as a private static field named <code class="language-plaintext highlighter-rouge">t_tlsBuckets</code>, which is essentially an array of arrays. Each thread gets its own instance of this cache due to <a href="https://en.wikipedia.org/wiki/Thread-local_storage">Thread Local Storage</a>, achieved by applying the <a href="https://learn.microsoft.com/en-us/dotnet/api/system.threadstaticattribute?view=net-8.0"><code class="language-plaintext highlighter-rouge">ThreadStaticAttribute</code></a> to the <code class="language-plaintext highlighter-rouge">t_tlsBuckets</code> field.<br />
+This allows each thread to maintain a small cache for various array sizes, ranging from <code class="language-plaintext highlighter-rouge">2^4</code> to <code class="language-plaintext highlighter-rouge">2^30</code> (27 buckets in total).</p>
+
+<p>When we’re trying to get an array from a pool, the algorithm tries to get it from <code class="language-plaintext highlighter-rouge">t_tlsBuckets</code> field. If an array of the needed size is not found in <code class="language-plaintext highlighter-rouge">t_tlsBuckets</code>, the algorithm checks the shared cache, stored in <code class="language-plaintext highlighter-rouge">_buckets</code>. This shared cache is an array of <code class="language-plaintext highlighter-rouge">Partitions</code> objects, one for each allowed bucket size (27 buckets in total). Each <code class="language-plaintext highlighter-rouge">Partitions</code> object contains an array of N <code class="language-plaintext highlighter-rouge">Partition</code> objects, where N is the number of processors. Each <code class="language-plaintext highlighter-rouge">Partition</code> works like a stack that can hold up to 32 arrays. Yeah, sounds complicated, so see the diagram below.</p>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image05.png" alt="SharedArrayPool&lt;T&gt; internals" />
+<strong>
+SharedArrayPool&lt;T&gt; internals
+</strong></p>
+
+<p>When we’re returning the array to the pool, the algorithm first tries to store it in the per-thread cache. If <code class="language-plaintext highlighter-rouge">t_tlsBuckets</code> already contains an array for the same size, the existing array from <code class="language-plaintext highlighter-rouge">t_tlsBuckets</code> is pushed into the shared cache and the new array is saved in <code class="language-plaintext highlighter-rouge">t_tlsBuckets</code> for better performance (CPU cache locality). If the current core’s stack is full, it searches for space in the stacks of other cores. If all stacks are full, the array is dropped.</p>
+
+<h3 id="configurablearraypool">ConfigurableArrayPool</h3>
+
+<p><code class="language-plaintext highlighter-rouge">ConfigurableArrayPool</code> is simpler compared to <code class="language-plaintext highlighter-rouge">SharedArrayPool</code>. It has only one private field for storing pooled arrays, called <code class="language-plaintext highlighter-rouge">_buckets</code>. This field is an array of <code class="language-plaintext highlighter-rouge">Bucket</code> instances, where each <code class="language-plaintext highlighter-rouge">Bucket</code> represents a collection of arrays (see the diagram below). Since <code class="language-plaintext highlighter-rouge">_buckets</code> field is shared across all threads, each <code class="language-plaintext highlighter-rouge">Bucket</code> <a href="https://github.com/dotnet/runtime/blob/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers/ConfigurableArrayPool.cs#L191">uses a SpinLock</a> for thread-safe access.</p>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image06.png" alt="ConfigurableArrayPool&lt;T&gt; internals" />
+<strong>
+ConfigurableArrayPool&lt;T&gt; internals
+</strong></p>
+
+<h2 id="performance-1">Performance</h2>
+
+<p>The <code class="language-plaintext highlighter-rouge">ArrayPool&lt;T&gt;</code> <a href="https://github.com/alexeyfv/object-pool/blob/main/ArrayPoolBenchmark.cs">benchmarks</a> are similar to the <code class="language-plaintext highlighter-rouge">ObjectPool&lt;T&gt;</code> benchmarks:</p>
+
+<ul>
+  <li>without pooling (creates a new array for each operation);</li>
+  <li>with the shared pool;</li>
+  <li>with the configurable pool.</li>
+</ul>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image07.png" alt="ArrayPool&lt;T&gt; benchmark results. Percentage difference compared to the baseline without pooling." />
+<strong>
+ArrayPool&lt;T&gt; benchmark results. Percentage difference compared to the baseline without pooling.
+</strong></p>
+
+<p>As we can see from the results, <code class="language-plaintext highlighter-rouge">SharedArrayPool</code> is faster almost in all cases, especially with a multiple threads scenario. The only exception is when the array size is 10.</p>
+
+<p>The opposite situation with a <code class="language-plaintext highlighter-rouge">ConfiguratbleArrayPool</code>. This class has worse performance in multithreading scenario for relatively small arrays. I believe the reason is the same as in <code class="language-plaintext highlighter-rouge">ObjectPool&lt;T&gt;</code>: thread synchronization latency when accessing arrays inside Bucket instances.</p>
+
+<p><img src="/assets/2024/12/2024-12-09-object-pool/image08.png" alt="ArrayPool&lt;T&gt; benchmark results. Absolute values." />
+<strong>
+ArrayPool&lt;T&gt; benchmark results. Absolute values.
+</strong></p>
+
+<h1 id="conclusion">Conclusion</h1>
+
+<p><code class="language-plaintext highlighter-rouge">ObjectPool</code> and <code class="language-plaintext highlighter-rouge">ArrayPool</code> can improve performance in scenarios where objects are expensive to create and reuse is possible. However, in multithreaded scenarios, the benefits of pooling are less clear. For small objects, the overhead of synchronization mechanisms can outweigh the performance gains. Developers should carefully benchmark and evaluate pooling in their specific use cases before integrating it into production systems.</p>
+</div><a class="u-url" href="/2024/12/09/object-pool.html" hidden></a>
+</article>
+
+<script
+  src="https://utteranc.es/client.js"
+  repo="alexeyfv/blog"
+  issue-term="url"
+  label="comment"
+  theme="github-dark"
+  crossorigin="anonymous"
+  async
+></script>
+
+      </div>
+    </main><footer class="site-footer h-card">
+    <data class="u-url" href="/"></data>
+  
+    <div class="wrapper">
+  
+      <div class="footer-col-wrapper">
+        <div class="footer-col">
+          <ul class="contact-list">
+            <li class="p-name">© 2025 Alexey Fedorov</li>
+              <li class="p-name">Powered by
+                <a href="https://github.com/jekyll/jekyll">Jekyll</a> 
+                &
+                <a href="https://github.com/jekyll/minima">Minima</a>
+              </li>
+            </ul>
+        </div>
+        <div class="footer-col">
+          <p>Articles about .NET, C# and much more</p>
+        </div>
+      </div>
+  
+      <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li><li><a rel="me" href="https://t.me/alexeyfv" target="_blank" title="alexeyfv"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#telegram"></use></svg></a></li></ul></div>
+  
+    </div>
+  
+  </footer></body>
+
+</html>
