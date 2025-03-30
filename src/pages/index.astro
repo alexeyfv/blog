@@ -1,0 +1,24 @@
+---
+import ListPosts from '@/components/ListPosts'
+import TitlePage from '@/components/TitlePage'
+import BaseLayout from '@/layouts/BaseLayout'
+import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { getPosts } from '@/utils'
+
+const lang = getLangFromUrl(Astro.url)
+const t = useTranslations(lang)
+
+const posts = await getPosts()
+const filtered = posts.filter((p) => p.id.startsWith(lang))
+---
+
+<BaseLayout title={t('index.title')}>
+  <TitlePage title={t('index.title')} />
+  <hr />
+  <section>
+    <h2 class="text-lg font-medium tracking-wide text-end">
+      {t('index.latestPosts')}
+    </h2>
+    <ListPosts FirstBig={false} posts={filtered} />
+  </section>
+</BaseLayout>

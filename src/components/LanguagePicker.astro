@@ -1,0 +1,49 @@
+---
+import { languages } from '@/i18n/ui'
+import HeaderLink from '@/components/HeaderLink'
+import Language from '@/components/icons/Language'
+---
+
+<section class="relative">
+  <!-- Hidden checkbox to toggle the dropdown -->
+  <input type="checkbox" id="dropdown-toggle" class="peer hidden" />
+
+  <label
+    for="dropdown-toggle"
+    class="cursor-pointer block"
+    aria-label="Switch Languages"
+  >
+    <Language />
+  </label>
+
+  <section
+    class="w-36 absolute left-0 mt-2 p-2 border-grayLight ring-1 dark:border-grayDeep bg-white dark:bg-black rounded-xl overflow-hidden hidden peer-checked:block"
+  >
+    {
+      Object.entries(languages).map(([lang, label]) => (
+        <HeaderLink
+          href={lang === 'en' ? '/' : `/${lang}`}
+          class={
+            'option cursor-pointer p-2 block rounded-lg hover:bg-gray-200 dark:hover:bg-grayDeep dark:text-white'
+          }
+          data-lang={lang}
+        >
+          <button>{label}</button>
+        </HeaderLink>
+      ))
+    }
+  </section>
+</section>
+
+<script>
+  const langOptions = document.querySelectorAll('.option')
+
+  langOptions.forEach((option) => {
+    option.addEventListener('click', () => {
+      const lang = option.getAttribute('data-lang')
+      if (lang) {
+        localStorage.setItem('lang', lang)
+      }
+    })
+  })
+</script>

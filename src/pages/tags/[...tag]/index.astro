@@ -1,0 +1,31 @@
+---
+import BaseLayout from '@/layouts/BaseLayout'
+import ListPosts from '@/components/ListPosts'
+import TitlePage from '@/components/TitlePage'
+import { getTags, getPostByTag } from '@/utils'
+import { getLangFromUrl } from '@/i18n/utils'
+
+export const getStaticPaths = async () => {
+  const tags = await getTags()
+
+  return tags.map((tag) => {
+    const tagTitle = tag;
+    tag = tag.toLowerCase()
+    return {
+      params: { tag, tagTitle },
+      props: { tag, tagTitle },
+    }
+  })
+}
+
+const { tag, tagTitle } = Astro.props
+
+const lang = getLangFromUrl(Astro.url)
+const posts = await getPostByTag(tag)
+const filtered = posts.filter((p) => p.id.startsWith(lang))
+---
+
+<BaseLayout title={tagTitle}>
+  <TitlePage title={tagTitle} />
+  <ListPosts posts={filtered} />
+</BaseLayout>

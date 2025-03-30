@@ -1,0 +1,37 @@
+---
+import { cn } from '@/utils'
+
+export interface Heading {
+  depth: number
+  text: string
+  slug: string
+  subheadings: Heading[]
+}
+
+interface Props {
+  heading: Heading
+}
+
+const { heading }: Props = Astro.props
+---
+
+<li>
+  <a
+    href={'#' + heading.slug}
+    class={cn(
+      `bg-grayLight dark:bg-grayDeep hover:bg-grayDeep hover:text-white py-2 px-4 rounded-xl mb-2 first-letter:uppercase w-fit line-clamp-3`,
+    )}
+  >
+    {heading.text}
+  </a>
+
+  {
+    heading.subheadings.length > 0 && (
+      <ul class="ml-5">
+        {heading.subheadings.map((subheading) => (
+          <Astro.self heading={subheading} />
+        ))}
+      </ul>
+    )
+  }
+</li>

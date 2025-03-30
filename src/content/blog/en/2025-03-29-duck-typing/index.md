@@ -1,0 +1,85 @@
+---
+title: 'Duck Typing in C#'
+description: 'Exploring C# duck typing patterns with foreach loops, async-await, and collection initialization syntax'
+pubDate: 'Mar 29 2025'
+heroImage: 'cover.png'
+tags: ['C#']
+---
+
+Experienced C# developers know the answer to the question: "What is needed to iterate over objects using `foreach`?"
+
+You don’t have to inherit from the `IEnumerable` interface. It is enough for a class to have a public `GetEnumerator` method that returns an object implementing `IEnumerator`.
+
+```csharp
+// This code compiles
+var obj = new MyType();
+foreach (var item in obj);
+
+class MyType {
+    public IEnumerator GetEnumerator() {
+        throw new Exception();
+    }
+}
+```
+
+This behavior is sometimes called duck typing — the compiler doesn’t care if a class implements `IEnumerable` or not. The only requirement is that it has a method returning an enumerator.
+
+A similar behavior occurs when working with `async-await`. To "await" a type, it only needs a `GetAwaiter()` method that returns a `TaskAwaiter` or `ValueTaskAwaiter` type. This method doesn’t even have to be inside the awaited type itself.
+
+```csharp
+// This code also compiles
+var obj = new MyType();
+await obj;
+
+class MyType {
+}
+
+static class MyTypeExtensions {
+    public static TaskAwaiter GetAwaiter(this MyType @object) {
+        throw new Exception();
+    }
+}
+```
+
+Recently, I found another example of something similar to duck typing. Since C# 12, there is a simplified way to initialize collections:
+
+```csharp
+int[] array = [1, 2, 3, 4, 5];
+List<int> list = [1, 2, 3, 4, 5];
+```
+
+This concise syntax does not work with all collections. For example, the following code will not compile:
+
+```csharp
+Queue<int> queue = [1, 2, 3, 4, 5];
+Stack<int> stack = [1, 2, 3, 4, 5];
+```
+
+The compiler expects the collection type to have an `Add` method, but `Queue` uses `Enqueue` instead, and `Stack` uses `Push`. Since we cannot modify these types, we can use an extension method to help the compiler find `Add`.
+
+```csharp
+public static class CollectionExtensions {
+    
+    public static void Add<T>(this Queue<T> collection, T item) =>
+        collection.Enqueue(item);
+
+    public static void Add<T>(this Stack<T> collection, T item) => 
+        collection.Push(item);
+}
+```
+
+This syntax also works with custom collections, as long as they have an `Add` method—whether inside the type itself or as an extension method.
+
+```csharp
+MyType collection = [1, 2, 3];
+
+class MyType : IEnumerable {
+    public IEnumerator GetEnumerator() {
+        throw new Exception();
+    }
+}
+
+static class MyTypeExtensions {
+    public static void Add(this MyType o, int value) { }
+}
+```
