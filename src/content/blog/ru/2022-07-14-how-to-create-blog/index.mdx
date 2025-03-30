@@ -2,9 +2,13 @@
 title: 'Как создать блог на GitHub'
 description: 'Пошаговое руководство по созданию и настройке блога с использованием Jekyll и GitHub Pages, включая установку необходимых инструментов и базовую конфигурацию'
 pubDate: 'Jul 14 2022'
-heroImage: 'cover.png'
+heroImage: 'image01.png'
 tags: ['Blogging', 'GitHub', 'Jekyll', 'Markdown', 'HTML']
 ---
+
+import { Image } from 'astro:assets';
+import image01 from './image01.png';
+import image02 from './image02.png';
 
 Многие программисты имеют свой блог, в которых пишут свои заметки. Очень часто блог реализован на Jekyll, Hugo или Gatsby.js, а для хранения, деплоя и хостинга используется GitHub и GitLab. В этом гайде я расскажу, как реализован мой блог на Jekyll и GitHub.
 
@@ -59,7 +63,7 @@ jekyll new myblog
 
 После выполнения команды, должна появится папка проекта блога с названием `myblog`:
 
-<img src="{{site.baseurl}}/assets/2022/../../../../../../assets/2022/05/2022-05-08-how-to-create-blog/Screenshot_1.png" alt="first-response">
+<Image src={image01} alt="first-response" />
 
 ### Структура проекта
 
@@ -293,7 +297,7 @@ module Jekyll
 
 Деплой настраивается на вкладке Settings репозитория. Для того чтобы деплой запускался после предыдущего шага, нужно выбрать ветку `gh-pages`.
 
-<img src="{{site.baseurl}}/assets/2022/../../../../../../assets/2022/05/2022-05-08-how-to-create-blog/Screenshot_3.png" alt="first-response">
+<Image src={image02} alt="first-response" />
 
 Блог будет опубликован по адресу `https://<username>.github.io/<projectname>/`. При желании, можно использовать кастомный домен [^12] , но для этого понадобится купить его у провайдера.
 

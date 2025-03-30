@@ -6,11 +6,17 @@ heroImage: 'cover.png'
 tags: ['.NET', 'C#', 'WCF']
 ---
 
+import { Image } from 'astro:assets'
+import projectTree from './project-tree.png'
+import firstResponse from './first-response.png'
+import secondResponse from './second-response.png'
+import thirdResponse from './third-response.png'
+
 Перечисления - это такой тип данных, который выглядит очень просто и его легко использовать. Вот только за этой простотой скрывается коварность. Почему? Потому что `enum` - это `ValueType`, а `ValueType` в C#, как известно, не наследуется. Необдуманное использование типов, которые нарушают принцип Open / Closed, может создать проблемы в вашем проекте в будущем.
 
 Предположим, вы - разработчик, которому нужно сделать клиент-серверное приложение. Клиент должен отправлять данные о продажах на сервер. В теле передаваемого объекта должна содержатся цена товара и валюта за которую товар был продан. Как это можно реализовать? Например, через `enum`:
 
-``` cs
+```cs
 public enum CurrenciesEnum
 {
     EUR,
@@ -20,7 +26,7 @@ public enum CurrenciesEnum
 
 Класс передаваемого объекта тогда будет выглядеть следующим образом:
 
-``` cs
+```cs
 public class SaleDetails
 {
     public double Price { get; set; }
@@ -31,7 +37,7 @@ public class SaleDetails
 
 Очень просто и элегантно, правда? А теперь представьте, что нужно добавить в `CurrenciesEnum` ещё одну валюту - фунт стерлингов. Как это можно сделать? Есть только один способ - изменить само перечисление:
 
-``` cs
+```cs
 public enum CurrenciesEnum
 {
     EUR,
@@ -46,7 +52,7 @@ public enum CurrenciesEnum
 
 Я сделал упрощенный вариант приложения, которое передаёт суть проблемы. Рассмотрим [код](https://github.com/alexeyfv/EnumerationDemo) подробнее. Начнём с перечисления `CurrenciesEnum` и класса `SaleDetails`. Тут всё по старому, за исключением того, что добавились атрибуты. Они нам необходимы для работы WCF.
 
-``` cs
+```cs
 [DataContract]
 public enum CurrenciesEnum
 {
@@ -57,7 +63,7 @@ public enum CurrenciesEnum
 }
 ```
 
-``` cs
+```cs
 [DataContract]
 public class SaleDetails
 {
@@ -71,11 +77,11 @@ public class SaleDetails
 
 Перечисление `CurrenciesEnum` и класс `SaleDetails` я разместил в проекте Shared. Предположим, что мы не можем вносить изменения в проект напрямую, т.к. он используется во многих других приложениях, поэтому мы вынуждены использовать наследование.
 
-<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/project-tree.png" alt="project-tree">
+<Image src={projectTree} alt="project-tree" />
 
 Проект Server - это WCF-служба. Она состоит из запроса и его колбэка. В этом проекте имитируется получение данных от клиента и преобразование в XML. Чтобы проверить корректность преобразования данных, будем отправлять строку с XML обратно клиенту.
 
-``` cs
+```cs
 public class Request : IRequest
 {
     public void SendRequest(SaleDetails saleDetails)
@@ -96,14 +102,14 @@ public class Request : IRequest
 
 Проект Client - это консольное приложение. В нём находится реализация колбэка и запрос к серверу. Полученный колбэк будет выведен в консоль.
 
-``` cs
+```cs
 class Callback : IRequestCallback
 {
     public void SendResponse(string response) => Console.WriteLine(response);
 }
 ```
 
-``` cs
+```cs
 internal class Program
 {
     static void Main(string[] args)
@@ -139,11 +145,11 @@ internal class Program
 
 Результат работы вполне ожидаем. Клиент получил от сервера две XML-строки:
 
-<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/first-response.png" alt="first-response">
+<Image src={firstResponse} alt="first-response" />
 
 Теперь попробуем кастомизировать `SaleDetails` в клиенте и добавить новый тип валюты, например вот так:
 
-``` cs
+```cs
 [DataContract(Name = "CurrenciesEnum")]
 enum CustomCurrenciesEnum
 {
@@ -156,7 +162,7 @@ enum CustomCurrenciesEnum
 }
 ```
 
-``` cs
+```cs
 [DataContract]
 class CustomSaleDetails : SaleDetails
 {
@@ -167,7 +173,7 @@ class CustomSaleDetails : SaleDetails
 
 И отправим 2 запроса: один с экземпляторм `SaleDetails`, а второй с `CustomSaleDetails`:
 
-``` cs
+```cs
 server.SendRequest(new SaleDetails()
 {
     Price = 100,
@@ -184,7 +190,7 @@ server.SendRequest(new CustomSaleDetails()
 
 Тот же результат будет, если попробовать явно преобразовать значение `CustomCurrenciesEnum.GBP` к типу `CurrenciesEnum`
 
-``` cs
+```cs
 server.SendRequest(new SaleDetails()
 {
     Price = 100,
@@ -198,7 +204,7 @@ server.SendRequest(new SaleDetails()
 
 Вместо классического `enum` можно использовать `enum classes`. Да, этой теме уже сто лет в обед, но судя по всему не все о ней знают. За основу я взял реализацию из [статьи MSDN](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/enumeration-classes-over-enum-types) и оставил только то, что необходимо для демонстрации.
 
-``` cs
+```cs
 [DataContract]
 public abstract class Enumeration
 {
@@ -214,7 +220,7 @@ public abstract class Enumeration
 
 Перепишем наше перечисление с использованием нового класса
 
-``` cs
+```cs
 [DataContract]
 public class CurrenciesClass : Enumeration
 {
@@ -236,7 +242,7 @@ public class CurrenciesClass : Enumeration
 
 и примением его в классе `SaleDetails`.
 
-``` cs
+```cs
 [DataContract]
 public class SaleDetails
 {
@@ -250,7 +256,7 @@ public class SaleDetails
 
 Обновим запросы в клиенте, запустим и посмотрим что получилось.
 
-``` cs
+```cs
 internal class Program
 {
     static void Main(string[] args)
@@ -284,11 +290,11 @@ internal class Program
 }
 ```
 
-<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/second-response.png" alt="second-response">
+<Image src={secondResponse} alt="second-response" />
 
 Как мы видим, всё работает отлично. Всё отлично и с возможностью расширения функционала класса `CurrenciesClass`? Создаём класс наследник в клиенте и добавляем новое статическое поле:
 
-``` cs
+```cs
 [DataContract]
 class CustomCurrenciesClass : CurrenciesClass
 {
@@ -303,7 +309,7 @@ class CustomCurrenciesClass : CurrenciesClass
 
 добавляем в тело метода `Main` ещё один запрос
 
-``` cs
+```cs
 server.SendRequest(new SaleDetails()
 {
     Price = 300,
@@ -313,7 +319,7 @@ server.SendRequest(new SaleDetails()
 
 Вуаля, всё работает
 
-<img src="{{site.baseurl}}/assets/2022/01/2022-01-27-insidious-enum-in-dotnet/third-response.png" alt="third-response">
+<Image src={thirdResponse} alt="third-response" />
 
 ## Резюме
 
