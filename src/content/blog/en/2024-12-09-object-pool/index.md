@@ -2,7 +2,7 @@
 title: "Object Pools in C#: Examples and Internals"
 description: 'A deep dive into C# Object Pool implementations, exploring both ObjectPool and ArrayPool classes with performance benchmarks and internal implementation details. Learn when and how to use object pooling effectively in your applications.'
 pubDate: 'Dec 09 2024'
-heroImage: 'cover.png'
+heroImage: 'cover.jpg'
 tags: ['C#', 'ObjectPool', 'Performance', 'Benchmark', 'Algorithms']
 ---
 
