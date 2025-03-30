@@ -1,0 +1,78 @@
+---
+import PostTag from '@/components/PostTag'
+import { Image } from 'astro:assets'
+import FormattedDate from '@/components/FormattedDate'
+import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+
+interface HeroImage {
+  height: number
+  width: number
+  format: 'svg' | 'avif' | 'png' | 'webp' | 'jpeg' | 'jpg' | 'tiff' | 'gif'
+  src: string
+}
+interface Props {
+  id: string
+  data: {
+    title: string
+    description: string
+    pubDate: Date
+    heroImage: HeroImage
+    tags: string[]
+  }
+  readTime: number
+  slug: string
+  withoutTags?: boolean
+}
+
+const {
+  data: { title, description, pubDate, heroImage, tags },
+  readTime,
+  slug,
+  withoutTags = false,
+}: Props = Astro.props
+
+const lang = getLangFromUrl(Astro.url)
+const t = useTranslations(lang)
+---
+
+<article class="grid grid-rows-[300px_0] group">
+  <a
+    class="rounded-xl overflow-hidden"
+    href={lang === 'en' ? `/post/${slug}` : `/${lang}/post/${slug}`}
+  >
+    <Image
+      src={heroImage}
+      class="h-full min-w-full object-cover hover:scale-110 transition-transform"
+      alt={`img of ${title}`}
+    />
+  </a>
+
+  <section class="flex gap-2 mt-3 font-semibold">
+    <FormattedDate date={pubDate} />
+    <span class="text-sm"> • {readTime} {t('minutes')}</span>
+  </section>
+
+  <section class="mt-8">
+    <a href={lang === 'en' ? `/post/${slug}` : `/${lang}/post/${slug}`}>
+      <h3 class="text-2xl font-semibold -tracking-wider">
+        {title}
+      </h3>
+
+      <p
+        class="overflow-hidden line-clamp-3 text-grayDeep dark:text-grayLight mb-3 text-sm"
+      >
+        {description}
+      </p>
+    </a>
+
+    <footer class="flex flex-wrap gap-x-1 gap-y-2">
+      {
+        tags.map((tag) =>
+          withoutTags ? null : (
+            <PostTag lang={lang} tag={tag} />
+          ),
+        )
+      }
+    </footer>
+  </section>
+</article>

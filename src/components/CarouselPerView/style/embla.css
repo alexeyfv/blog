@@ -1,0 +1,44 @@
+.embla {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  width: 856px;
+  position: relative;
+  overflow: hidden;
+}
+.embla .embla__viewport .embla__container {
+  display: flex;
+  gap: 1rem;
+  touch-action: pan-x pinch-zoom;
+}
+.embla .embla__viewport .embla__container .embla__slide {
+  min-width: 100%;
+}
+@media screen and (min-width: 768px) {
+  .embla .embla__viewport .embla__container .embla__slide {
+    min-width: fit-content;
+  }
+}
+.embla .embla__viewport .embla__container .embla__slide__number {
+  width: 100%;
+}
+@media screen and (min-width: 768px) {
+  .embla .embla__viewport .embla__container .embla__slide__number {
+    width: 28rem;
+  }
+}
+.embla__controls {
+  position: absolute;
+  top: 9rem;
+  width: 100%;
+}
+.embla__controls .embla__buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+}
+.embla__controls .embla__buttons .embla__button {
+  cursor: pointer;
+  z-index: 10;
+}

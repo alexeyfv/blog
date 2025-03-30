@@ -1,0 +1,19 @@
+---
+import { cn } from '@/utils'
+
+interface Props {
+  size?: string
+  color: string
+  label: string
+}
+const { label, size, color }: Props = Astro.props
+---
+
+<span
+  class={cn(
+    `bg-${color}-200 dark:bg-grayDeep px-3 py-1 text-sm rounded-xl hover:ring-2`,
+    size ? `text-${size}` : 'text-sm',
+  )}
+>
+  {label ?? 'Unknown Tag'}
+</span>

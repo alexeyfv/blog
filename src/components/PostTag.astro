@@ -1,0 +1,15 @@
+---
+import Tag from '@/components/Tag'
+import { defaultLang, Lang } from '@/i18n/ui'
+export interface Props {
+  lang: Lang,
+  size?: string
+  tag: string
+}
+const { lang, tag, size }: Props = Astro.props
+const langPrefix = lang == defaultLang ? '' : `/${lang}`
+---
+
+<a href={`${langPrefix}/tags/${encodeURIComponent(tag.toLowerCase())}`} aria-label={tag}>
+  <Tag label={tag} color="gray" size={size} />
+</a>

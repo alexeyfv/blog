@@ -1,0 +1,87 @@
+---
+import { type CollectionEntry, getCollection } from 'astro:content'
+import BlogPost from '@/layouts/BlogPost'
+import Code from '@/components/mdx/Code'
+import ListRelatedPosts from '@/components/ListRelatedPosts'
+import Share from '@/components/Share'
+import TableOfContents from '@/components/TableOfContents'
+import TableOfContentsForMobile from '@/components/TableOfContentsForMobile'
+import Comments from '@/components/Comments'
+import { getPosts } from '@/utils'
+import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+
+const lang = getLangFromUrl(Astro.url)
+const t = useTranslations(lang)
+
+const posts = await getCollection('blog')
+export const getStaticPaths = async () => {
+  const posts = await getPosts()
+
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: post,
+  }))
+}
+type Props = CollectionEntry<'blog'>
+
+const post = Astro.props
+const MAX_POSTS = 10
+const getRelatedPosts = (post: Props) => {
+  const lowercaseTags = post.data.tags.map((tag) => tag.toLowerCase())
+  const relatedPosts = posts.filter(
+    (p) =>
+      p.slug !== post.slug &&
+      p.data.tags.some((t) => lowercaseTags.includes(t.toLowerCase())),
+  )
+  return relatedPosts.slice(0, MAX_POSTS)
+}
+
+const relatedPosts = getRelatedPosts(post)
+
+const { Content, headings, remarkPluginFrontmatter } = await post.render()
+---
+
+<BlogPost
+  id={post.id}
+  data={post.data}
+  headings={headings}
+  readTime={remarkPluginFrontmatter.minutesRead}
+>
+  <section class="grid grid-cols-1 md:grid-cols-[20%_auto] gap-10 mt-8">
+    <!-- aside  -->
+    <aside class="md:flex flex-col gap-8 hidden">
+      <Share />
+
+      <section class="sticky top-24 self-start hidden md:block">
+        {headings && headings.length > 0 && <TableOfContents {headings} />}
+      </section>
+    </aside>
+
+    <!-- post -->
+    <article class="w-full">
+      <section class="self-start block md:hidden">
+        {
+          headings && headings.length > 0 && (
+            <TableOfContentsForMobile {headings} />
+          )
+        }
+      </section>
+
+      <section
+        class="prose prose-lg md:prose-xl dark:prose-invert mb-12 min-w-full"
+      >
+        <Content components={{ pre: Code }} />
+      </section>
+
+      <!-- related posts -->
+      <footer>
+        <h2 class="font-bold text-lg dark:text-white mb-6">
+          {t('relatedPosts')}
+        </h2>
+        <ListRelatedPosts posts={relatedPosts} />
+
+        <Comments />
+      </footer>
+    </article>
+  </section>
+</BlogPost>

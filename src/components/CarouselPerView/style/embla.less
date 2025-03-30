@@ -1,0 +1,54 @@
+@import url(./base.less);
+
+.embla {
+  #baseInit();
+
+  // static width
+  width: 856px;
+  position: relative;
+  overflow: hidden;
+
+  .embla__viewport {
+    .embla__container {
+      display: flex;
+      gap: 1rem;
+      touch-action: pan-x pinch-zoom;
+
+      .embla__slide {
+        min-width: 100%;
+      }
+      @media screen and (min-width: @md) {
+        .embla__slide {
+          min-width: fit-content;
+        }
+      }
+
+      .embla__slide__number {
+        width: 100%;
+      }
+      @media screen and (min-width: @md) {
+        .embla__slide__number {
+          width: 28rem;
+        }
+      }
+    }
+  }
+}
+
+.embla__controls {
+  position: absolute;
+  top: 9rem;
+  width: 100%;
+  .embla__buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 0 1rem;
+
+    .embla__button {
+      cursor: pointer;
+      z-index: 10;
+    }
+  }
+}

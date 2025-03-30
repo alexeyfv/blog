@@ -1,0 +1,64 @@
+---
+import HeaderLink from '@/components/HeaderLink'
+import GithubIcon from '@/components/icons/Github'
+import SearchPage from '@/components/SearchPage'
+import BurgerIcon from '@/components/icons/Burger'
+import ToggleTheme from '@/components/ToggleTheme'
+import LanguagePicker from '@/components/LanguagePicker'
+import Modal from '@/components/Modal'
+import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+
+const lang = getLangFromUrl(Astro.url)
+const t = useTranslations(lang)
+---
+
+<header class="flex justify-between items-center h-12 font-semibold">
+  <a class="text-xl transition-all hover:font-bold" href={lang === 'en' ? '/' : `/${lang}`}>alexeyfv</a>
+
+  <section class="z-50">
+    <nav class="flex justify-between gap-3">
+      <section class="hidden md:flex gap-3 mr-3">
+        <HeaderLink href={lang === 'en' ? '/' : `/${lang}`}>
+          {t('nav.home')}
+        </HeaderLink>
+        <HeaderLink href={lang === 'en' ? '/tags' : `/${lang}/tags`}>
+          {t('nav.tags')}
+        </HeaderLink>
+        <HeaderLink href={lang === 'en' ? '/about' : `/${lang}/about`}>
+          {t('nav.about')}
+        </HeaderLink>
+      </section>
+
+      <LanguagePicker />
+
+      <a
+        href="https://github.com/alexeyfv"
+        target="_blank"
+        aria-label="Open Github"><GithubIcon /></a
+      >
+
+      <SearchPage title="Search" />
+      <ToggleTheme aria-label="Switch Blog Theme" />
+
+      <nav class="md:hidden">
+        <Modal
+          title={t('nav.navigation')}
+          contents={[
+            { label: t('nav.home'), link: lang === 'en' ? '/' : `/${lang}` },
+            {
+              label: t('nav.tags'),
+              link: lang === 'en' ? '/tags' : `/${lang}/tags`,
+            },
+            {
+              label: t('nav.about'),
+              link: lang === 'en' ? '/about' : `/${lang}/about`,
+            },
+          ]}
+          type="outline"
+        >
+          <BurgerIcon aria-label="Open Navigation on Mobile Devices" />
+        </Modal>
+      </nav>
+    </nav>
+  </section>
+</header>

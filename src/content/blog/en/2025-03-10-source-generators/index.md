@@ -1,0 +1,87 @@
+---
+title: 'Code Generators in C#'
+description: 'Learn how to reduce boilerplate code in EventFlow using C# Source Generators, with practical examples and implementation details'
+pubDate: 'Mar 10 2025'
+heroImage: 'cover.png'
+tags: ['C#', 'Source Generators', 'Event Sourcing', 'DDD']
+---
+
+In November, I [wrote](https://t.me/yet_another_dev/152) about EventFlow library designed for DDD and Event Sourcing. Our team actively uses it. After working with it for several months, I noticed that I often had to write repetitive code, which became quite tedious.
+
+For example:
+
+To create an event for the OrderAggregate, you have to specify the aggregate type and its ID type each time.
+
+``` cs
+public class OrderCreated : 
+    IAggregateEvent<OrderAggregate, OrderAggregateId>
+```
+
+When subscribing to events, you need to specify the event type, aggregate, and ID.
+
+```cs
+public class OrderAggregateSubscribers :
+    ISubscribeSynchronousTo<OrderAggregate, OrderAggregateId, OrderCreated>
+```
+
+## How to avoid such boilerplate code?
+
+You can declare an abstract class for all aggregate events and use it:
+
+``` cs
+public abstract class OrderAggregateEvent : 
+    IAggregateEvent<OrderAggregate, OrderAggregateId>;
+```
+
+Create a new interface that accepts only the event type:
+
+``` cs
+public interface ISubscribeSynchronousTo<TEvent> : 
+    ISubscribeSynchronousTo<OrderAggregate, OrderAggregateId, TEvent> 
+```
+
+But even in this case, you still have to manually duplicate code for each aggregate. And as the well-known IT wisdom says:
+
+> Never spend 10 minutes doing something manually if you can spend 10 hours trying to automate it.
+
+So, in early February, I started writing a code generator for EventFlow. After 2 weeks and 7 commits, the EventFlow.SourceGenerators library was ready, and recently, Rasmus Mikkelsen (the author of EventFlow) [accepted the changes](https://github.com/eventflow/EventFlow/releases/tag/v1.2.0).
+
+## How do code generators help?
+
+Now all the tedious work is handled by the compiler, allowing us to write less code that is also more readable.
+
+``` cs
+// Add the AggregateExtensions attribute to the aggregate
+[AggregateExtensions]
+public class OrderAggregate(OrderAggregateId id) :
+    AggregateRoot<OrderAggregate, OrderAggregateId>(id)
+
+// Declaring events - OrderAggregateEvent is generated automatically
+public class OrderCreated : OrderAggregateEvent;
+
+// Subscribing to events - The new interface is generated automatically
+public class OrderAggregateSubscribers :
+    ISubscribeSynchronousTo<OrderCreated>
+```
+
+As you can see, the code is noticeably cleaner, and we no longer have to repeatedly specify the aggregate type.
+
+## Challenges in working with code generators
+
+It's important to note that code generators are a complex topic with many restrictions and challenges. Here are some I encountered:
+
+- Generators can only be written for .NET Standard 2.0.
+- Name collisions in generated objects are possible.
+- Testing generated code has its own peculiarities.
+
+## What's Next?
+
+If you're interested in code generators, I recommend starting with this [video from Microsoft](https://youtu.be/KTsyS3rDUgg).
+
+Then, check out the following resources:
+
+- [Creating an Incremental Generator](https://andrewlock.net/creating-a-source-generator-part-1-creating-an-incremental-source-generator/).
+- [Introducing C# Source Generators](https://devblogs.microsoft.com/dotnet/introducing-c-source-generators/).
+- [Incremental Generators Cookbook](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.cookbook.md).
+
+As an example, you can look at the source code of the EventFlow.SourceGenerators [library](https://github.com/eventflow/EventFlow/tree/develop-v1/Source/EventFlow.SourceGenerators) and its [tests](https://github.com/eventflow/EventFlow/tree/develop-v1/Source/EventFlow.SourceGenerators.Tests). It's quite simple. More usage examples can be found in the [documentation](https://geteventflow.net/additional/source-generation/).
