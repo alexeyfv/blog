@@ -1,12 +1,15 @@
 ---
-title: 'What''s wrong with the Options pattern in C#?'
-description: 'An analysis of the challenges with Options pattern in .NET when working with database configurations, and proposing practical solutions'
+title: "What's wrong with the Options pattern in C#?"
+description: 'Analysis of the limitations of the Options pattern in C#'
 pubDate: 'Jan 09 2024'
 heroImage: 'cover.png'
 tags: ['C#', 'ASP.NET', 'Design Patterns']
 ---
 
-In .NET, there is a so-called [Options](https://learn.microsoft.com/en-us/dotnet/core/extensions/options) pattern that simplifies the way we handle application configuration. To use it, developers just need to follow three steps. First, add the necessary [configuration provider](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers). Second, set up Service Provider using [`Configure`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.optionsconfigurationservicecollectionextensions.configure) extension method. Third, inject either `IOptions<T>`, or `IOptionsMonitor<T>`, or `IOptionsSnapshot<T>`  into the target class through constructor injecting.
+import { Image } from 'astro:assets'
+import configDiagram from './image1.png'
+
+In .NET, there is a so-called [Options](https://learn.microsoft.com/en-us/dotnet/core/extensions/options) pattern that simplifies the way we handle application configuration. To use it, developers just need to follow three steps. First, add the necessary [configuration provider](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers). Second, set up Service Provider using [`Configure`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.optionsconfigurationservicecollectionextensions.configure) extension method. Third, inject either `IOptions<T>`, or `IOptionsMonitor<T>`, or `IOptionsSnapshot<T>` into the target class through constructor injecting.
 
 Microsoft provides default configuration providers, like the JSON configuration provider with the [`AddJsonFile`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.jsonconfigurationextensions.addjsonfile) extension method. However, there are no providers for obtaining the configuration from database. In this article, we will consider several approaches to how to do it.
 
@@ -14,11 +17,14 @@ Microsoft provides default configuration providers, like the JSON configuration 
 
 Let's imagine the implementation of the following application scenario. We have a `Configuration Updater` responsible for updating configuration in the database. On the other side, there's a `Configuration Consumer` that retrieves configuration when needed.
 
-<img src="{{site.baseurl}}/assets/2024/01/2024-01-09-whats-wrong-with-options-pattern/image1.png" alt="content">
+<Image
+  src={configDiagram}
+  alt="Configuration updater and consumer diagram showing database interaction flow"
+/>
 
 Below is `AppConfig` class that defines configuration.
 
-``` cs
+```cs
 public class AppConfig
 {
     public int Id { get; init; }
@@ -35,7 +41,7 @@ public class AppConfig
 
 The configuration in the database is updated by the Configuration Updater service every second.
 
-``` cs
+```cs
 var db = new DatabaseContext("DataSource=./../Database/db.sqlite");
 
 while (true)
@@ -63,7 +69,7 @@ while (true)
 
 In the same time, the Configuration Consumer service reads the configuration every second.
 
-``` cs
+```cs
 public class ConsumerClass(IOptionsMonitor<AppConfig> _optionsMonitor)
 {
     public async Task DoWork()
@@ -88,7 +94,7 @@ The main idea of all these examples is to implement 2 custom classes: configurat
 
 The `DatabaseConfigurationProvider` class retrieves the configuration from the database, converts it to a JSON string, and loads into the `Data` dictionary using the internal implementation of `JsonConfigurationProvider.`
 
-``` cs
+```cs
 public class DatabaseConfigurationProvider(string _connectionString, JsonConfigurationSource source) : JsonConfigurationProvider(source)
 {
     public static string Prefix => nameof(AppConfig);
@@ -114,7 +120,7 @@ public class DatabaseConfigurationProvider(string _connectionString, JsonConfigu
 
 The `DatabaseConfigurationSource` class serves for building the provider. It should be added to the `ConfigurationBuilder` instance when defining dependencies in the [composition root](https://blog.ploeh.dk/2011/07/28/CompositionRoot/).
 
-``` cs
+```cs
 public class DatabaseConfigurationSource(string _connectionString) : JsonConfigurationSource
 {
     public override IConfigurationProvider Build(IConfigurationBuilder builder)
@@ -141,7 +147,7 @@ This solution compiles and works well, but only once. The reason is that the `Da
 
 If the Consumer Service has to have the latest version of the configuration, a simpler solution is just to implement `IOptionsMonitor<AppConfig>` and register it as a singleton:
 
-``` cs
+```cs
 public class DatabaseConfigurationMonitor(string _connectionString) : IOptionsMonitor<AppConfig>
 {
     public AppConfig CurrentValue => Get();

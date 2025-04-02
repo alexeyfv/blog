@@ -1,12 +1,24 @@
 ---
 title: 'Understanding DDD: from anemic to rich domain model'
-description: 'Learn how to transform an anemic domain model into a rich domain model using Domain-Driven Design principles, with practical C# examples'
+description: 'A guide to improving your code with Domain-Driven Design and Rich Domain Model'
 pubDate: 'Jun 05 2023'
 heroImage: 'cover.png'
-tags: ['C#', 'DDD']
+tags:
+  [
+    'C#',
+    'Domain-Driven Design',
+    'Design Patterns',
+    'Architechture',
+    'Software Design',
+  ]
 ---
 
-I recently read the book [Learning Domain-Driven Design](https://www.**oreilly**.com/library/view/learning-domain-driven-design/9781098100124/) on the advice of my mate, who is more experienced in development than I am. I’ve already written a small review about this book in [my Telegram channel](https://t.me/full_stack_dev_diaries/9) (it’s in Russian). Now, I’m going to write a series of articles about how Domain-Driven Design (DDD) can improve your code and software development process. This is the first article in this series.
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+
+I recently read the book [Learning Domain-Driven Design](https://www.**oreilly**.com/library/view/learning-domain-driven-design/9781098100124/) on the advice of my mate, who is more experienced in development than I am. I’ve already written a small review about this book in [my Telegram channel](https://t.me/yet_another_dev/9) (it’s in Russian). Now, I’m going to write a series of articles about how Domain-Driven Design (DDD) can improve your code and software development process. This is the first article in this series.
 
 ## Anemic Domain Model (ADM)
 
@@ -30,14 +42,16 @@ The functionality of the application allows the user to:
 
 Imagine that we have a ticket with `Id = 1` and user tries to update `Description` of the ticket. To do that, user executes:
 
-``` sh
+```sh
 dotnet run -- ticket update -id 1 -c "Some new content"
 ```
 
 In the result, the ticket will be updated, but what’s going on inside the application? The sequence diagram for this workflow is below:
 
-<img src="{{site.baseurl}}/assets/2023/06/2023-06-05-understanding-ddd-01/image01.png" alt="content">
-<strong>Figure 1 - Sequence diagram for ticket updating</strong>
+<Image src={image01} alt="Sequence diagram for ticket updating" />
+<strong style="text-align: center;">
+  Figure 1 - Sequence diagram for ticket updating
+</strong>
 
 Seems quite complicated, doesn’t it? What exactly are the disadvantages of this architecture? Here is the list:
 
@@ -50,8 +64,10 @@ Seems quite complicated, doesn’t it? What exactly are the disadvantages of thi
 
 How we can improve this existing code? Take a look at the sequence diagram for [opening a new ticket](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L67):
 
-<img src="{{site.baseurl}}/assets/2023/06/2023-06-05-understanding-ddd-01/image02.png" alt="content">
-<strong>Figure 2 - Sequence diagram for opening ticket</strong>
+<Image src={image02} alt="Sequence diagram for opening ticket" />
+<strong style="text-align: center;">
+  Figure 2 - Sequence diagram for opening ticket
+</strong>
 
 This example doesn’t have unnecessary requests to the DB, but we still have all other problems that were mentioned earlier. Moreover, you may be wondering where is the BLL? That is one of the problem of such an approach. The business logic is spread across by different kinds of handler. In this particular case, the logic of ticket assigning has leaked to the DAL.
 
@@ -72,7 +88,7 @@ To refactor the code from ADM to RDM, we should follow these steps:
 
 The first step will be is combine the duplicated models. Lets’do it for `Worker` entity. In the initial project, we had `Worker` class and `WorkerDbo` class as a Domain Model and Database Object, respectively:
 
-``` csharp
+```csharp
 public record Worker
 {
     public int Id { get; set; }
@@ -99,7 +115,7 @@ public record WorkerDbo
 
 After refactoring, Domain Model for the Worker will be:
 
-``` csharp
+```csharp
 public record Worker
 {
     public int Id { get; protected set; }
@@ -127,7 +143,7 @@ An event is a structure which encapsulates the result of Domain Model mutation. 
 
 We already have updated Domain Models and also Commands and Events. Now it's time to implement a Command Handler which will be a single point for all commands in the application. Depends on the type of the Command, [Command Handler](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/rdm/ApplicationLayer/CommandHandler.cs) will call appropriate method for Domain Models.
 
-``` csharp
+```csharp
 public class CommandHandler
 {
     public EventBase Handle(CommandBase command)
@@ -152,7 +168,7 @@ Private Handle methods implemented according to one pattern:
 
 For example, Handler method for `Worker` model:
 
-``` csharp
+```csharp
 private EventBase Handle(WorkerCommand command)
 {
     var db = new DatabaseAdapter();
@@ -175,4 +191,49 @@ private EventBase Handle(WorkerCommand command)
             .First(x => x.Id == cmd.Id)
             .Handle(cmd),
         CloseTicketForWorker cmd => db.Workers
-           
+            .Include(x => x.AssignedTickets)
+            .First(x => x.Id == cmd.Id)
+            .Handle(cmd),
+        _ => throw new NotSupportedException(),
+    };
+    db.SaveChanges();
+    return @event;
+}
+```
+
+## Handlers in Domain Model
+
+Last, but not least, we need to move domain functionality from old handlers to handlers in the Domain Model. The new handlers will be much simpler because now they only contain domain logic without functionality to database. For example, the handler for the `UpdateWorker` command looks like:
+
+```csharp
+public EventBase Handle(UpdateWorker request)
+{
+    if (request.Name != null) Name = request.Name;
+    if (request.Email != null) Email = request.Email;
+    if (request.Position != null) Position = request.Position;
+    if (request.Name != null ||
+        request.Email != null ||
+        request.Position != null) Updated = DateTimeOffset.Now;
+    return new WorkerUpdated(this);
+}
+```
+
+## After refactoring
+
+Now, let’s examine the sequence diagram for the ticket updating functionality and compare with Figure 1 and 2. You will notice that it has become much simpler:
+
+<Image src={image03} alt="Sequence diagram for ticket updating using RDM" />
+<strong style="text-align: center;">
+  Figure 3 - Sequence diagram for ticket updating using RDM
+</strong>
+
+Actually, the diagram will remain the same for all types of commands, not just for for updating ticket. The only difference will be in Business Logic part.
+
+## Conclusion
+
+In this article, I tried to show how DDD patterns and RDM can improve the code base and the architecture of your application. The advantages of using DDD and RDM are the following:
+
+1. Encapsulation of data and behavior. Domain Models are no longer just a bunch of getters and setters.
+2. Understandable naming conventions, e.g. for Commands and Events.
+3. There is no need to have several classes with the same set of properties and create mappers for them.
+4. Database calls are kept to a minimum.

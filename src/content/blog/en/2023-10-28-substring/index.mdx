@@ -1,10 +1,13 @@
 ---
 title: 'Fastest way to extract a substring in C#'
-description: 'An in-depth performance comparison of different substring extraction methods in C#, including Substring, Range, Split, ReadOnlySpan<T>, Regex, and SkipWhile'
+description: 'A performance comparison of different substring extraction methods in C#'
 pubDate: 'Oct 28 2023'
 heroImage: 'cover.png'
-tags: ['C#', 'Performance', 'Benchmarking']
+tags: ['C#', 'Performance']
 ---
+
+import { Image } from 'astro:assets'
+import results from './results.png'
 
 Today, we'll dive back into a microbenchmarking and a concise article about performance in C#. Our focus will be on strings and the most effective way for extracting a substring from the original string.
 
@@ -27,8 +30,13 @@ As usual, I run the benchmark on both .NET 6 and .NET 7 platforms. The results s
 
 ### Execution time
 
-<img src="{{site.baseurl}}/assets/2023/10/2023-10-28-substring/results.png" alt="content">
-<strong>The benchmark results</strong>
+<Image
+  src={results}
+  alt="Benchmark results comparing different substring extraction methods in C#"
+/>
+<strong  style="text-align: center;">
+The benchmark results
+</strong>
 
 We observe that `ReadOnlySpan<T>`, `Substring` and `Range` operator show fairly similar performance results. `Split`, `Regex` and `SkipWhile` are notably slower, being 2.5, 8.5 and 23.5 times respectively.
 
@@ -43,7 +51,7 @@ We observe that `ReadOnlySpan<T>`, `Substring` and `Range` operator show fairly 
 
 If we'll look at [decompiled C# code](https://sharplab.io/#gist:3b742eef5a5606d724dbeeaed47fc093), it becomes apparent that `Range` operator's implementation is very similar to the implementation of `Substring`.
 
-``` csharp
+```csharp
 // Range Operator after decompiling
 string text = data[num];
 int num2 = text.IndexOf(_symbol);
@@ -55,7 +63,7 @@ num++;
 
 The only difference is that `Substring` implementation has fewer local variables.
 
-``` csharp
+```csharp
 // Substring after decompiling
 string text = data[num];
 int startIndex = text.IndexOf(_symbol);
@@ -65,7 +73,7 @@ num++;
 
 `ReadOnlySpan<T>` shows better results. It looks like getting memory span and creating a new string from it is slightly faster, than getting substring by `string.Substring` method. I'm assuming that the reason of that is index bounds checks inside [internal implementation](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/String.Manipulation.cs#L2091) of `Substring` method.
 
-``` csharp
+```csharp
 // ReadOnlySpan<T> after decompiling
 string obj = data[num];
 int start = obj.IndexOf(_symbol);
@@ -76,7 +84,7 @@ num++;
 
 `Split` is slower because its [internal implementation](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/String.Manipulation.cs#L1625) and use of this method to obtain a substring is incorrect.
 
-``` csharp
+```csharp
 // Split after decompiling
 string text = data[num];
 list.Add(text.Split(':')[1]);
@@ -85,7 +93,7 @@ num++;
 
 `Regex` is a good option when you need to get a substring with a more complex pattern rather than a single char. But in this particular case it's like breaking a butterfly on a wheel.
 
-``` csharp
+```csharp
 // Regex after decompiling
 string input = data[num];
 list.Add(Regex.Match(input, _pattern).Groups[1].Value);
@@ -98,7 +106,7 @@ num++;
 2. `Enumerable.SkipWhile` calls this delegate for each char in the string.
 3. `Enumerable.ToArray` converts `IEnumerable<char>` to `char[]`.
 
-``` csharp
+```csharp
 // SkipWhile after decompiling
 string source = data[num];
 list.Add(new string(

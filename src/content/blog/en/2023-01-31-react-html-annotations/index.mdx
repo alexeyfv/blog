@@ -2,9 +2,13 @@
 title: 'How to create text annotations using React and TypeScript'
 description: 'A practical guide to implementing text annotation functionality in React applications using TypeScript, with examples of selection handling and content highlighting'
 pubDate: 'Jan 31 2023'
-heroImage: 'cover.png'
-tags: ['TypeScript', 'React']
+heroImage: 'cover.jpg'
+tags: ['TypeScript', 'React', 'Frontend']
 ---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
 
 I changed my job last November and became a Full Stack Developer in a new team. Now I have lots of work related with frontend, especially with `React` and `TypeScript`. A few weeks ago, I had a task to implement annotations support in our application that we are developing. This article briefly describes the approaches that can be used to create an application with text annotations.
 
@@ -12,44 +16,45 @@ I changed my job last November and became a Full Stack Developer in a new team. 
 
 Let's imagine that we have the following text content:
 
-<img src="{{site.baseurl}}/assets/2023/01/2023-01-31-react-html-annotations/image01.png" alt="content">
+<Image src={image01} alt="Content example showing text that can be annotated" />
 
 We need to implement functionality that allows the user to add text annotations on the selected part of content. For example, such functionality in Google Docs:
 
-<img src="{{site.baseurl}}/assets/2023/01/2023-01-31-react-html-annotations/image02.png" alt="content">
-
-To do that we should understand how to get information about selected text, how to save and restore it and how to highlight selected part of the text if the user adds annotation to it.
+<Image
+  src={image02}
+  alt="Example of text annotation functionality in Google Docs"
+/>
 
 ## Selection and Ranges
 
 DOM standard [describes](https://dom.spec.whatwg.org/#ranges) an interface named `Range`, which represents part of the content between two boundary points. Using `Range`, we can easily get the information about selection. To do that, just call `getSelection` and then `getRangeAt`:
 
-``` typescript
-const s = window.getSelection();
-const range = s.getRangeAt(0);
+```typescript
+const s = window.getSelection()
+const range = s.getRangeAt(0)
 ```
 
 Parameter `range` is of interface `Range`. This interface inherits another interface `AbstractRange` which looks like:
 
-``` typescript
+```typescript
 interface AbstractRange {
   /** Returns true if range is collapsed, and false otherwise. */
-  readonly collapsed: boolean;
+  readonly collapsed: boolean
   /** Returns range's end node. */
-  readonly endContainer: Node;
+  readonly endContainer: Node
   /** Returns range's end offset. */
-  readonly endOffset: number;
+  readonly endOffset: number
   /** Returns range's start node. */
-  readonly startContainer: Node;
+  readonly startContainer: Node
   /** Returns range's start offset. */
-  readonly startOffset: number;
+  readonly startOffset: number
 }
 ```
 
 The most important fields are `startContainer`, `startOffset`, `endContainer`, `endOffset`. These fields just determine selection. Let's look at HTML code of the content that was shown above:
 
-``` html
-<div id="root"> 
+```html
+<div id="root">
   <div>
     <h5>What is Lorem Ipsum?</h5>
     <p>
@@ -78,32 +83,32 @@ For the considered example, selection range will be:
 
 Now let's look at `startContainer` and `endContainer` differently. The nodes that stored by these fields can be determined by their indexes in the child arrays of the DOM tree. It means, that we can determine the addresses of the start and end nodes relative to the `root` node by recursively traversing the DOM tree. Thus, the addresses will be `[0, 0, 0, 0]`, `[1, 1, 0, 0]` for `startContainer` and `endContainer` respectively:
 
-``` text
+```text
 [0] <div id="root">
  |
  ╵--[0] <div>
      |
      |-- [0] <h5>
      |    |
-     |    ╵--[0] #text <-- startContainer (startOffset: 12) 
+     |    ╵--[0] #text <-- startContainer (startOffset: 12)
      |
      ╵-- [1] <p>
           |
           |--[0] <strong>
           |
-          |--[1] #text <-- endContainer (endOffset: 74) 
+          |--[1] #text <-- endContainer (endOffset: 74)
           |
          ...
 ```
 
 This approach allows us to save selection data in the following class:
 
-``` typescript
+```typescript
 class SelectionData {
-  startNode: number[];
-  endNode: number[];
-  startTextOffset: number;
-  endTextOffset: number;
+  startNode: number[]
+  endNode: number[]
+  startTextOffset: number
+  endTextOffset: number
 
   // other members
 }
@@ -115,9 +120,9 @@ Functions for serializing `Range` to `SelectionData` and vice versa you can find
 
 Now we know how to save and restore information about selection, but how we can highlight the selected content? Function `getClientRects` will help us with that. This function returns a list of `DOMRect` objects.
 
-``` typescript
+```typescript
 interface Range extends AbstractRange {
-  getClientRects(): DOMRectList;
+  getClientRects(): DOMRectList
 
   // other members
 }
@@ -125,30 +130,30 @@ interface Range extends AbstractRange {
 
 In our case, `DOMRect` describes the size and position of the selected area of content.
 
-``` typescript
+```typescript
 interface DOMRectReadOnly {
-  readonly bottom: number;
-  readonly height: number;
-  readonly left: number;
-  readonly right: number;
-  readonly top: number;
-  readonly width: number;
-  readonly x: number;
-  readonly y: number;
-  toJSON(): any;
+  readonly bottom: number
+  readonly height: number
+  readonly left: number
+  readonly right: number
+  readonly top: number
+  readonly width: number
+  readonly x: number
+  readonly y: number
+  toJSON(): any
 }
 
 interface DOMRect extends DOMRectReadOnly {
-  height: number;
-  width: number;
-  x: number;
-  y: number;
+  height: number
+  width: number
+  x: number
+  y: number
 }
 ```
 
 Thus, using `top`, `left`, `height` and `width` we can create, for example, a `<div>` element with calculated position and size to highlight the content. In a `React` app, highlighting can be implemented something like this:
 
-``` typescript
+```typescript
 // Highlighting component
 export default function Highlighting(props: {
   highlighting: HighlightingData;
