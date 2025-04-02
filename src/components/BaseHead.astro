@@ -166,8 +166,6 @@ const siteTitle = `${title} ${titleSeparator} ${siteConfig.title}`
 
   // only effect on first load
   window.addEventListener('DOMContentLoaded', () => {
-    console.log(isLocked())
-
     if (!isLocked()) {
       initLang()
       lock(true)

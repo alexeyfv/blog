@@ -8,17 +8,22 @@ export const getPosts = async (max?: number) => {
     .slice(0, max)
 }
 
-export const getTags = async () => {
+export const getTags = async (lang: string) => {
   const posts = await getCollection('blog')
-  const tags: Set<string> = new Set()
-
+  
+  const tagCounts: Record<string, number> = {}
+  
   posts.forEach((post) => {
-    post.data.tags.forEach((tag) => {
-      tags.add(tag)
-    })
+    if (post.data.lang === lang) {
+      post.data.tags.forEach((tag) => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1
+      })
+    }
   })
 
-  return Array.from(tags)
+  return Object.entries(tagCounts)
+    .sort(([, countA], [, countB]) => countB - countA)
+    .map(([tag]) => tag)
 }
 
 export const getPostByTag = async (tag: string) => {
