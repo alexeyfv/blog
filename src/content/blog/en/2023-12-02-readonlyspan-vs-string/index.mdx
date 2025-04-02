@@ -1,10 +1,14 @@
 ---
 title: 'What is ReadOnlySpan<T> in C# and how fast is it?'
-description: 'A detailed performance comparison between ReadOnlySpan<T> and string operations in C#, analyzing execution time and memory efficiency'
+description: 'A performance comparison between ReadOnlySpan<T> and string operations in C#'
 pubDate: 'Dec 02 2023'
 heroImage: 'cover.png'
-tags: ['C#', 'Performance', 'Benchmarking']
+tags: ['C#', 'Performance']
 ---
+
+import { Image } from 'astro:assets'
+import image1 from './image1.png'
+import image2 from './image2.png'
 
 I already wrote an article about the fastest way of extracting substrings in C#. Now I want to investigate Span structures more. Recently, Microsoft released the .NET 8 platform which has several new [extension methods](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions?view=net-8.0) for `ReadOnlySpan<T>`. So I want to compare the performance of `MemoryExtensions` methods with counterparts in string class.
 
@@ -123,15 +127,22 @@ These benchmarks focus on extracting a substring between specific markers in eac
 
 ### `ReadOnlySpan<T>` without allocation
 
-<img src="{{site.baseurl}}/assets/2023/12/2023-12-02-readonlyspan-vs-string/image1.png" alt="content">
-<strong>ReadOnlySpan execution ratio</strong>
+<Image src={image1} alt="Performance comparison of ReadOnlySpan execution" />
+<strong style="text-align: center;">
+ReadOnlySpan execution ratio
+</strong>
 
 As we can see from the figure above, almost all extension methods for `ReadOnlySpan<T>` are faster than analogues from string class. The only exception is the `ReadOnlySpan<T>.ToLower` method. I assume that It is because [this method copies the characters from the source span into the destination](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/MemoryExtensions.Globalization.cs#L223).
 
 ### `ReadOnlySpan<T>` with allocation
 
-<img src="{{site.baseurl}}/assets/2023/12/2023-12-02-readonlyspan-vs-string/image2.png" alt="content">
-<strong>ReadOnlySpan with allocation execution ratio</strong>
+<Image
+  src={image2}
+  alt="Performance comparison of ReadOnlySpan with allocation execution"
+/>
+<strong style="text-align: center;">
+ReadOnlySpan execution ratio
+</strong>
 
 The string.Replace, string.ToLower, string.TrimEnd, string.Substring methods outperform the combination of `ReadOnlySpan<T>` methods and [`ReadOnlySpan<T>.ToString`](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/ReadOnlySpan.cs#L332). This difference is likely due to efficient implementations of these methods. For example, invoking the [`string.TrimEnd`](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/String.Manipulation.cs#L2198) leads to a call of the [`Buffer.Memmove`](https://github.com/microsoft/referencesource/blob/master/mscorlib/system/buffer.cs#L299) method. It appears that the string allocation process using `Buffer.Memmove` is more efficient than the implementation of `ReadOnlySpan<T>.ToString`.
 

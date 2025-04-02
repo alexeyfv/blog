@@ -1,31 +1,30 @@
 ---
-title: "Object Pools in C#: Examples and Internals"
-description: 'A deep dive into C# Object Pool implementations, exploring both ObjectPool and ArrayPool classes with performance benchmarks and internal implementation details. Learn when and how to use object pooling effectively in your applications.'
+title: 'Object Pools in C#'
+description: 'A deep dive into performance and internal implementation details of Object Pool pattern in C#'
 pubDate: 'Dec 09 2024'
 heroImage: 'cover.jpg'
-tags: ['C#', 'ObjectPool', 'Performance', 'Benchmark', 'Algorithms']
+tags: ['C#', 'ObjectPool', 'Design Patterns', 'Performance', 'Algorithms']
 ---
+
+import { Image } from 'astro:assets'
+import cover from './cover.jpg'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+import image05 from './image05.png'
+import image06 from './image06.png'
+import image07 from './image07.png'
+import image08 from './image08.png'
 
 Object Pool is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. It is widely used, especially in game development and applications where low memory usage is critically important. In this article, we will look at how this pattern is implemented in C# and how it can improve performance.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/cover.jpg" alt="Object Pools in C#: Examples, Internals and Performance Benchmarks">
+<Image
+  src={cover}
+  alt="Object Pools in C#: Examples, Internals and Performance Benchmarks"
+/>
 
-*This article is presented as a part of [C# Advent 2024](https://www.csadvent.christmas/).*
-
-# Table Of Contents
-
-- [Table Of Contents](#table-of-contents)
-- [Disclaimer](#disclaimer)
-- [What is Object Pool?](#what-is-object-pool)
-- [ObjectPool class](#objectpool-class)
-  - [How it works](#how-it-works)
-  - [Performance](#performance)
-- [ArrayPool](#arraypool)
-  - [How it works](#how-it-works-1)
-    - [SharedArrayPool](#sharedarraypool)
-    - [ConfigurableArrayPool](#configurablearraypool)
-  - [Performance](#performance-1)
-- [Conclusion](#conclusion)
+_This article is presented as a part of [C# Advent 2024](https://www.csadvent.christmas/)._
 
 # Disclaimer
 
@@ -37,36 +36,36 @@ The source code and raw results are located in [this repo](https://github.com/al
 
 [Object Pool](https://en.wikipedia.org/wiki/Object_pool_pattern) is a design pattern that allows reusing objects instead of creating new ones. This can be very useful in scenarios where object initialization is expensive. The typical usage of an object pool consists of these steps:
 
-1. Rent an object from the pool.  
-2. Use the object to perform some work.  
-3. Return the object to the pool.  
+1. Rent an object from the pool.
+2. Use the object to perform some work.
+3. Return the object to the pool.
 4. Optionally, the object pool can reset the object's state when it is returned.
 
 The pseudocode for using an object pool looks like this:
 
-``` cs
+```cs
 var obj = objectPool.Get();
 
-try  
-{  
-    // do some work with obj  
-}  
-finally  
-{  
-    objectPool.Return(obj, reset: true);  
+try
+{
+    // do some work with obj
+}
+finally
+{
+    objectPool.Return(obj, reset: true);
 }
 ```
 
 The Object Pool pattern is widely used, especially in game development and applications where low memory usage is critically important.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image01.png" alt="Example of searching Object Pool in GitHub">
-<strong>
-Example of searching Object Pool in GitHub
+<Image src={image01} alt="Example of searching Object Pool in GitHub" />
+<strong style="text-align: center;">
+  Example of searching Object Pool in GitHub
 </strong>
 
 .NET provides several classes that implement the Object Pool pattern:
 
-- [ObjectPool](https://learn.microsoft.com/en-us/aspnet/core/performance/objectpool): A general-purpose object pool.  
+- [ObjectPool](https://learn.microsoft.com/en-us/aspnet/core/performance/objectpool): A general-purpose object pool.
 - [ArrayPool](https://learn.microsoft.com/en-us/dotnet/api/system.buffers.arraypool-1): A class designed specifically for pooling arrays.
 
 These classes may look similar, but their implementation is different. We will consider them separately.
@@ -77,23 +76,23 @@ The `ObjectPool` class is available by default only in ASP.NET Core applications
 
 To use a pool, call the `Create<T>` method from the static ObjectPool class:
 
-``` csharp
-var pool = ObjectPool.Create<SomeType>();  
+```csharp
+var pool = ObjectPool.Create<SomeType>();
 var obj = pool.Get();
 ```
 
 You can also define a custom pooling policy and pass it to the `Create<T>` method. A policy lets you control how objects are created and cleaned up. For example, to reuse a list of integers, you can define the following policy:
 
-``` cs
-public class ListPolicy : IPooledObjectPolicy<List<int>>  
-{  
+```cs
+public class ListPolicy : IPooledObjectPolicy<List<int>>
+{
     public List<int> Create() => [];
 
-    public bool Return(List<int> obj)  
-    {  
-        obj.Clear();  
-        return true;  
-    }  
+    public bool Return(List<int> obj)
+    {
+        obj.Clear();
+        return true;
+    }
 }
 ```
 
@@ -103,48 +102,48 @@ Now let’s take a look at how the `ObjectPool` class works internally.
 
 When [retrieving an object from the pool](https://github.com/dotnet/aspnetcore/blob/eb68e016a554b4da50d7fb0aeffe897cfabf36c7/src/ObjectPool/src/DefaultObjectPool.cs#L48), the `ObjectPool` works as follows:
 
-1. It checks if `_fastItem` is not null and can be taken by the current thread using `Interlocked.CompareExchange`.  
-2. If `_fastItem` is `null` or already taken by another thread, it tries to dequeue an object from the `ConcurrentQueue _items`.  
+1. It checks if `_fastItem` is not null and can be taken by the current thread using `Interlocked.CompareExchange`.
+2. If `_fastItem` is `null` or already taken by another thread, it tries to dequeue an object from the `ConcurrentQueue _items`.
 3. If both `_fastItem` and the queue are empty, a new object is created using the factory function.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image02.png" alt="ObjectPool\<T\> internals">
-<strong>
+<Image src={image02} alt="ObjectPool<T> internals" />
+<strong style="text-align: center;">
 ObjectPool\<T\> internals
 </strong>
 
 When [returning an object to the pool](https://github.com/dotnet/aspnetcore/blob/eb68e016a554b4da50d7fb0aeffe897cfabf36c7/src/ObjectPool/src/DefaultObjectPool.cs#L76), the `ObjectPool` works in an opposite way:
 
-1. It checks if the object passes the `_returnFunc` validation. If not, it means that the object should be discarded by [policy](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.objectpool.ipooledobjectpolicy-1?view=net-9.0-pp).  
-2. If `_fastItem` is `null`, the object is stored there using `Interlocked.CompareExchange`.  
-3. If `_fastItem` is already in use, the object is added to the `ConcurrentQueue` if the total number of items is within the maximum capacity.  
-3. If the pool is full, the object is discarded, and the item count is adjusted.
+1. It checks if the object passes the `_returnFunc` validation. If not, it means that the object should be discarded by [policy](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.objectpool.ipooledobjectpolicy-1?view=net-9.0-pp).
+2. If `_fastItem` is `null`, the object is stored there using `Interlocked.CompareExchange`.
+3. If `_fastItem` is already in use, the object is added to the `ConcurrentQueue` if the total number of items is within the maximum capacity.
+4. If the pool is full, the object is discarded, and the item count is adjusted.
 
 ## Performance
 
 To test how `ObjectPool<T>` affects performance, I created [two benchmarks](https://github.com/alexeyfv/object-pool/blob/main/ObjectPoolBenchmark.cs):
 
-- without pooling (creates a new list for each operation);  
+- without pooling (creates a new list for each operation);
 - with the object pool.
 
 Each benchmark does the following in a loop:
 
-1. Creates a new list or rents from the pool.  
-2. Adds the values in the list.  
+1. Creates a new list or rents from the pool.
+2. Adds the values in the list.
 3. Returns the list to the pool (if pooling is used).
 
 The benchmarks repeat this process 100 times for each thread. The threads count varies from 1 to 32. The list size varies from 10 to 1,000,000.
 
 The [results](https://github.com/alexeyfv/object-pool/tree/main/BenchmarkDotNet.Artifacts/results) are shown in the diagram below. The x-axis is a logarithmic scale, and the y-axis shows the percentage difference compared to the baseline without pooling.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image03.png" alt="ObjectPool<T> benchmark results. Percentage difference compared to the baseline without pooling.">
-<strong>
+<Image src={image03} alt="ObjectPool<T> benchmark results. Percentage difference compared to the baseline without pooling." />
+<strong style="text-align: center;">
 ObjectPool\<T\> benchmark results. Percentage difference compared to the baseline without pooling.
 </strong>
 
 From the results, we can see that using `ObjectPool` in a single-thread scenario is 10% – 50% faster, compared to creating a new list for each iteration. However, in a multithreaded scenario, `ObjectPool` performs worse for relatively small objects. This is most probably due to thread synchronization latency when accessing to the `_fastItem` and `ConcurrentQueue`.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image04.png" alt="ObjectPool<T> benchmark results. Absolute values.">
-<strong>
+<Image src={image04} alt="ObjectPool<T> benchmark results. Absolute values." />
+<strong style="text-align: center;">
 ObjectPool\<T\> benchmark results. Absolute values.
 </strong>
 
@@ -154,24 +153,24 @@ ObjectPool\<T\> benchmark results. Absolute values.
 
 The usage of `ArrayPool<T>` follows the typical object pool pattern and is quite simple. Here's an example that uses the shared pool internally.
 
-``` cs
-var pool = ArrayPool<int>.Shared;  
-var buffer = pool.Rent(10);  
-try  
-{  
-    // do some work with array  
-}  
-finally  
-{  
-    pool.Return(buffer, clear: true);  
+```cs
+var pool = ArrayPool<int>.Shared;
+var buffer = pool.Rent(10);
+try
+{
+    // do some work with array
+}
+finally
+{
+    pool.Return(buffer, clear: true);
 }
 ```
 
-You can also configure the pool. Static method Create returns a `ConfigurableArrayPool` instance. 
+You can also configure the pool. Static method Create returns a `ConfigurableArrayPool` instance.
 
-``` cs
+```cs
 var pool = ArrayPool<int>.Create(
-    maxArrayLength: 1000, 
+    maxArrayLength: 1000,
     maxArraysPerBucket: 20);
 ```
 
@@ -179,25 +178,25 @@ This method lets you specify the maximum array length and the maximum number of 
 
 It's important to note that the size of the array returned will always meet the requested size, but it may be larger:
 
-``` cs
+```cs
 using System.Buffers;
 
-var (pow, cnt) = (4, 0);  
-while (pow <= 30)  
-{  
-    var x = (1 << pow) - 1;  
-    var arr = ArrayPool<int>.Shared.Rent(x);  
-    Console.WriteLine(  
-        "Renting #{0}. Requested size: {1}. Actual size: {2}.",   
-        ++cnt, x, arr.Length);  
-    pow++;  
+var (pow, cnt) = (4, 0);
+while (pow <= 30)
+{
+    var x = (1 << pow) - 1;
+    var arr = ArrayPool<int>.Shared.Rent(x);
+    Console.WriteLine(
+        "Renting #{0}. Requested size: {1}. Actual size: {2}.",
+        ++cnt, x, arr.Length);
+    pow++;
 }
 
-// Renting #1. Requested size: 15. Actual size: 16.  
-// Renting #2. Requested size: 31. Actual size: 32.  
-// Renting #3. Requested size: 63. Actual size: 64.  
-// ...  
-// Renting #26. Requested size: 536870911. Actual size: 536870912.  
+// Renting #1. Requested size: 15. Actual size: 16.
+// Renting #2. Requested size: 31. Actual size: 32.
+// Renting #3. Requested size: 63. Actual size: 64.
+// ...
+// Renting #26. Requested size: 536870911. Actual size: 536870912.
 // Renting #27. Requested size: 1073741823. Actual size: 1073741824.
 ```
 
@@ -214,8 +213,8 @@ This allows each thread to maintain a small cache for various array sizes, rangi
 
 When we’re trying to get an array from a pool, the algorithm tries to get it from `t_tlsBuckets` field. If an array of the needed size is not found in `t_tlsBuckets`, the algorithm checks the shared cache, stored in `_buckets`. This shared cache is an array of `Partitions` objects, one for each allowed bucket size (27 buckets in total). Each `Partitions` object contains an array of N `Partition` objects, where N is the number of processors. Each `Partition` works like a stack that can hold up to 32 arrays. Yeah, sounds complicated, so see the diagram below.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image05.png" alt="SharedArrayPool<T> internals">
-<strong>
+<Image src={image05} alt="SharedArrayPool<T> internals" />
+<strong style="text-align: center;">
 SharedArrayPool\<T\> internals
 </strong>
 
@@ -225,8 +224,8 @@ When we’re returning the array to the pool, the algorithm first tries to store
 
 `ConfigurableArrayPool` is simpler compared to `SharedArrayPool`. It has only one private field for storing pooled arrays, called `_buckets`. This field is an array of `Bucket` instances, where each `Bucket` represents a collection of arrays (see the diagram below). Since `_buckets` field is shared across all threads, each `Bucket` [uses a SpinLock](https://github.com/dotnet/runtime/blob/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers/ConfigurableArrayPool.cs#L191) for thread-safe access.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image06.png" alt="ConfigurableArrayPool<T> internals">
-<strong>
+<Image src={image06} alt="ConfigurableArrayPool<T> internals" />
+<strong style="text-align: center;">
 ConfigurableArrayPool\<T\> internals
 </strong>
 
@@ -234,22 +233,22 @@ ConfigurableArrayPool\<T\> internals
 
 The `ArrayPool<T>` [benchmarks](https://github.com/alexeyfv/object-pool/blob/main/ArrayPoolBenchmark.cs) are similar to the `ObjectPool<T>` benchmarks:
 
-- without pooling (creates a new array for each operation);  
-- with the shared pool;  
+- without pooling (creates a new array for each operation);
+- with the shared pool;
 - with the configurable pool.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image07.png" alt="ArrayPool<T> benchmark results. Percentage difference compared to the baseline without pooling.">
-<strong>
-ArrayPool\<T\> benchmark results. Percentage difference compared to the baseline without pooling.
+<Image src={image07} alt="ArrayPool<T> benchmark results. Percentage difference compared to the baseline without pooling." />
+<strong style="text-align: center;">
+ArrayPool\<T> benchmark results. Percentage difference compared to the baseline without pooling.
 </strong>
 
 As we can see from the results, `SharedArrayPool` is faster almost in all cases, especially with a multiple threads scenario. The only exception is when the array size is 10.
 
 The opposite situation with a `ConfiguratbleArrayPool`. This class has worse performance in multithreading scenario for relatively small arrays. I believe the reason is the same as in `ObjectPool<T>`: thread synchronization latency when accessing arrays inside Bucket instances.
 
-<img src="{{site.baseurl}}/assets/2024/12/2024-12-09-object-pool/image08.png" alt="ArrayPool<T> benchmark results. Absolute values.">
-<strong>
-ArrayPool\<T\> benchmark results. Absolute values.
+<Image src={image08} alt="ArrayPool<T> benchmark results. Absolute values." />
+<strong style="text-align: center;">
+ArrayPool\<T> benchmark results. Absolute values.
 </strong>
 
 # Conclusion

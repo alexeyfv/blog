@@ -1,10 +1,17 @@
 ---
 title: 'The 16-Byte Rule: Performance of C# Structures'
-description: 'A detailed performance analysis comparing C# structures and classes of different sizes, challenging common assumptions about the 16-byte rule'
+description: 'Detailed exploration of the performance differences between C# structures and classes'
 pubDate: 'Jan 15 2024'
 heroImage: 'cover.png'
-tags: ['C#', 'Performance', 'Benchmarking']
+tags: ['C#', 'Performance']
 ---
+
+import { Image } from 'astro:assets'
+import performanceGraph from './image1.png'
+import structurePerformance from './image2.png'
+import ilCode from './image3.png'
+import jitCompiler from './image4.png'
+import memoryUsage from './image5.png'
 
 Many C# developers are familiar with the following statements. By default, when passing to or returning from a method, an instance of a value type is copied, while an instance of a reference type is passed by reference. This has led to a belief that utilizing structures may degrade the overall app performance, especially if the structure has a size greater than 16 bytes. The discussion about this is [still ongoing](https://www.reddit.com/r/csharp/comments/yhsjjf/only_use_structs_if_they_are_under_16_bytes_but/). In this article, we will try to find the truth.
 
@@ -14,23 +21,23 @@ The information from this article is а true only under specific conditions. I a
 
 ## Benchmark
 
-The benchmark is very straightforward.  It contains structures and classes with sizes ranging 4 to 160 bytes, incrementing by 4 bytes (int value).
+The benchmark is very straightforward. It contains structures and classes with sizes ranging 4 to 160 bytes, incrementing by 4 bytes (int value).
 
-``` cs
+```cs
 public record struct Struct04(int Param);
 
 // other structures
 
 public record struct Struct160(
-int Param1, int Param2, int Param3, int Param4, 
-int Param5, int Param6, int Param7, int Param8, 
-int Param9, int Param10, int Param11, int Param12, 
-int Param13, int Param14, int Param15, int Param16, 
-int Param17, int Param18, int Param19, int Param20, 
-int Param21, int Param22, int Param23, int Param24, 
+int Param1, int Param2, int Param3, int Param4,
+int Param5, int Param6, int Param7, int Param8,
+int Param9, int Param10, int Param11, int Param12,
+int Param13, int Param14, int Param15, int Param16,
+int Param17, int Param18, int Param19, int Param20,
+int Param21, int Param22, int Param23, int Param24,
 int Param25, int Param26, int Param27, int Param28,
-int Param29, int Param30, int Param31, int Param32, 
-int Param33, int Param34, int Param35, int Param36, 
+int Param29, int Param30, int Param31, int Param32,
+int Param33, int Param34, int Param35, int Param36,
 int Param37, int Param38, int Param39, int Param40);
 
 public record struct Class04(int Param);
@@ -38,21 +45,21 @@ public record struct Class04(int Param);
 // other classes
 
 public record class Class160(
-int Param1, int Param2, int Param3, int Param4, 
-int Param5, int Param6, int Param7, int Param8, 
+int Param1, int Param2, int Param3, int Param4,
+int Param5, int Param6, int Param7, int Param8,
 int Param9, int Param10, int Param11, int Param12,
-int Param13, int Param14, int Param15, int Param16, 
-int Param17, int Param18, int Param19, int Param20, 
-int Param21, int Param22, int Param23, int Param24, 
+int Param13, int Param14, int Param15, int Param16,
+int Param17, int Param18, int Param19, int Param20,
+int Param21, int Param22, int Param23, int Param24,
 int Param25, int Param26, int Param27, int Param28,
-int Param29, int Param30, int Param31, int Param32, 
-int Param33, int Param34, int Param35, int Param36, 
+int Param29, int Param30, int Param31, int Param32,
+int Param33, int Param34, int Param35, int Param36,
 int Param37, int Param38, int Param39, int Param40);
 ```
 
 For each structure and class, there is an appropriate method that creates an instance from a single `int` value.
 
-``` cs
+```cs
 // other methods
 
 public static Struct20 GetStruct20(int value) => new(value, value, value, value, value);
@@ -66,7 +73,7 @@ public static Class20 GetClass20(int value) => new(value, value, value, value, v
 
 In the end, there are benchmark methods, each creating a list of structures or classes with a size of 1000.
 
-``` cs
+```cs
 public int Iterations { get; set; } = 1000;
 
 private static void Add<T>(List<T> list, T value) => list.Add(value);
@@ -100,21 +107,33 @@ As usual, for benchmarking, I used the [BenchmarkDotNet](https://github.com/dotn
 
 The plot indicates that structures yield better results when their size is 64 bytes or fewer.
 
-<img src="{{site.baseurl}}/assets/2024/01/2024-01-15-class-vs-struct/image1.png" alt="content">
+<Image
+  src={performanceGraph}
+  alt="Performance comparison graph showing execution time for structures vs classes of different sizes"
+/>
 
 If we take a closer look at the execution time for entities up to 64 bytes, we see, that using structures can be 40-70% faster than using classes.
 
-<img src="{{site.baseurl}}/assets/2024/01/2024-01-15-class-vs-struct/image2.png" alt="content">
+<Image
+  src={structurePerformance}
+  alt="Detailed performance comparison for structures up to 64 bytes"
+/>
 
 To understand why .NET behaves in this way, we need to examine the complied code. Let’s take a look at `GetStruct64` and `GetStruct128` methods, for example. At the screenshot below, we can observe that these methods are compiled to [the same IL code](https://sharplab.io/#gist:d1ddca6000c43cd364b84c894ce74528). The only difference is in names.
 
-<img src="{{site.baseurl}}/assets/2024/01/2024-01-15-class-vs-struct/image3.png" alt="content">
+<Image
+  src={ilCode}
+  alt="IL code comparison showing identical compilation output"
+/>
 
 It means that we have to delve deeper and examine the assembly code generated by the JIT compiler. Hopefully, BenchmarkDotNet [provides such functionality](https://benchmarkdotnet.org/articles/features/disassembler.html).
 
-Comparing both methods shows that there is no invocation of the `GetStruct64(int value)` method. Instead, multiple  `mov` operations (`mov` operation moves data between registers and memory) are present. These operations actually initialize `Struct64`. But where is `GetStruct64(int value)`? The JIT compiler optimized the code and replaced the method invocation by its body. This optimization is known as **function or method inlining**.
+Comparing both methods shows that there is no invocation of the `GetStruct64(int value)` method. Instead, multiple `mov` operations (`mov` operation moves data between registers and memory) are present. These operations actually initialize `Struct64`. But where is `GetStruct64(int value)`? The JIT compiler optimized the code and replaced the method invocation by its body. This optimization is known as **function or method inlining**.
 
-<img src="{{site.baseurl}}/assets/2024/01/2024-01-15-class-vs-struct/image4.png" alt="content">
+<Image
+  src={jitCompiler}
+  alt="JIT compiler optimization showing mov operations instead of method calls"
+/>
 
 Another interesting observation is that **there are no stack allocations for structures**. The JIT compiler optimized the code in such a way that only registers are used, even for structures of 128 bytes or more (thanks to [AVX 256-bit registers](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions)).
 
@@ -122,7 +141,10 @@ Another interesting observation is that **there are no stack allocations for str
 
 The memory usage graph displays a smooth pattern without sudden spikes. It indicates that the difference in memory consumption between structures and classes remains constant. Thus, as the size of the entity increases, the use of structures becomes less advantageous in relative terms, but still advantageous. For structures with a size less or equal to 64 bytes, memory usage less from 27% to 87%.
 
-<img src="{{site.baseurl}}/assets/2024/01/2024-01-15-class-vs-struct/image5.png" alt="content">
+<Image
+  src={memoryUsage}
+  alt="Memory usage comparison between structures and classes"
+/>
 
 ## Conclusion
 

@@ -1,9 +1,9 @@
 ---
 title: 'Simplify Integration Testing with Testcontainers'
-description: 'Learn how to use Testcontainers to simplify database integration testing in C# by running PostgreSQL in Docker containers'
+description: 'Integration testing in C# using Testcontainers'
 pubDate: 'Feb 12 2024'
 heroImage: 'cover.png'
-tags: ['C#', 'Testing']
+tags: ['C#', 'Testing', 'Docker']
 ---
 
 Integration tests play an important role in software development. They help us see how the system works with volatile dependencies, such as databases. To run the integration test with the database, we need somewhere to create this database. It can be deployed on a virtual machine or even on a local host. However, it's best to use [Testcontainers framework](https://testcontainers.com/).
@@ -118,4 +118,90 @@ public class InitialMigration : Migration
 }
 ```
 
-To run the migration, we need
+To run the migration, we need to execute `MigrateUp` method.
+
+``` cs
+public static class Migrator
+{
+    public static void MigrateUp(string connectionString)
+    {
+        var serviceProvider = new ServiceCollection()
+            // Add common FluentMigrator services
+            .AddFluentMigratorCore()
+            .ConfigureRunner(rb => rb
+                // Add SQLite support to FluentMigrator
+                .AddPostgres()
+                // Set the connection string
+                .WithGlobalConnectionString(connectionString)
+                // Define the assembly containing the migrations
+                .ScanIn(typeof(InitialMigration).Assembly).For.Migrations())
+            // Enable logging to console in the FluentMigrator way
+            .AddLogging(lb => lb.AddFluentMigratorConsole())
+            // Build the service provider
+            .BuildServiceProvider(false);
+
+        var migrationRunner = serviceProvider.GetRequiredService<IMigrationRunner>();
+        migrationRunner.MigrateUp();
+    }
+}
+```
+
+### Integration tests
+
+Now, we’re ready to write integration tests. Let’s create a new MSTest project.
+
+``` sh
+dotnet new mstest
+```
+
+We use PostgreSQL, so it’s necessary to install the Testcontainers.PostgreSql nuget package.
+
+``` sh
+dotnet add package Testcontainers.PostgreSql
+```
+
+Here is the integration test code:
+
+``` cs
+[TestClass]
+public class IntegrationTests
+{
+    // Build a Docker image of PostgreSQL instance
+    private static readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .Build();
+
+    // Run the container before testing
+    [ClassInitialize]
+    public static Task Init(TestContext _) => _postgres.StartAsync();
+
+    // Stop the container when all the tests within this class have completed
+    [ClassCleanup]
+    public static Task Cleanup() => _postgres.DisposeAsync().AsTask();
+
+    [TestMethod]
+    public async Task TestMethod()
+    {
+        // Arrange
+        var connectionString = _postgres.GetConnectionString();
+        Migrator.MigrateUp(connectionString);
+        var repository = new Repository(connectionString);
+        var expected = new UserInfo("1", "John Doe", "Some address");
+        await repository.Add(expected);
+        var sut = new UserInfoService(repository);
+
+        // Act
+        var actual = await sut.Get("1", CancellationToken.None);
+
+        // Assert
+        Assert.IsNotNull(actual);
+        Assert.AreEqual(expected.Id, actual.Id);
+        Assert.AreEqual(expected.Name, actual.Name);
+        Assert.AreEqual(expected.Address, actual.Address);
+    }
+}
+```
+
+## Conclusion
+
+That’s it. As we can see, the basic usage of Testcontainers is very easy.

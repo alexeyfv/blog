@@ -1,10 +1,13 @@
 ---
 title: 'Performance issues when using a method as a parameter in C#'
-description: 'A detailed analysis of performance implications when passing methods as parameters in C#, comparing different approaches and their impact on memory allocation'
+description: 'Investigating performance issues when passing a method as a parameter in C#'
 pubDate: 'Oct 18 2023'
 heroImage: 'cover.png'
-tags: ['C#', 'Performance', 'Benchmarking']
+tags: ['C#', 'Performance']
 ---
+
+import { Image } from 'astro:assets'
+import benchmarkResults from './image.png'
 
 There is an [article](https://habr.com/ru/companies/skbkontur/articles/721822/) on Habr about performance issues when passing a method as a parameter in C#. The author showed that passing an instance method as a parameter inside `for` loops may degrade performance and increase memory consumption due to unnecessary object allocations in the heap. In this short article, I want to repeat the original benchmark and compare how things have changed since the .NET 7 release.
 
@@ -12,17 +15,17 @@ There is an [article](https://habr.com/ru/companies/skbkontur/articles/721822/) 
 
 In the original article, the author compared only two possible declarations of a method: a predefined delegate and an instance method. In addition to that, I decided to check other ways of method declaration. So, the final list is as follows:
 
-* predefined delegate;
-* lambda expression;
-* lambda expression that calls instance method;
-* lambda expression that calls static method;
-* static anonymous method;
-* static anonymous method that calls static method;
-* anonymous method;
-* anonymous method that calls instance method;
-* anonymous method that calls static method;
-* instance method;
-* static method.
+- predefined delegate;
+- lambda expression;
+- lambda expression that calls instance method;
+- lambda expression that calls static method;
+- static anonymous method;
+- static anonymous method that calls static method;
+- anonymous method;
+- anonymous method that calls instance method;
+- anonymous method that calls static method;
+- instance method;
+- static method.
 
 For benchmarking, I used the [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) library. The whole code of the benchmark class can be found [here](https://gitlab.com/alexeyfv/method-as-parameter).
 
@@ -30,8 +33,13 @@ For benchmarking, I used the [BenchmarkDotNet](https://github.com/dotnet/Benchma
 
 The benchmark results are in the diagram below. As we can see, .NET 7 shows better results for everything related with static methods (except anonymous method + static method).
 
-<img src="{{site.baseurl}}/assets/2023/10/2023-10-18-method-as-a-parameter/image.png" alt="content">
-<strong>The benchmark results</strong>
+<Image
+  src={benchmarkResults}
+  alt="Benchmark comparison chart showing method parameter passing performance in .NET 6 vs .NET 7"
+/>
+<strong style="text-align: center;">
+The benchmark results
+</strong>
 
 To understand why this happens, we have to go deeper and look at [IL code](https://sharplab.io/#gist:ecc53add5167ad4f90126c4dabbbace3). Basically, all these possible ways of method calling can be divided into two groups:
 
@@ -40,7 +48,7 @@ To understand why this happens, we have to go deeper and look at [IL code](https
 
 For example, let’s compare the code for calling a static method (4th row in the diagram):
 
-``` cs
+```cs
 for (int i = 0; i < n; i++) {
     CallAdd(StaticAdd, i, i);
 }
@@ -48,11 +56,11 @@ for (int i = 0; i < n; i++) {
 
 In .NET 6, such code after compilation will look like:
 
-``` cs
+```cs
 for (int i = 0; i < 10000; i++) {
     // A new Func instance created on each iteration.
     CallAdd(new Func<int, int, int>(
-      (object) null, 
+      (object) null,
       __methodptr(StaticAdd)
     ), i, i);
 }
@@ -60,13 +68,13 @@ for (int i = 0; i < 10000; i++) {
 
 In .NET 7 the situation is different:
 
-``` cs
+```cs
 for (int i = 0; i < 10000; ++i) {
     CallAdd(
         // A new Func instance created only once
         BenchmarkableClass.<>O.<1>__StaticAdd ?? (
             BenchmarkableClass.<>O.<1>__StaticAdd = new Func<int, int, int>(
-                (object) null, 
+                (object) null,
                 __methodptr(StaticAdd)
                 )), i, i
       );

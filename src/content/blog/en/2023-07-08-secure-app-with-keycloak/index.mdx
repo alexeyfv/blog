@@ -3,28 +3,27 @@ title: 'Create React SPA + ASP.NET Web API with Keycloak OAuth2'
 description: 'A comprehensive guide on implementing OAuth2 authentication in a full-stack application using React, ASP.NET Core, and Keycloak identity provider'
 pubDate: 'Jul 30 2023'
 heroImage: 'cover.png'
-tags: ['C#', 'ASP.NET', 'TypeScript', 'React', 'Docker', 'OAuth2', 'Keycloak']
+tags: ['C#', 'ASP.NET', 'TypeScript', 'Frontend', 'React', 'Docker', 'OAuth2', 'Keycloak']
 ---
 
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+import image05 from './image05.png'
+import image06 from './image06.png'
+import image07 from './image07.png'
+import image08 from './image08.png'
+import image09 from './image09.png'
+import image10 from './image10.png'
+import image11 from './image11.png'
+import image12 from './image12.png'
+import image13 from './image13.png'
+import image14 from './image14.png'
+import image15 from './image15.png'
+
 This is a step-by-step guide how to create a full stack secure application with OAuth2 authentication.
-
-## Table of contents
-
-- [Table of contents](#table-of-contents)
-- [Introduction](#introduction)
-- [Prerequisites](#prerequisites)
-- [Initialize the app](#initialize-the-app)
-  - [Create ASP.NET Web API service](#create-aspnet-web-api-service)
-  - [Create React SPA](#create-react-spa)
-  - [Connect client with server](#connect-client-with-server)
-  - [Dockerize the app](#dockerize-the-app)
-- [Secure the app](#secure-the-app)
-  - [Setup Keycloak](#setup-keycloak)
-  - [Change the client](#change-the-client)
-  - [Change the server](#change-the-server)
-  - [Run it all together](#run-it-all-together)
-- [Source code](#source-code)
-- [Summary](#summary)
 
 ## Introduction
 
@@ -50,7 +49,7 @@ You also have to have the following software on your machine:
 
 Let’s start with the backend part. We’re going to create an ASP.NET Web API service using the following command:
 
-``` bash
+```bash
 dotnet new webapi --no-openapi --use-minimal-apis
 ```
 
@@ -61,7 +60,7 @@ I used 2 options to simplify the source code:
 
 The result is below.
 
-``` csharp
+```csharp
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 app.UseHttpsRedirection();
@@ -94,14 +93,16 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 
 The service has only one endpoint `/weatherforecast`. Right now it is not secured, so anyone can call it and receive the data.
 
-<img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image01.png" alt="content">
-<strong>The endpoint /weatherforecast is not secured</strong>
+<Image src={image01} alt="The endpoint weatherforecast is not secured" />
+<strong style="text-align: center;">
+The endpoint /weatherforecast is not secured
+</strong>
 
 ### Create React SPA
 
 Create the client via:
 
-``` bash
+```bash
 npx create-react-app client -—template typescript
 ```
 
@@ -109,8 +110,10 @@ This command generates a bunch of files we don’t need, so I removed them to si
 
 Now project looks like:
 
-<img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image02.png" alt="content">
-<strong>Initial project</strong>
+<Image src={image02} alt="Initial project" />
+<strong style="text-align: center;">
+Initial project
+</strong>
 
 ### Connect client with server
 
@@ -118,82 +121,82 @@ Right now, the project contains two different applications (client and server) w
 
 1. At the server side a [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) policy should be added. The policy allows any header, any method and any origin. Don't do it in production, but for development purposes it's ok.
 
-    ``` csharp
-    builder.Services.AddCors();
+   ```csharp
+   builder.Services.AddCors();
 
-    // other code
+   // other code
 
-    if (builder.Environment.IsDevelopment())
-    {
-        app.UseCors(config =>
-        {
-            config.AllowAnyHeader();
-            config.AllowAnyMethod();
-            config.AllowAnyOrigin();
-        });
-    }
-    ```
+   if (builder.Environment.IsDevelopment())
+   {
+       app.UseCors(config =>
+       {
+           config.AllowAnyHeader();
+           config.AllowAnyMethod();
+           config.AllowAnyOrigin();
+       });
+   }
+   ```
 
 2. At the client side `WeatherForecastView` component should be created. This component calls `/weatherforecast` endpoint and renders the received data.
 
-    ``` tsx
-    // App.tsx
-    export default function App() {
-        return (
-            <div className="App">
-                <WeatherForecastView />
-            </div>
-        );
-    }
+   ```tsx
+   // App.tsx
+   export default function App() {
+     return (
+       <div className="App">
+         <WeatherForecastView />
+       </div>
+     )
+   }
 
-    // WeatherForecast.ts
-    export interface WeatherForecast {
-        date: Date;
-        temperatureC: number;
-        summary: string;
-    }
+   // WeatherForecast.ts
+   export interface WeatherForecast {
+     date: Date
+     temperatureC: number
+     summary: string
+   }
 
-    // WeatherForecastView.tsx
-    import { useEffect, useState } from "react";
-    import { useApi } from "./hooks/useApi";
-    import { WeatherForecast } from "./types/WeatherForecast";
+   // WeatherForecastView.tsx
+   import { useEffect, useState } from 'react'
+   import { useApi } from './hooks/useApi'
+   import { WeatherForecast } from './types/WeatherForecast'
 
-    export default function WeatherForecastView() {
-        const [get] = useApi();
-        const [forecast, setForecast] = useState<WeatherForecast[]>([]);
+   export default function WeatherForecastView() {
+     const [get] = useApi()
+     const [forecast, setForecast] = useState<WeatherForecast[]>([])
 
-        useEffect(() => {
-            get().then((wf) => setForecast(wf));
-        }, []);
+     useEffect(() => {
+       get().then((wf) => setForecast(wf))
+     }, [])
 
-        return (
-            <table>
-            <thead>
-                <tr>
-                <th>Date</th>
-                <th>Temperature</th>
-                <th>Summary</th>
-                </tr>
-            </thead>
-            <tbody>
-                {forecast.map((f) => (
-                <tr>
-                    <td>{new Date(f.date).toDateString()}</td>
-                    <td>{f.temperatureC}</td>
-                    <td>{f.summary}</td>
-                </tr>
-                ))}
-            </tbody>
-            </table>
-        );
-    }
-    ```
+     return (
+       <table>
+         <thead>
+           <tr>
+             <th>Date</th>
+             <th>Temperature</th>
+             <th>Summary</th>
+           </tr>
+         </thead>
+         <tbody>
+           {forecast.map((f) => (
+             <tr>
+               <td>{new Date(f.date).toDateString()}</td>
+               <td>{f.temperatureC}</td>
+               <td>{f.summary}</td>
+             </tr>
+           ))}
+         </tbody>
+       </table>
+     )
+   }
+   ```
 
 ### Dockerize the app
 
 Now we are going to put both applications in a single Docker container. The dockerfile is pretty straightforward. It uses Node.js and .NET SDK images to build both of the applications and then makes the final container using an ASP.NET image. Note that built client application will be copied to the `wwwroot` folder.
 
-``` dockerfile
+```dockerfile
 # Stage 1: Frontend - React SPA (https://hub.docker.com/_/node)
 FROM node:18-alpine AS frontend-build
 WORKDIR /
@@ -226,8 +229,8 @@ ENTRYPOINT ["dotnet", "server.dll"]
 
 I also created `docker-compose.yml` file to quickly run the container.
 
-``` yml
-version: "3.9"
+```yml
+version: '3.9'
 
 services:
   webapp:
@@ -241,7 +244,7 @@ services:
 
 To make the client and the server work together we should do a small change in `Program.cs` file. This сhange allows the server to return a built client application i.e. static HTML-page.
 
-``` csharp
+```csharp
 if (builder.Environment.IsDevelopment())
 {
     // other code
@@ -257,9 +260,9 @@ else
 
 To build and run the dockerized application execute the following commands.
 
-``` bash
+```bash
 docker build -t secure-app .
-docker compose up 
+docker compose up
 ```
 
 ## Secure the app
@@ -268,14 +271,14 @@ docker compose up
 
 The easiest way to run Keycloak instance is run it in docker container using the following command.
 
-``` bash
+```bash
 docker run -p 8080:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:21.1.2 start-dev
 ```
 
 Or, what is easier, using `docker compose up` command with `docker-compose.yml` file.
 
-``` yml
-version: "3.9"
+```yml
+version: '3.9'
 
 services:
   webapp:
@@ -289,11 +292,11 @@ services:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:21.1.2
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-    command: ["start-dev"]
+    command: ['start-dev']
 ```
 
 Basic Keycloak setup consist of the following steps:
@@ -301,43 +304,63 @@ Basic Keycloak setup consist of the following steps:
 1. Go to [http://localhost:8080/admin](http://localhost:8080/admin) and log in as admin.
 2. Create realm.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image03.png" alt="content">
+   <Image src={image03} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 3. Put some name for realm.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image04.png" alt="content">
+   <Image src={image04} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 4. Go to `Users`, press `Create new user` and create a new user.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image05.png" alt="content">
+   <Image src={image05} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 5. Go to `Credentials` tab, press `Set password` and create a creadentials for the user. You can uncheck `Temporary` so that you don't have to change the password the first time you log in.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image06.png" alt="content">
+   <Image src={image06} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 6. Go to `Clients` and select `account`.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image07.png" alt="content">
+   <Image src={image07} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 7. On the `Settings` tab, add a new valid redirect URI and enter a value in the `Web Origin` field.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image08.png" alt="content">
+   <Image src={image08} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
-8. Go to `Client scopes`, press `Create client scope` button and create `audience` scope. Note, that the     type should be `Default`.
+8. Go to `Client scopes`, press `Create client scope` button and create `audience` scope. Note, that the type should be `Default`.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image09.png" alt="content">
+   <Image src={image09} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 9. In the new `audience` scope go to the `Mappers` tab, press `Configure a new mapper` and select `Audience` mapper.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image10.png" alt="content">
+   <Image src={image10} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 10. Fill in the fields and press `Save`.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image11.png" alt="content">
+    <Image src={image11} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 11. Return to the `Client`, select `account` scope, go to the `Client scopes` tab and press `Add client scope`. Select from the list the `audience` scope and add it as a default.
 
-    <img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image12.png" alt="content">
+    <Image src={image12} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 You can [export and import](https://www.keycloak.org/server/importExport) realms. For example, a configuration for the realm above can be found [here](https://gitlab.com/alexeyfv/secure-app/-/blob/main/keycloak/realm-export.json).
 
@@ -345,171 +368,175 @@ You can [export and import](https://www.keycloak.org/server/importExport) realms
 
 1. Install [`react-oidc-context`](https://www.npmjs.com/package/react-oidc-context) npm package. This library simplifies the process of OAuth2 authentication for React applications. More info can be found [here](https://github.com/authts/react-oidc-context).
 
-    ``` bash
-    npm i react-oidc-context
-    ```
+   ```bash
+   npm i react-oidc-context
+   ```
 
 2. After installation we should wrap `App` by `AuthProvider` and add an authentication check to the `App`. The client shows a `Log In` button if the user is not authenticated. Otherwise it shows a `WeatherForecast` component. Note, that I also added `bootstrap` just to make the UI more fancy.
 
-    ``` tsx
-    // index.tsx
-    import "bootstrap/dist/css/bootstrap.min.css";
-    import { AuthProvider } from "react-oidc-context";
+   ```tsx
+   // index.tsx
+   import 'bootstrap/dist/css/bootstrap.min.css'
+   import { AuthProvider } from 'react-oidc-context'
 
-    const root = ReactDOM.createRoot(
-    document.getElementById("root") as HTMLElement
-    );
-    root.render(
-    <React.StrictMode>
-        <AuthProvider
-        authority={"http://localhost:8080/realms/secure-app"}
-        client_id={"account"}
-        redirect_uri={window.location.origin}
-        scope="openid profile"
-        automaticSilentRenew={true}
-        loadUserInfo={true}
-        >
-        <App />
-        </AuthProvider>
-    </React.StrictMode>
-    );
+   const root = ReactDOM.createRoot(
+     document.getElementById('root') as HTMLElement,
+   )
+   root.render(
+     <React.StrictMode>
+       <AuthProvider
+         authority={'http://localhost:8080/realms/secure-app'}
+         client_id={'account'}
+         redirect_uri={window.location.origin}
+         scope="openid profile"
+         automaticSilentRenew={true}
+         loadUserInfo={true}
+       >
+         <App />
+       </AuthProvider>
+     </React.StrictMode>,
+   )
 
-    // App.tsx
-    import WeatherForecastView from "./WeatherForecastView";
-    import { useAuth } from "react-oidc-context";
+   // App.tsx
+   import WeatherForecastView from './WeatherForecastView'
+   import { useAuth } from 'react-oidc-context'
 
-    export default function App() {
-    const auth = useAuth();
+   export default function App() {
+     const auth = useAuth()
 
-    return (
-        <div className="container mt-5 mb-5">
-            {auth.isAuthenticated ? (
-                <div className="App">
-                <WeatherForecastView />
-                </div>
-            ) : (
-                <div className="row">
-                <div className="col text-center">
-                    {auth.isLoading ? (
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
-                    ) : auth.error ? (
-                    <div className="alert alert-danger" role="alert">
-                        Error
-                    </div>
-                    ) : (
-                    <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => void auth.signinRedirect()}
-                    >
-                        Log in
-                    </button>
-                    )}
-                </div>
-                </div>
-            )}
-            </div>
-        );
-    }
-    ```
+     return (
+       <div className="container mt-5 mb-5">
+         {auth.isAuthenticated ? (
+           <div className="App">
+             <WeatherForecastView />
+           </div>
+         ) : (
+           <div className="row">
+             <div className="col text-center">
+               {auth.isLoading ? (
+                 <div className="spinner-border" role="status">
+                   <span className="visually-hidden">Loading...</span>
+                 </div>
+               ) : auth.error ? (
+                 <div className="alert alert-danger" role="alert">
+                   Error
+                 </div>
+               ) : (
+                 <button
+                   type="button"
+                   className="btn btn-primary"
+                   onClick={() => void auth.signinRedirect()}
+                 >
+                   Log in
+                 </button>
+               )}
+             </div>
+           </div>
+         )}
+       </div>
+     )
+   }
+   ```
 
 3. The last thing to change in the client is to update `useApi` hook. The hook will handle the authentication and authorization aspects by including the user's access token in the request headers.
 
-    ``` tsx
-    // useApi.tsx
-    import { useAuth } from "react-oidc-context";
-    import { WeatherForecast } from "../types/WeatherForecast";
+   ```tsx
+   // useApi.tsx
+   import { useAuth } from 'react-oidc-context'
+   import { WeatherForecast } from '../types/WeatherForecast'
 
-    export function useApi() {
-    const auth = useAuth();
-    const get = (): Promise<WeatherForecast[]> => {
-        const url = "http://localhost:5000/weatherforecast";
-        const options = {
-        method: "GET",
-        headers: {
-            Authorization: `Bearer ${auth.user?.access_token}`,
-            "Content-Type": "application/json",
-        },
-        };
-        const request = async (): Promise<WeatherForecast[]> => {
-        const resp = await fetch(url, options);
-        const response = (await resp.json()) as WeatherForecast[];
-        return response;
-        };
-        return request();
-    };
+   export function useApi() {
+     const auth = useAuth()
+     const get = (): Promise<WeatherForecast[]> => {
+       const url = 'http://localhost:5000/weatherforecast'
+       const options = {
+         method: 'GET',
+         headers: {
+           Authorization: `Bearer ${auth.user?.access_token}`,
+           'Content-Type': 'application/json',
+         },
+       }
+       const request = async (): Promise<WeatherForecast[]> => {
+         const resp = await fetch(url, options)
+         const response = (await resp.json()) as WeatherForecast[]
+         return response
+       }
+       return request()
+     }
 
-    return [get];
-    }
-    ```
+     return [get]
+   }
+   ```
 
 ### Change the server
 
 1. Install NuGet package [Microsoft.AspNetCore.Authentication.JwtBearer](https://www.nuget.org/packages/Microsoft.AspNetCore.Authentication.JwtBearer). This library enables support for JWT bearer based authentication.
 
-    ``` bash
-    dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version 7.0.9
-    ```
+   ```bash
+   dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version 7.0.9
+   ```
 
 2. Set up JWT Bearer authentication, configure the necessary options for token validation, and add authorization support to the application. The application will now be able to authenticate users using JWT tokens and enforce authorization rules based on the received tokens.
 
-    ``` csharp
-    // other code 
+   ```csharp
+   // other code
 
-    services
-        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.ConfigurationManager =
-                new ConfigurationManager<OpenIdConnectConfiguration>("http://keycloak:8080/realms/secure-app/.well-known/openid-configuration",
-                    new OpenIdConnectConfigurationRetriever(),
-                    new HttpDocumentRetriever(new HttpClient()) { RequireHttps = false });
-            options.RequireHttpsMetadata = false;
-            options.SaveToken = true;
-            options.Authority = "";
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidIssuer = "http://localhost:8080/realms/secure-app",
-                ValidAudience = "account"
-            };
-        });
-    services.AddAuthorization();
+   services
+       .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+       .AddJwtBearer(options =>
+       {
+           options.ConfigurationManager =
+               new ConfigurationManager<OpenIdConnectConfiguration>("http://keycloak:8080/realms/secure-app/.well-known/openid-configuration",
+                   new OpenIdConnectConfigurationRetriever(),
+                   new HttpDocumentRetriever(new HttpClient()) { RequireHttps = false });
+           options.RequireHttpsMetadata = false;
+           options.SaveToken = true;
+           options.Authority = "";
+           options.TokenValidationParameters = new TokenValidationParameters
+           {
+               ValidateIssuer = true,
+               ValidateAudience = true,
+               ValidateLifetime = true,
+               ValidIssuer = "http://localhost:8080/realms/secure-app",
+               ValidAudience = "account"
+           };
+       });
+   services.AddAuthorization();
 
-    // other code
-    ```
+   // other code
+   ```
 
 3. Enable authentication and authorization support using `UseAuthentication()` and `UseAuthorization()` middlewares.
 
-    ``` csharp
-    // other code 
+   ```csharp
+   // other code
 
-    app.UseAuthentication();
-    app.UseAuthorization();
+   app.UseAuthentication();
+   app.UseAuthorization();
 
-    // other code
-    ```
+   // other code
+   ```
 
 4. Apply authorization to the `/weatherforecast` endpoint using `RequireAuthorization()` method. By using `RequireAuthorization()` at the endpoint, you are making sure that authorization is enforced for the endpoint.
 
-    ``` csharp
-    app.MapGet("/weatherforecast", () => 
-    {
-        // some code
-    }).RequireAuthorization();
-    ```
+   ```csharp
+   app.MapGet("/weatherforecast", () =>
+   {
+       // some code
+   }).RequireAuthorization();
+   ```
 
 ### Run it all together
 
 The secured application now can be launched. Execute `docker compose up` and go to [localhost:5000](localhost:5000/).
 
-<img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image14.png" alt="content">
+<Image src={image14} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
-<img src="{{site.baseurl}}/assets/2023/07/2023-07-08-secure-app-with-keycloak/image15.png" alt="content">
+<Image src={image15} alt="content" />
+<strong style="text-align: center;">
+</strong>
 
 ## Source code
 
