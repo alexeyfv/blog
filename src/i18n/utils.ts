@@ -1,4 +1,4 @@
-import { ui, defaultLang, Lang } from './ui'
+import { ui, defaultLang } from './ui'
 
 export const getLangFromUrl = (url: URL) => {
   const [, lang] = url.pathname.split('/')
