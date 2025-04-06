@@ -6,6 +6,7 @@ import PostTag from '@/components/PostTag'
 import { getLangFromUrl, useTranslations } from '@/i18n/utils'
 import type { MarkdownHeading } from 'astro'
 import { Image } from 'astro:assets'
+import { getCover } from 'src/utils/cover'
 
 type Props = {
   id: CollectionEntry<'blog'>['id']
@@ -15,10 +16,11 @@ type Props = {
 }
 
 const { data, readTime } = Astro.props
-const { title, description, pubDate, heroImage, tags } = data
+const { title, description, pubDate, tags } = data
 
 const articleDate = pubDate.toISOString()
 
+const cover = getCover(Astro.props)
 const lang = getLangFromUrl(Astro.url)
 const t = useTranslations(lang)
 ---
@@ -26,7 +28,7 @@ const t = useTranslations(lang)
 <BaseLayout
   title={title}
   description={description}
-  ogImage={heroImage?.src}
+  ogImage={cover?.src}
   articleDate={articleDate}
 >
   <article class="min-w-full">
@@ -56,9 +58,9 @@ const t = useTranslations(lang)
     </header>
 
     {
-      heroImage && (
+      cover && (
         <Image
-          src={heroImage}
+          src={cover}
           quality={100}
           loading="eager"
           class="rounded-xl w-full my-8 object-cover"

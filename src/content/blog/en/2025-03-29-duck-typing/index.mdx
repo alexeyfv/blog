@@ -2,7 +2,7 @@
 title: 'Duck Typing in C#'
 description: 'C# duck typing patterns with foreach loops, async-await, and collection initialization syntax'
 pubDate: 'Mar 29 2025'
-heroImage: 'cover.png'
+cover: 'cover.png'
 tags: ['C#']
 lang: 'en'
 ---
@@ -60,11 +60,11 @@ The compiler expects the collection type to have an `Add` method, but `Queue` us
 
 ```csharp
 public static class CollectionExtensions {
-    
+
     public static void Add<T>(this Queue<T> collection, T item) =>
         collection.Enqueue(item);
 
-    public static void Add<T>(this Stack<T> collection, T item) => 
+    public static void Add<T>(this Stack<T> collection, T item) =>
         collection.Push(item);
 }
 ```
