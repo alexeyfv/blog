@@ -2,12 +2,12 @@
 title: 'Как данные влияют на производительность'
 description: 'Небольшое исследование влияния способа инициализации массивов на производительность'
 pubDate: 'Sep 30 2024'
-heroImage: 'cover.png'
 tags: ['C#', 'Performance', 'Benchmarks']
 lang: 'ru'
 ---
 
 import { Image } from 'astro:assets'
+import question from './question.png'
 import answer from './answer.png'
 
 Хочу рассказать о том, насколько важно способ инициализации данных для достижения максимальной производительности кода.
@@ -17,6 +17,8 @@ import answer from './answer.png'
 - Массивы `t1` и `t2` содержат информацию о транзакциях.
 - Два метода, `Setup1` и `Setup2`, инициализируют массивы `t1` и `t2` соответственно: `Setup1` – двумя циклами `for`, а `Setup2` – одним.
 - Метод `Sum` позволяет вычислить сумму транзакций в массивах `t1` или `t2`.
+
+<Image src={question} alt="Question description" />
 
 Вопрос: при каком способе инициализации расчёт суммы в массивах `Sum(t1) + Sum(t2)` выполнится быстрее?
 

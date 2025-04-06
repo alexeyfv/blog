@@ -2,14 +2,8 @@
 title: 'FrozenDictionary under the hood'
 description: 'A deep dive into performance and internal implementation details of FrozenDictionary in .NET 8'
 pubDate: 'Oct 09 2024'
-heroImage: 'cover.png'
-tags:
-  [
-    'C#',
-    'Data Structures',
-    'Performance',
-    'Algorithms',
-  ]
+cover: 'cover.png'
+tags: ['C#', 'Data Structures', 'Performance', 'Algorithms']
 lang: 'en'
 ---
 
@@ -45,7 +39,7 @@ It’s important to notice, that `FrozenDictionary<TKey, TValue>` is an abstract
 
 <Image src={implDiagram} alt="Choosing a FrozenDictionary implementation" />
 <strong style="text-align: center;">
-Figure 1 – Choosing a FrozenDictionary implementation
+  Figure 1 – Choosing a FrozenDictionary implementation
 </strong>
 
 Don’t be afraid, because all these 18 implementations can be combined into 5 groups:
@@ -94,9 +88,7 @@ When, for example, we search a value for `Fruit("fig")` key, the following are h
   src={dictSearchDiagram}
   alt="Diagram showing search algorithm in regular Dictionary"
 />
-<strong style="text-align: center;">
-Figure 2 – Search in Dictionary
-</strong>
+<strong style="text-align: center;">Figure 2 – Search in Dictionary</strong>
 
 ### Search algorithm
 
@@ -117,7 +109,7 @@ Using `FrozenDictionary`, searching for a value for the key `Fruit("fig")` would
   alt="Diagram showing search algorithm in FrozenDictionary"
 />
 <strong style="text-align: center;">
-Figure 3 – Search in DefaultFrozenDictionary
+  Figure 3 – Search in DefaultFrozenDictionary
 </strong>
 
 ### Benchmark
@@ -129,7 +121,8 @@ The benchmarks results for `DefaultFrozenDictionary` and `ValueTypeDefaultCompar
   alt="Performance chart comparing value type dictionary lookups"
 />
 <strong style="text-align: center;">
-Reading speed from ValueTypeDefaultComparerFrozenDictionary comparing to Dictionary
+  Reading speed from ValueTypeDefaultComparerFrozenDictionary comparing to
+  Dictionary
 </strong>
 
 <Image
@@ -137,7 +130,7 @@ Reading speed from ValueTypeDefaultComparerFrozenDictionary comparing to Diction
   alt="Performance chart comparing default dictionary lookups"
 />
 <strong style="text-align: center;">
-Reading speed from DefaultFrozenDictionary comparing to Dictionary
+  Reading speed from DefaultFrozenDictionary comparing to Dictionary
 </strong>
 
 The high search speed in `Dictionary` compared to `ValueTypeDefaultComparerFrozenDictionary` for dictionaries with up to 1000 elements is probably due to aggressive [method inlining](https://en.wikipedia.org/wiki/Inline_function) in Dictionary. I couldn't understand why the limit is exactly 1000 elements, as there’s nothing about this in the [source code](https://github.com/dotnet/runtime/blob/10107d3ca202bf1fda76a1bf575d782be4be27c3/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/Dictionary.cs). It might be related to the JIT compiler’s implementation. If you have any ideas on this, feel free to share them in the comments.
@@ -164,7 +157,7 @@ This allows skipping the hash calculation during reads and [using the key’s va
 
 <Image src={stringKeysDiagram} alt="Search in Int32FrozenDictionary" />
 <strong style="text-align: center;">
-Figure 6 – Search in Int32FrozenDictionary
+  Figure 6 – Search in Int32FrozenDictionary
 </strong>
 
 ### Benchmark
@@ -176,7 +169,7 @@ Because of optimizations, reading from `Int32FrozenDictionary` is 34-42% faster 
   alt="Reading speed from Int32FrozenDictionary comparing to Dictionary"
 />
 <strong style="text-align: center;">
-Figure 7 – Reading speed from Int32FrozenDictionary comparing to Dictionary
+  Figure 7 – Reading speed from Int32FrozenDictionary comparing to Dictionary
 </strong>
 
 ## Group 3. Dictionary with bucket sort algorithm
@@ -207,7 +200,7 @@ There are keys with length of 3, 4 and 5 in the dictionary. Therefore, they can 
   alt="Distribution of the strings based on their length"
 />
 <strong style="text-align: center;">
-Figure 8 – Distribution of the strings based on their length
+  Figure 8 – Distribution of the strings based on their length
 </strong>
 
 Since we know the minimum (3) and maximum (5) lengths of the keys, there's no need to create three separate buckets. We can store everything in a single array called `lengthBuckets`. In this case, the index is calculated like this: `(key.Length - minLength) * MaxPerLength`.
@@ -225,7 +218,7 @@ The search is done in 3 steps (Figure 9):
   alt="Search in LengthBucketsFrozenDictionary"
 />
 <strong style="text-align: center;">
-Figure 9 – Search in LengthBucketsFrozenDictionary
+  Figure 9 – Search in LengthBucketsFrozenDictionary
 </strong>
 
 `LengthBucketsFrozenDictionary` has two limitations:
@@ -244,7 +237,8 @@ The benchmark results show that reading from a `LengthBucketsFrozenDictionary` c
   alt="Reading speed LengthBucketsFrozenDictionary comparing to Dictionary"
 />
 <strong style="text-align: center;">
-Figure 10 – Reading speed LengthBucketsFrozenDictionary comparing to Dictionary
+  Figure 10 – Reading speed LengthBucketsFrozenDictionary comparing to
+  Dictionary
 </strong>
 
 ## Group 4. Dictionary with string keys
@@ -262,7 +256,7 @@ First, `KeyAnalyzer` analyzes substrings of length 1 with left-aligned keys (see
   alt="Single-char substrings with left and right algnment"
 />
 <strong style="text-align: center;">
-Figure 11 – Single-char substrings with left and right algnment
+  Figure 11 – Single-char substrings with left and right algnment
 </strong>
 
 In this example, with left-aligned keys, there are repeating substrings. For instance, the 0th character of "lime" and "lemon" is the same, as well as the 1st character of "fig" and "lime" and the 2nd character of "lime" and "lemon." This means that it is impossible to uniquely identify a key by a single character with such alignment. Therefore, the search for a substring continues with right-aligned keys. In this case, the substrings will be unique when using the 2nd or 1st character from the end. Knowing the alignment, starting index, and length of the substring, the string can be uniquely identified by calculating the hash code of its substring.
@@ -290,7 +284,8 @@ According to the benchmark results, a `FrozenDictionary` with up to 75,000 eleme
   alt="Reading speed from OrdinalStringFrozenDictionary_LeftJustifiedSubstring comparing to Dictionary"
 />
 <strong style="text-align: center;">
-Рисунок 12 – Reading speed from OrdinalStringFrozenDictionary_LeftJustifiedSubstring comparing to Dictionary
+  Рисунок 12 – Reading speed from
+  OrdinalStringFrozenDictionary_LeftJustifiedSubstring comparing to Dictionary
 </strong>
 
 The high speed of `FrozenDictionary` is due to the fast hash code calculation of keys. The algorithm used in `FrozenDictionary` is 75% to 90% faster than the one in a regular `Dictionary` (see Figure 13).
@@ -299,9 +294,7 @@ The high speed of `FrozenDictionary` is due to the fast hash code calculation of
   src={hashSpeedChart}
   alt="FrozenDictionary and Dictionary hash calculation speed"
 />
-<strong style="text-align: center;">
-Figure 13 – Hash calculation speed
-</strong>
+<strong style="text-align: center;">Figure 13 – Hash calculation speed</strong>
 
 The performance drop in dictionaries with 75,000 elements or more is caused by the increasing number of hash collisions as the dictionary size grows (see Figure 14).
 
@@ -309,9 +302,7 @@ The performance drop in dictionaries with 75,000 elements or more is caused by t
   src={collisionsChart}
   alt="FrozenDictionary and Dictionary hash collisions count"
 />
-<strong style="text-align: center;">
-Figure 14 – Hash collisions count
-</strong>
+<strong style="text-align: center;">Figure 14 – Hash collisions count</strong>
 
 As shown in the figures, the algorithm used in `FrozenDictionary` significantly speeds up hash code calculation, improving performance by up to 70%. However, this approach negatively impacts search performance in relatively large dictionaries.
 
@@ -328,7 +319,7 @@ Strictly speaking, the classes `SmallValueTypeComparableFrozenDictionary`, `Smal
   alt="Search in SmallValueTypeComparableFrozenDictionary"
 />
 <strong style="text-align: center;">
-Figure 15 – Search in SmallValueTypeComparableFrozenDictionary
+  Figure 15 – Search in SmallValueTypeComparableFrozenDictionary
 </strong>
 
 In `SmallValueTypeComparableFrozenDictionary`, since the `_keys` and `_values` arrays are sorted, the search can continue as long as the searched key is greater than the current value of `_keys[i]`.
@@ -344,7 +335,9 @@ Despite all the optimizations in these classes, the benchmark results do not loo
   alt="Reading speed from SmallValueTypeComparableFrozenDictionary, SmallValueTypeDefaultComparerFrozenDictionary and SmallFrozenDictionary comparing to Dictionary"
 />
 <strong style="text-align: center;">
-Figure 16 – Reading speed from SmallValueTypeComparableFrozenDictionary, SmallValueTypeDefaultComparerFrozenDictionary and SmallFrozenDictionary comparing to Dictionary
+  Figure 16 – Reading speed from SmallValueTypeComparableFrozenDictionary,
+  SmallValueTypeDefaultComparerFrozenDictionary and SmallFrozenDictionary
+  comparing to Dictionary
 </strong>
 
 ## Conclusion
