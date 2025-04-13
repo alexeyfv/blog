@@ -3,8 +3,9 @@ import type { CollectionEntry } from 'astro:content'
 import PostCard from '@/components/PostCard'
 import ArrowLeft from '@/components/icons/ArrowLeft'
 import ArrowRight from '@/components/icons/ArrowRight'
+import { Lang } from '@/i18n/ui'
 interface Props {
-  posts: CollectionEntry<'blog'>[]
+  posts: CollectionEntry<Lang>[]
 }
 const { posts }: Props = Astro.props
 ---

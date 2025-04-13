@@ -8,7 +8,7 @@ interface Props {
   rerender?: boolean
 }
 
-const { title, rerender = true }: Props = Astro.props
+const { title }: Props = Astro.props
 ---
 
 <!-- because the button size is different with the icon size, need to set the same width and height with the icon to keep it layout correctly -->

@@ -2,9 +2,10 @@
 import type { CollectionEntry } from 'astro:content'
 import PostCard from '@/components/PostCard'
 import { cn } from '@/utils'
+import { Lang } from '@/i18n/ui'
 
 type Props = {
-  posts: CollectionEntry<'blog'>[]
+  posts: CollectionEntry<Lang>[]
   FirstBig?: boolean
 }
 

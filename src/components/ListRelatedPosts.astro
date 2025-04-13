@@ -2,9 +2,10 @@
 import type { CollectionEntry } from 'astro:content'
 import CarrouselPerView from '@/components/CarouselPerView/CarouselPerView'
 import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { Lang } from '@/i18n/ui'
 
 type Props = {
-  posts: CollectionEntry<'blog'>[]
+  posts: CollectionEntry<Lang>[]
 }
 
 const { posts }: Props = Astro.props

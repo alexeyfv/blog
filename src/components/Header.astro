@@ -13,18 +13,20 @@ const t = useTranslations(lang)
 ---
 
 <header class="flex justify-between items-center h-12 font-semibold">
-  <a class="text-xl transition-all hover:font-bold" href={lang === 'en' ? '/' : `/${lang}`}>alexeyfv</a>
+  <a class="text-xl transition-all hover:font-bold" href={`/${lang}`}
+    >alexeyfv</a
+  >
 
   <section class="z-50">
     <nav class="flex justify-between gap-3">
       <section class="hidden md:flex gap-3 mr-3">
-        <HeaderLink href={lang === 'en' ? '/' : `/${lang}`}>
+        <HeaderLink href={`/${lang}`}>
           {t('nav.home')}
         </HeaderLink>
-        <HeaderLink href={lang === 'en' ? '/tags' : `/${lang}/tags`}>
+        <HeaderLink href={`/${lang}/tags`}>
           {t('nav.tags')}
         </HeaderLink>
-        <HeaderLink href={lang === 'en' ? '/about' : `/${lang}/about`}>
+        <HeaderLink href={`/${lang}/about`}>
           {t('nav.about')}
         </HeaderLink>
       </section>

@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro'
 import { generateCover } from 'src/utils/cover'
 
 export async function getStaticPaths() {
-  const posts = await getPosts()
+  const posts = await getPosts('ru')
 
   return posts.map((post) => ({
     params: { slug: post.slug },
