@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content'
 import { siteConfig } from '@/site-config'
 
 export const GET = async (context: any) => {
-  const posts = await getCollection('blog')
+  const posts = await getCollection('en')
 
   return rss({
     title: siteConfig.title,
@@ -11,7 +11,7 @@ export const GET = async (context: any) => {
     site: context.site,
     items: posts.map((post) => ({
       ...post.data,
-      link: `post/${post.slug}/`,
+      link: `en/post/${post.slug}/`,
     })),
   })
 }

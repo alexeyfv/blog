@@ -1,15 +1,17 @@
 ---
 import Tag from '@/components/Tag'
-import { defaultLang, Lang } from '@/i18n/ui'
+import { Lang } from '@/i18n/ui'
+import { slugifyTag } from '@/utils'
 export interface Props {
-  lang: Lang,
+  lang: Lang
   size?: string
   tag: string
 }
+
 const { lang, tag, size }: Props = Astro.props
-const langPrefix = lang == defaultLang ? '' : `/${lang}`
+const slug = slugifyTag(tag)
 ---
 
-<a href={`${langPrefix}/tags/${encodeURIComponent(tag.toLowerCase())}`} aria-label={tag}>
+<a href={`/${lang}/tags/${slug}`} aria-label={tag}>
   <Tag label={tag} color="gray" size={size} />
 </a>

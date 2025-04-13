@@ -7,10 +7,11 @@ import { getLangFromUrl, useTranslations } from '@/i18n/utils'
 import type { MarkdownHeading } from 'astro'
 import { Image } from 'astro:assets'
 import { getCover } from 'src/utils/cover'
+import { Lang } from '@/i18n/ui'
 
 type Props = {
-  id: CollectionEntry<'blog'>['id']
-  data: CollectionEntry<'blog'>['data']
+  id: CollectionEntry<Lang>['id']
+  data: CollectionEntry<Lang>['data']
   headings: MarkdownHeading[]
   readTime: string
 }
@@ -20,12 +21,13 @@ const { title, description, pubDate, tags } = data
 
 const articleDate = pubDate.toISOString()
 
-const cover = getCover(Astro.props)
 const lang = getLangFromUrl(Astro.url)
+const cover = getCover(lang, Astro.props)
 const t = useTranslations(lang)
 ---
 
 <BaseLayout
+  lang={lang}
   title={title}
   description={description}
   ogImage={cover?.src}

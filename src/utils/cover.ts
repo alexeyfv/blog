@@ -2,13 +2,14 @@ import { Resvg } from '@resvg/resvg-js'
 import satori from 'satori'
 import fs from 'fs'
 import path from 'path'
+import { Lang } from '@/i18n/ui'
 
 const defaultRatio = {
   width: 1536,
   height: 1024,
 }
 
-export function getCover(props): ImageMetadata {
+export function getCover(lang: Lang, props): ImageMetadata {
   const cover = props.data.cover
 
   // If the cover is provided, use it
@@ -23,7 +24,7 @@ export function getCover(props): ImageMetadata {
 
   // Otherwise, use the generated image
   const generated: ImageMetadata = {
-    src: `post/${slug}/cover.png`,
+    src: `${lang}/post/${slug}/cover.png`,
     width: defaultRatio.width,
     height: defaultRatio.height,
     format: 'png',

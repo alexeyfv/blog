@@ -10,8 +10,13 @@ import { remarkReadingTime } from './src/utils/readTime'
 export default defineConfig({
   site: 'https://alexeyfv.xyz',
   trailingSlash: 'ignore',
+
   devToolbar: {
     enabled: false,
+  },
+
+  experimental: {
+    contentLayer: true,
   },
 
   i18n: {

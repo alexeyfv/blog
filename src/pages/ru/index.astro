@@ -7,18 +7,16 @@ import { getPosts } from '@/utils'
 
 const lang = getLangFromUrl(Astro.url)
 const t = useTranslations(lang)
-const posts = await getPosts()
-const filtered = posts.filter((p) => p.id.startsWith(lang))
+const posts = await getPosts(lang)
 ---
 
-<BaseLayout title={t('index.title')}>
+<BaseLayout lang={lang} title={t('index.title')}>
   <TitlePage title={t('index.title')} />
   <hr />
-
   <section>
     <h2 class="text-lg font-medium tracking-wide text-end">
       {t('index.latestPosts')}
     </h2>
-    <ListPosts FirstBig={false} posts={filtered} />
+    <ListPosts FirstBig={false} posts={posts} />
   </section>
 </BaseLayout>

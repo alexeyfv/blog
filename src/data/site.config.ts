@@ -1,6 +1,7 @@
 interface SiteConfig {
   author: string
   title: string
+  baseUrl: string
   description: string
   lang: string
   ogLocale: string
@@ -8,11 +9,12 @@ interface SiteConfig {
 }
 
 export const siteConfig: SiteConfig = {
-  author: 'Alexey Fedorov', // Site author
-  title: 'alexeyfv', // Site title.
+  author: 'Alexey Fedorov',
+  title: 'alexeyfv',
+  baseUrl: 'alexeyfv.xyz',
   description:
-    'Nano Blog is a performant, lightweight and SEO friendly modern blog system made by Astro, TypeScript and TailwindCSS, without any database and backend', // Description to display in the meta tags
+    'Sharing my path in software development — thoughts, lessons, and technical insights.',
   lang: 'en',
   ogLocale: 'en',
-  shareMessage: 'Share this post', // Message to share a post on social media
+  shareMessage: 'Share this post',
 }

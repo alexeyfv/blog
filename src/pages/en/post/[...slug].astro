@@ -9,20 +9,21 @@ import TableOfContentsForMobile from '@/components/TableOfContentsForMobile'
 import Comments from '@/components/Comments'
 import { getPosts } from '@/utils'
 import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { Lang } from '@/i18n/ui'
 
 const lang = getLangFromUrl(Astro.url)
 const t = useTranslations(lang)
+const posts = await getCollection(lang)
 
-const posts = await getCollection('blog')
 export const getStaticPaths = async () => {
-  const posts = await getPosts()
+  const posts = await getPosts('en')
 
   return posts.map((post) => ({
     params: { slug: post.slug },
     props: post,
   }))
 }
-type Props = CollectionEntry<'blog'>
+type Props = CollectionEntry<Lang>
 
 const post = Astro.props
 const MAX_POSTS = 10
