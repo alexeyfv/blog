@@ -1,14 +1,23 @@
+import { Lang, ui } from '@/i18n/ui'
 import { getPosts } from '@/utils'
 import type { APIRoute } from 'astro'
 import { generateCover } from 'src/utils/cover'
 
 export async function getStaticPaths() {
-  const posts = await getPosts('ru')
+  const result: any[] = []
 
-  return posts.map((post) => ({
-    params: { slug: post.slug },
-    props: post,
-  }))
+  for (const lang of Object.keys(ui)) {
+    const posts = await getPosts(lang as Lang)
+
+    for (const post of posts) {
+      result.push({
+        params: { lang, slug: post.slug },
+        props: post,
+      })
+    }
+  }
+
+  return result
 }
 
 export const GET: APIRoute = async ({ props }) => {

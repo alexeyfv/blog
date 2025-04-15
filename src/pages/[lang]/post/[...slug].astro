@@ -7,21 +7,30 @@ import Share from '@/components/Share'
 import TableOfContents from '@/components/TableOfContents'
 import Comments from '@/components/Comments'
 import { getPosts } from '@/utils'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
-import { Lang } from '@/i18n/ui'
+import { useTranslations } from '@/i18n/utils'
+import { Lang, ui } from '@/i18n/ui'
 
-const lang = getLangFromUrl(Astro.url)
+export const getStaticPaths = async () => {
+  const result: any[] = []
+
+  for (const lang of Object.keys(ui)) {
+    const posts = await getPosts(lang as Lang)
+
+    for (const post of posts) {
+      result.push({
+        params: { lang, slug: post.slug },
+        props: post,
+      })
+    }
+  }
+
+  return result
+}
+
+const lang: Lang = Astro.params.lang
 const t = useTranslations(lang)
 const posts = await getCollection(lang)
 
-export const getStaticPaths = async () => {
-  const posts = await getPosts('ru')
-
-  return posts.map((post) => ({
-    params: { slug: post.slug },
-    props: post,
-  }))
-}
 type Props = CollectionEntry<Lang>
 
 const post = Astro.props
