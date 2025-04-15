@@ -2,6 +2,8 @@
 import { languages } from '@/i18n/ui'
 import HeaderLink from '@/components/HeaderLink'
 import Language from '@/components/icons/Language'
+
+const pathname = Astro.url.pathname
 ---
 
 <section class="relative">
@@ -22,7 +24,7 @@ import Language from '@/components/icons/Language'
     {
       Object.entries(languages).map(([lang, label]) => (
         <HeaderLink
-          href={lang === 'en' ? '/' : `/${lang}`}
+          href={'/' + lang + pathname.slice(pathname.indexOf('/', 1))}
           class={
             'option cursor-pointer p-2 block rounded-lg hover:bg-gray-200 dark:hover:bg-grayDeep dark:text-white'
           }
@@ -34,16 +36,3 @@ import Language from '@/components/icons/Language'
     }
   </section>
 </section>
-
-<script>
-  const langOptions = document.querySelectorAll('.option')
-
-  langOptions.forEach((option) => {
-    option.addEventListener('click', () => {
-      const lang = option.getAttribute('data-lang')
-      if (lang) {
-        localStorage.setItem('lang', lang)
-      }
-    })
-  })
-</script>
