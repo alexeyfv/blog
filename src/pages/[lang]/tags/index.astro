@@ -3,9 +3,14 @@ import BaseLayout from '@/layouts/BaseLayout'
 import TitlePage from '@/components/TitlePage'
 import PostTag from '@/components/PostTag'
 import { getTags } from '@/utils'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { useTranslations } from '@/i18n/utils'
+import { Lang, ui } from '@/i18n/ui'
 
-const lang = getLangFromUrl(Astro.url)
+export function getStaticPaths() {
+  return Object.keys(ui).map((lang) => ({ params: { lang: lang as Lang } }))
+}
+
+const lang: Lang = Astro.params.lang
 const t = useTranslations(lang)
 const tags = await getTags(lang)
 ---

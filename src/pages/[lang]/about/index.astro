@@ -6,6 +6,11 @@ import Coding from '@/assets/icons/Coding.svg'
 import Server from '@/assets/icons/Server.svg'
 import hachiware from '../../../assets/images/pages/hachiware.jpg'
 import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { Lang, ui } from '@/i18n/ui'
+
+export function getStaticPaths() {
+  return Object.keys(ui).map((lang) => ({ params: { lang: lang as Lang } }))
+}
 
 const lang = getLangFromUrl(Astro.url)
 const t = useTranslations(lang)
