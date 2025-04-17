@@ -2,7 +2,7 @@ import { Resvg } from '@resvg/resvg-js'
 import satori from 'satori'
 import fs from 'fs'
 import path from 'path'
-import { Lang } from '@/i18n/ui'
+import { Lang } from '@/i18n/utils'
 
 const defaultRatio = {
   width: 1536,

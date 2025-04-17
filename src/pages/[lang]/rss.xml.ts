@@ -1,7 +1,7 @@
 import rss from '@astrojs/rss'
 import { getCollection } from 'astro:content'
 import { siteConfig } from '@/site-config'
-import { Lang, ui } from '@/i18n/ui'
+import { Lang, ui } from '@/i18n/utils'
 
 export async function getStaticPaths() {
   return Object.keys(ui).map((lang) => ({

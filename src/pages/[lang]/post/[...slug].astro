@@ -7,8 +7,8 @@ import Share from '@/components/Share'
 import TableOfContents from '@/components/TableOfContents'
 import Comments from '@/components/Comments'
 import { getPosts } from '@/utils'
-import { useTranslations } from '@/i18n/utils'
-import { Lang, ui } from '@/i18n/ui'
+import { getTranslation } from '@/i18n/utils'
+import { Lang, ui } from '@/i18n/utils'
 
 export const getStaticPaths = async () => {
   const result: any[] = []
@@ -28,7 +28,7 @@ export const getStaticPaths = async () => {
 }
 
 const lang: Lang = Astro.params.lang
-const t = useTranslations(lang)
+const t = getTranslation(lang)
 const posts = await getCollection(lang)
 
 type Props = CollectionEntry<Lang>
@@ -78,7 +78,7 @@ const { Content, headings, remarkPluginFrontmatter } = await post.render()
       <!-- related posts -->
       <footer>
         <h2 class="font-bold text-lg dark:text-white mb-6">
-          {t('relatedPosts')}
+          {t.relatedPosts}
         </h2>
         <ListRelatedPosts posts={relatedPosts} />
 

@@ -1,4 +1,4 @@
-import { Lang } from '@/i18n/ui'
+import { Lang } from '@/i18n/utils'
 import { getCollection } from 'astro:content'
 import { slugifyTag } from './slugify'
 

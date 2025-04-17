@@ -1,4 +1,4 @@
-import { Lang, ui } from '@/i18n/ui'
+import { Lang, ui } from '@/i18n/utils'
 import { getPosts } from '@/utils'
 import type { APIRoute } from 'astro'
 import { generateCover } from 'src/utils/cover'

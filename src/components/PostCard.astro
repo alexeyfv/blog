@@ -2,7 +2,7 @@
 import PostTag from '@/components/PostTag'
 import { Image } from 'astro:assets'
 import FormattedDate from '@/components/FormattedDate'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { getLangFromUrl, getTranslation } from '@/i18n/utils'
 import { getCover as getCover } from 'src/utils/cover'
 
 const {
@@ -14,7 +14,7 @@ const {
 
 const lang = getLangFromUrl(Astro.url)
 const cover = getCover(lang, Astro.props)
-const t = useTranslations(lang)
+const t = getTranslation(lang)
 ---
 
 <article class="grid grid-rows-[300px_0] group">
@@ -28,7 +28,7 @@ const t = useTranslations(lang)
 
   <section class="flex gap-2 mt-3 font-semibold">
     <FormattedDate date={pubDate} />
-    <span class="text-sm"> • {readTime} {t('minutes')}</span>
+    <span class="text-sm"> • {readTime} {t.minutes}</span>
   </section>
 
   <section class="mt-8">

@@ -1,6 +1,6 @@
 ---
 import TableOfContentsHeading from '@/components/TableOfContentsHeading'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { getLangFromUrl, getTranslation } from '@/i18n/utils'
 
 interface TableOfContent {
   depth: number
@@ -12,7 +12,7 @@ interface TableOfContent {
 const { headings } = Astro.props
 
 const lang = getLangFromUrl(Astro.url)
-const t = useTranslations(lang)
+const t = getTranslation(lang)
 
 const buildToc = (headings: TableOfContent[]) => {
   let toc: TableOfContent[] = []
@@ -34,7 +34,7 @@ const toc = buildToc(headings)
 ---
 
 <nav class="max-w-xs">
-  <p class="font-bold mb-2 text-2xl">{t('index')}</p>
+  <p class="font-bold mb-2 text-2xl">{t.index}</p>
 
   <ul class="space-y-2">
     {toc.map((heading) => <TableOfContentsHeading heading={heading} />)}

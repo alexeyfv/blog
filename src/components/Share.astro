@@ -2,17 +2,17 @@
 import { siteConfig } from '@/data/site.config'
 import LinkedinIcon from '@/components/icons/Linkedin'
 import XIcon from '@/components/icons/X'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { getLangFromUrl, getTranslation } from '@/i18n/utils'
 
 const lang = getLangFromUrl(Astro.url)
-const t = useTranslations(lang)
+const t = getTranslation(lang)
 
 const message = siteConfig.shareMessage
 const URL = Astro.url.href
 ---
 
 <section class="flex flex-col gap-2">
-  <h1 class="mb-1 font-semibold text-2xl">{t('share')}</h1>
+  <h1 class="mb-1 font-semibold text-2xl">{t.share}</h1>
 
   <ul class="flex justify-start items-center gap-1">
     <li>

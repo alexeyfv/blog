@@ -2,25 +2,25 @@
 import ListPosts from '@/components/ListPosts'
 import TitlePage from '@/components/TitlePage'
 import BaseLayout from '@/layouts/BaseLayout'
-import { useTranslations } from '@/i18n/utils'
+import { getTranslation } from '@/i18n/utils'
 import { getPosts } from '@/utils'
-import { Lang, ui } from '@/i18n/ui'
+import { Lang, ui } from '@/i18n/utils'
 
 export function getStaticPaths() {
   return Object.keys(ui).map((lang) => ({ params: { lang: lang as Lang } }))
 }
 
 const lang: Lang = Astro.params.lang
-const t = useTranslations(lang)
+const t = getTranslation(lang)
 const posts = await getPosts(lang)
 ---
 
-<BaseLayout lang={lang} title={t('index.title')}>
-  <TitlePage title={t('index.title')} />
+<BaseLayout lang={lang} title={t.blog.title}>
+  <TitlePage title={t.blog.title} />
   <hr />
   <section>
     <h2 class="text-lg font-medium tracking-wide text-end">
-      {t('index.latestPosts')}
+      {t.blog.latestPosts}
     </h2>
     <ListPosts FirstBig={false} posts={posts} />
   </section>
