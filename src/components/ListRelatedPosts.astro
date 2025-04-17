@@ -1,8 +1,8 @@
 ---
 import type { CollectionEntry } from 'astro:content'
 import CarrouselPerView from '@/components/CarouselPerView/CarouselPerView'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
-import { Lang } from '@/i18n/ui'
+import { getLangFromUrl, getTranslation } from '@/i18n/utils'
+import { Lang } from '@/i18n/utils'
 
 type Props = {
   posts: CollectionEntry<Lang>[]
@@ -11,7 +11,7 @@ type Props = {
 const { posts }: Props = Astro.props
 
 const lang = getLangFromUrl(Astro.url)
-const t = useTranslations(lang)
+const t = getTranslation(lang)
 ---
 
 <section>
@@ -21,7 +21,7 @@ const t = useTranslations(lang)
         <CarrouselPerView posts={posts} />
       </section>
     ) : (
-      <p class="text-gray-500">{t('noRelatedPosts')}</p>
+      <p class="text-gray-500">{t.noRelatedPosts}</p>
     )
   }
 </section>

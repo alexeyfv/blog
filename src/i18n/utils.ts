@@ -1,4 +1,12 @@
-import { ui, defaultLang } from './ui'
+import { en, ru } from './translations'
+
+export type Lang = 'en' | 'ru'
+
+export const languages = { en: 'English', ru: 'Русский' }
+
+export const defaultLang: Lang = 'en'
+
+export const ui = { en: en, ru: ru } as const
 
 export const getLangFromUrl = (url: URL) => {
   const [, lang] = url.pathname.split('/')
@@ -6,8 +14,8 @@ export const getLangFromUrl = (url: URL) => {
   return defaultLang
 }
 
-export const useTranslations = (lang: keyof typeof ui) => {
-  return (key: keyof (typeof ui)[typeof defaultLang]) => {
-    return ui[lang][key] || ui[defaultLang][key]
-  }
+export function getTranslation(lang: Lang) {
+  if (lang === 'ru') return ru
+  // default language
+  return en
 }

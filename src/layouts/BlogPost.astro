@@ -3,11 +3,11 @@ import type { CollectionEntry } from 'astro:content'
 import FormattedDate from '@/components/FormattedDate'
 import BaseLayout from '@/layouts/BaseLayout'
 import PostTag from '@/components/PostTag'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
+import { getLangFromUrl, getTranslation } from '@/i18n/utils'
 import type { MarkdownHeading } from 'astro'
 import { Image } from 'astro:assets'
 import { getCover } from 'src/utils/cover'
-import { Lang } from '@/i18n/ui'
+import { Lang } from '@/i18n/utils'
 
 type Props = {
   id: CollectionEntry<Lang>['id']
@@ -23,7 +23,7 @@ const articleDate = pubDate.toISOString()
 
 const lang = getLangFromUrl(Astro.url)
 const cover = getCover(lang, Astro.props)
-const t = useTranslations(lang)
+const t = getTranslation(lang)
 ---
 
 <BaseLayout
@@ -38,12 +38,12 @@ const t = useTranslations(lang)
       <section class="space-2">
         <section class="flex items-center justify-center gap-x-1">
           <p class="text-center text-sm text-opacity-50">
-            {t('published')}
+            {t.published}
             <FormattedDate date={pubDate} />
           </p>
           <p class="text-center text-sm font-semibold">
             - {readTime}
-            {t('minutes')}
+            {t.minutes}
           </p>
         </section>
 

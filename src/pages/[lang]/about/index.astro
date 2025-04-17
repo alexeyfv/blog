@@ -1,100 +1,47 @@
 ---
-import { Image } from 'astro:assets'
 import BaseLayout from '@/layouts/BaseLayout'
-import Browser from '@/assets/icons/Server.svg'
-import Coding from '@/assets/icons/Coding.svg'
-import Server from '@/assets/icons/Server.svg'
-import hachiware from '../../../assets/images/pages/hachiware.jpg'
-import { getLangFromUrl, useTranslations } from '@/i18n/utils'
-import { Lang, ui } from '@/i18n/ui'
+import { getLangFromUrl, getTranslation } from '@/i18n/utils'
+import { Lang, ui } from '@/i18n/utils'
 
 export function getStaticPaths() {
   return Object.keys(ui).map((lang) => ({ params: { lang: lang as Lang } }))
 }
 
 const lang = getLangFromUrl(Astro.url)
-const t = useTranslations(lang)
-
-interface WorkingOn {
-  label: string
-  icon: any // astro component type
-  description: string
-}
-
-const workingOn: WorkingOn[] = [
-  {
-    label: 'フロントエンド',
-    icon: Browser,
-    description:
-      'フロントエンド開発は私の主な仕事であり、常に注力している分野です。ユーザーインターフェースの作成とユーザーエクスペリエンスの向上に対して非常に情熱を持っています。',
-  },
-  {
-    label: 'バックエンド',
-    icon: Server,
-    description:
-      'バックエンド開発は主要な仕事ではありませんが、NodeJSやPHPなどのJavaScriptに似たプログラミング言語を使ってフルスタックプロジェクトを構築するのが好きです。',
-  },
-  {
-    label: '自動化スクリプト',
-    icon: Coding,
-    description:
-      '私は、退屈な作業を自動化するためにPythonのスクリプトを書くことに興味があります。深層学習について学ぶわけではなく、ただ面白いことをするためです。',
-  },
-]
+const t = getTranslation(lang)
 ---
 
-<BaseLayout lang={lang} title={t('nav.about')}>
+<BaseLayout lang={lang} title={t.about.title}>
   <main class="space-y-10">
-    <section class="flex flex-wrap md:flex-nowrap items-center">
-      <section class="space-y-5">
-        <span class="font-semibold">こんにちは、私は</span>
-        <h1 class="text-3xl font-bold">なの@Gaomingzhao</h1>
-        <article class="md:w-8/12 text-slate-500">
-          <p>
-            ここはウェブ開発、スクリプト、ウェブ開発技術、人生哲学などについて多くの意見がここで発表されます。
-          </p>
-          <p>
-            すべての文書に多言語翻訳を提供しているわけではなく、内容は私の気分に応じて英語または日本語のいずれかの単一言語で書かれます。
-          </p>
-          <p>どうぞお気楽に使って～</p>
-        </article>
+    <section class="space-y-5">
+      <h1 class="text-3xl font-semibold">{t.about.aboutMe}</h1>
+      <!-- <h2 class="font-bold">{t.about.title}</h2> -->
 
-        <button
-          class="bg-grayDeep text-white active:ring-2 font-semibold py-2 px-4 rounded-xl"
-        >
-          <a href="https://github.com/gaomingzhao666">
-            Github で私のことを見る
-          </a>
-        </button>
-      </section>
+      <article class="md:w-8/12 text-slate-500 space-y-4">
+        {t.about.aboutMeParagraphs.map((text) => <p>{text}</p>)}
+      </article>
 
-      <Image
-        src={hachiware}
-        format="webp"
-        class="hidden md:block md:size-4/12 rounded-3xl hover:scale-105 transition-transform"
-        alt="可愛ハチワレの写真"
-      />
+      <!-- <a
+        class="inline-block bg-grayDeep text-white active:ring-2 font-semibold py-2 px-4 rounded-xl"
+        href="https://github.com/alexeyfv"
+      >
+        GitHub
+      </a> -->
     </section>
+    <section class="space-y-5">
+      <h1 class="text-3xl font-semibold">{t.about.aboutBlog}</h1>
+      <!-- <h2 class="font-bold">{t.about.title}</h2> -->
 
-    <section>
-      <h1 class="text-3xl font-bold mb-10">やていること</h1>
+      <article class="md:w-8/12 text-slate-500 space-y-4">
+        {t.about.aboutBlogParagraphs.map((text) => <p>{text}</p>)}
+      </article>
 
-      <section class="flex items-center flex-wrap md:flex-nowrap gap-4">
-        {
-          workingOn.map((work) => (
-            <section class="size-full md:size-1/3 p-10 flex flex-col items-center gap-y-4 justify-center bg-grayLight dark:bg-grayDeep rounded-3xl">
-              <Image
-                src={work.icon}
-                format="webp"
-                alt={`img of ${work.label}`}
-              />
-
-              <h2 class="text-2xl font-semibold">{work.label}</h2>
-              <p class="text-slate-500 text-center">{work.description}</p>
-            </section>
-          ))
-        }
-      </section>
+      <!-- <a
+        class="inline-block bg-grayDeep text-white active:ring-2 font-semibold py-2 px-4 rounded-xl"
+        href="https://github.com/alexeyfv"
+      >
+        GitHub
+      </a> -->
     </section>
   </main>
 </BaseLayout>

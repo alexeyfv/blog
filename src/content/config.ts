@@ -1,4 +1,4 @@
-import { Lang } from '@/i18n/ui'
+import { Lang } from '@/i18n/utils'
 import { glob } from 'astro/loaders'
 import { defineCollection, z } from 'astro:content'
 

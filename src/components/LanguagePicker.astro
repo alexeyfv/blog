@@ -1,5 +1,5 @@
 ---
-import { languages } from '@/i18n/ui'
+import { languages } from '@/i18n/utils'
 import HeaderLink from '@/components/HeaderLink'
 import Language from '@/components/icons/Language'
 
@@ -24,7 +24,7 @@ const pathname = Astro.url.pathname
     {
       Object.entries(languages).map(([lang, label]) => (
         <HeaderLink
-          href={'/' + lang + pathname.slice(pathname.indexOf('/', 1))}
+          href={`/${lang}${pathname.slice(3)}`}
           class={
             'option cursor-pointer p-2 block rounded-lg hover:bg-gray-200 dark:hover:bg-grayDeep dark:text-white'
           }
