@@ -1,63 +1,54 @@
 ---
 import { getLangFromUrl } from '@/i18n/utils'
-
 const lang = getLangFromUrl(Astro.url)
 ---
 
 <section class="mx-auto mt-10">
-  <script
-    is:inline
-    id="giscusConfig"
-    src="https://giscus.app/client.js"
-    data-repo="gaomingzhao666/nano-blog"
-    data-repo-id="R_kgDONBEXlA"
-    data-category="General"
-    data-category-id="DIC_kwDONBEXlM4ClsBN"
-    data-mapping="og:title"
-    data-strict="0"
-    data-reactions-enabled="1"
-    data-emit-metadata="0"
-    data-input-position="bottom"
-    data-theme="preferred_color_scheme"
-    data-lang={lang}
-    data-loading="lazy"
-    crossorigin="anonymous"
-    async></script>
+  <div id="giscusContainer"></div>
 </section>
 
 <script is:inline>
-  // update giscus theme by sending message
-  const updateGiscusTheme = () => {
+  function loadGiscus(theme) {
+    const script = document.createElement('script')
+    script.id = 'giscusConfig'
+    script.src = 'https://giscus.app/client.js'
+    script.setAttribute('data-repo', 'alexeyfv/blog')
+    script.setAttribute('data-repo-id', 'R_kgDOGwr_nA')
+    script.setAttribute('data-category', 'General')
+    script.setAttribute('data-category-id', 'DIC_kwDOGwr_nM4CpL7x')
+    script.setAttribute('data-mapping', 'og:title')
+    script.setAttribute('data-strict', '0')
+    script.setAttribute('data-reactions-enabled', '1')
+    script.setAttribute('data-emit-metadata', '0')
+    script.setAttribute('data-input-position', 'top')
+    script.setAttribute('data-theme', theme)
+    script.setAttribute('data-lang', document.documentElement.lang)
+    script.setAttribute('data-loading', 'lazy')
+    script.setAttribute('crossorigin', 'anonymous')
+    script.async = true
+
+    const container = document.getElementById('giscusContainer')
+    container.innerHTML = ''
+    container.appendChild(script)
+  }
+
+  // Get initial theme
+  const initialTheme = document.documentElement.classList.contains('dark')
+    ? 'dark'
+    : 'light'
+  loadGiscus(initialTheme)
+
+  // update giscus theme when html class changes
+  const observer = new MutationObserver(() => {
     const theme = document.documentElement.classList.contains('dark')
       ? 'dark'
       : 'light'
+    loadGiscus(theme)
+  })
 
-    const iframe = document.querySelector('iframe.giscus-frame')
-
-    if (iframe)
-      iframe.contentWindow.postMessage(
-        { giscus: { setConfig: { theme } } },
-        'https://giscus.app',
-      )
-  }
-
-  // update giscus theme when html class changes
-  const observer = new MutationObserver(updateGiscusTheme)
   const html = document.querySelector('html')
   observer.observe(html, {
     attributes: true,
     attributeFilter: ['class'],
-  })
-
-  // update giscus theme on page load
-  window.addEventListener('DOMContentLoaded', () => {
-    const giscusConfig = document.querySelector('#giscusConfig')
-
-    if (giscusConfig) {
-      const theme = document.documentElement.classList.contains('dark')
-        ? 'dark'
-        : 'light'
-      giscusConfig.setAttribute('data-theme', theme)
-    }
   })
 </script>
