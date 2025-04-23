@@ -1,0 +1,81 @@
+---
+title: 'Collision Counting in FrozenDictionary'
+description: 'Analyzing the hash collision counting algorithm in FrozenDictionary and its optimization using bitwise operations'
+pubDate: 'Sep 09 2024'
+tags: ['FrozenDictionary', 'C#', 'Benchmarks', 'Algorithms']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+
+This is the second short post about implementation details of [FrozenDictionary](2024-08-22-frozen-dictionary) that didn’t make it into the main article. Today we’ll look at the [hash collision counting algorithm](https://github.com/dotnet/runtime/blob/1c4755daf8f25f067a360c1dcae0d19df989e4e7/src/libraries/System.Collections.Immutable/src/System/Collections/Frozen/FrozenHashTable.cs#L277).
+
+In `FrozenDictionary`, all key hash codes are known in advance. This allows choosing a number of buckets such that the collision rate does not exceed a certain threshold — currently 5%. Here's how it works:
+
+1. A bucket count `n` is chosen from a predefined range. This range was [tuned heuristically by the .NET team](https://github.com/dotnet/runtime/blob/1c4755daf8f25f067a360c1dcae0d19df989e4e7/src/libraries/System.Collections.Immutable/src/System/Collections/Frozen/FrozenHashTable.cs#L177).
+2. For each hash code, the remainder of division by `n` is calculated, and duplicates are counted.
+3. If there are too many collisions, `n` is increased.
+
+Here’s a simple example using a `bool[]` array:
+
+```csharp
+int[] hashCodes = [/*some hash codes*/];
+var seenBuckets = new bool[bucketsNumber];
+var collisionsCount = 0;
+
+foreach (var hash in hashCodes) {
+    var bucketIndex = hash % bucketsCount;
+    if (seenBuckets[bucketIndex]) {
+        collisionsCount++;
+    } else {
+        seenBuckets[bucketIndex] = true;
+    }
+}
+```
+
+But in .NET, they do it differently using an `int[]` array and bitwise operations:
+
+```csharp
+int[] hashCodes = [/*some hash codes*/];
+var seenBuckets = new int[bucketsNumber];
+var collisionsCount = 0;
+
+foreach (var hash in hashCodes) {
+    var bucketIndex = hash % bucketsCount;
+    var i = bucketIndex / 32;
+    var bit = 1 << bucketIndex;
+    if ((seenBuckets[i] & bit) != 0) {
+        collisionsCount++;
+    } else {
+        seenBuckets[i] |= bit;
+    }
+}
+```
+
+This approach greatly reduces the array size (by 20%–80%), and the time to create it drops by an average of 70%. However, read and write operations become slower — reads are about 50% slower, and writes up to 198% slower on average (see graphs below).
+
+<Image src={image01} alt="collision count memory benchmark" />
+<strong style="text-align: center;">
+  Array creation time: bool[] vs bit-shifted int[]
+</strong>
+
+<Image src={image02} alt="array creation time" />
+<strong style="text-align: center;">
+  Memory usage comparison: bool[] vs bit-shifted int[]
+</strong>
+
+<Image src={image03} alt="read benchmark" />
+<strong style="text-align: center;">
+  Read performance: bool[] vs bit-shifted int[]
+</strong>
+
+<Image src={image04} alt="write benchmark" />
+<strong style="text-align: center;">
+  Write performance: bool[] vs bit-shifted int[]
+</strong>
+
+So in the end, using integers and bitwise shifts is a tradeoff. The .NET team seems to have decided that reducing memory usage is more important than having a faster algorithm.

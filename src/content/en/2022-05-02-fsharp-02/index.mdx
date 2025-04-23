@@ -1,0 +1,184 @@
+---
+title: 'Functional Programming in F# (Part 2)'
+description: 'Data types, functions, and currying in F#'
+pubDate: 'May 08 2022'
+tags: ['.NET', 'F#', 'C#', 'Functional Programming']
+lang: 'en'
+---
+
+In the [previous article](2022-05-01-fsharp-01), we created a module to calculate Fibonacci numbers, but we didn’t really explore what F# is or how it's different from C#. In this post, we'll look at the basics of functional programming, some core F# language features, and what the compiled code looks like.
+
+## Simple Values
+
+Let’s start with the simplest thing — defining [basic values](https://github.com/alexeyfv/FSharpOverview).
+
+```fsharp
+let hello = "Hello, world!"
+let mutable year = 2022
+```
+
+Here, `hello` is a read-only static property — a function that returns the same value every time. This is F#’s default behavior and how it ensures immutability. If we want to allow changes, we must use the `mutable` keyword. Then the value becomes a property with both getter and setter.
+
+```csharp
+public static string hello => "Hello, world!";
+public static int year { get; set; }
+```
+
+> C# code equivalent to F# is often longer because of how decompilers work. I’ve simplified the output here. For full detail, you can use tools like [dotPeek](https://www.jetbrains.com/ru-ru/decompiler/) or [SharpLab](https://sharplab.io/).
+
+## Function Values
+
+Now let’s turn `hello` into a function that takes an argument and returns a greeting. We'll do this in five different ways:
+
+```fsharp
+let hello1 x = $"Hello " + x + "!"
+let hello2 x = $"Hello {x}!"
+let hello3 (x: string) = $"Hello {x}!" // explicit input type
+let hello4 (x: int) = $"Hello {x}!" // another input type
+let hello5 x : string = $"Hello {x}!" // explicit output type
+```
+
+All these functions are declared using `let`, just like values. That’s one key idea in functional languages — functions are [first-class values](https://en.wikipedia.org/wiki/First-class_function). They can be passed around like any other value.
+
+Here's what some of them look like after compilation:
+
+```csharp
+public static string hello1(string x) => string.Concat("Hello ", x, "!");
+
+// hello2 and hello5 are the same
+public static string hello2<a>(a x)
+{
+    object[] array = new object[1];
+    array[0] = x;
+    return PrintfModule.PrintFormatToStringThen(
+        new PrintfFormat<string, Unit, string, string, a>(
+            "Hello %P()!", array, null));
+}
+```
+
+Notes:
+
+- `hello2` becomes a generic method because the type wasn’t explicitly given.
+- `hello3` and `hello4` are not generic because their input types are defined.
+- String interpolation in F# compiles to more complex C# code than a simple `string.Format`.
+
+Compare this with a basic C# function:
+
+```csharp
+public string hello3(int x) => string.Format("Hello, {0}!", x);
+```
+
+## Types and Currying
+
+Here are two functions that do the same thing:
+
+```fsharp
+let sum1 x y = x + y
+let sum2 x = fun y -> x + y
+```
+
+In C#:
+
+```csharp
+// sum1(1, 2) => 3
+public int sum1(int x, int y) => x + y;
+
+// sum2(1)(2) => 3
+public Func<int, int> sum2(int x) => (y) => x + y;
+```
+
+In F#, these two versions are equivalent. In functional programming, functions that take multiple arguments are transformed into a series of single-argument functions — this is called [currying](https://en.wikipedia.org/wiki/Currying).
+
+This means that:
+
+```fsharp
+type operation = int -> int -> int
+```
+
+…defines a function that takes an `int`, returns another function that also takes an `int`, and finally returns an `int`.
+
+## Functions as Parameters
+
+As mentioned earlier, functions in F# can be passed around like values. For example:
+
+```fsharp
+let operationAsInput (op: operation) x y = op x y
+let operationAsOutput : operation = fun x -> fun y -> x * y
+
+let result = operationAsInput operationAsOutput 10 5 // result = 50
+```
+
+What’s happening:
+
+1. `operationAsInput` takes a function and two values, then calls that function.
+2. `operationAsOutput` returns a function that multiplies two numbers.
+3. We call `operationAsInput` with `operationAsOutput` and the values 10 and 5.
+
+This technique allows for dependency injection, function composition, and many design patterns.
+
+Here's how this looks after decompilation to C#:
+
+```csharp
+public static int operationAsInput(
+    FSharpFunc<int, FSharpFunc<int, int>> op, int x, int y) =>
+    FSharpFunc<int, int>.InvokeFast(op, x, y);
+
+public static int operationAsOutput(int x, int y) => x * y;
+```
+
+## Operators as Functions
+
+In .NET, operators are just methods. The `+` operator for `int` becomes something like:
+
+```csharp
+.method public static int32 op_Addition (int32 a, int32 b)
+```
+
+In functional style, this operator is a function: `int -> int -> int`. So all of these are equivalent:
+
+```fsharp
+let sumInfix x y = x + y
+let sumPrefix x y = (+) x y
+
+let incrementInfix x = x + 1
+let incrementPrefix = (+) 1
+```
+
+C# decompilation shows that most of these compile normally:
+
+```csharp
+public static int sumInfix(int x, int y) => x + y;
+public static int incrementInfix(int x) => x + 1;
+```
+
+But `incrementPrefix` is more complex — it becomes a static field holding a function instance:
+
+```csharp
+public static class Functions
+{
+    internal sealed class incrementPrefix@8 : FSharpFunc<int, int>
+    {
+        internal static readonly incrementPrefix@8 @_instance = new incrementPrefix@8();
+        public override int Invoke(int y) => 1 + y;
+    }
+
+    public static FSharpFunc<int, int> incrementPrefix => $_.incrementPrefix@8;
+}
+
+internal static class $_
+{
+    internal static readonly FSharpFunc<int, int> incrementPrefix@8;
+    static $_()
+    {
+        incrementPrefix@8 = Functions.incrementPrefix@8.@_instance;
+    }
+}
+```
+
+## Summary
+
+In this article, we explored key principles of functional programming:
+
+- Functions are first-class values — they can be used as arguments or return values.
+- This enables clean composition and design flexibility.
+- In functional languages, types describe input/output behavior of functions, not just classes or structs.

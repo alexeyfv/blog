@@ -141,7 +141,7 @@ export default defineConfig({
       status: 308,
     },
     '/2024/10/09/frozen-dictionary.html': {
-      destination: '/en/post/2024-10-09-frozen-dictionary',
+      destination: '/en/post/2024-08-22-frozen-dictionary',
       status: 308,
     },
     '/2024/12/09/object-pool.html': {

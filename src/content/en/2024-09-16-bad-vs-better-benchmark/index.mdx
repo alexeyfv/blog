@@ -1,0 +1,73 @@
+---
+title: 'How to Avoid Mistakes in Benchmarks'
+description: 'Common mistakes in writing benchmarks in C# and how to fix them'
+pubDate: 'Sep 16 2024'
+tags: ['C#', 'Performance', 'Benchmarks']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+
+I once saw a [post on LinkedIn](https://www.linkedin.com/posts/sa-es-ir_csharp-dotnet-forloops-activity-7188563012553773056-K0z0) with a clickbait title: ".NET 9 is slower than .NET 8". A strong claim. Of course, I had to verify it — I'm a big fan of benchmarking myself. Let’s skip straight to what’s wrong with [the benchmark](https://github.com/sa-es-ir/ForLoopComparison).
+
+## ❌ Methods don't return a result
+
+Modern compilers are smart. They can detect when code doesn’t affect the program and just remove it. This optimization is called [dead-code elimination](https://en.wikipedia.org/wiki/Dead-code_elimination) (DCE). In this case, the `DoSomeThing` method essentially does nothing, so the compiler removes it in the `For` method. But in `ForEach_Linq`, it can’t do that because a delegate is created. So we end up comparing two methods with different behavior (see Figure 2).
+
+✅ Always return something from your methods
+
+The fixed version might look like this. We don’t care what the `sum` variable holds. The key is that using it prevents DCE and doesn’t significantly affect benchmark results.
+
+<Image src={image01} alt="dead-code example" />
+<strong style="text-align: center;">
+  Example of dead-code elimination in benchmark methods
+</strong>
+
+## ❌ Blindly comparing foreach
+
+As we know, `foreach` is designed for collections that return an enumerator. But even if the collection supports an enumerator, that doesn't mean the compiler will use it. See this [example](https://sharplab.io/#gist:c3a7b45510a9bfe1d34f11677f0af5b5) in Figure 3:
+
+- `foreach` over an array turns into a `while` loop with an indexer.
+- `foreach` over a `List` becomes a `while` loop with `List<int>.Enumerator`.
+- `foreach` over `ICollection<int>` becomes a `while` loop with `IEnumerator<int>`.
+
+✅ Compare foreach performance across different types
+
+Since `foreach` compiles into different code depending on the collection type, performance can vary a lot. That’s why it’s important to compare each case separately. This behavior might change in the future, though.
+
+<Image src={image02} alt="foreach IL comparison" />
+<strong style="text-align: center;">
+  Compiler behavior when foreach is used with different collection types
+</strong>
+
+## ❌ Passing methods as parameters
+
+Passing a method as a parameter creates a delegate. In our example — an `Action<int>` (see Figure 4). A delegate is a reference type, and creating one means memory allocation, which affects benchmark results.
+
+✅ When passing a method, pre-create the delegate
+
+It’s better to create the delegate in the `GlobalSetup` method, which runs before the actual benchmarks.
+
+<Image src={image03} alt="delegate allocation" />
+<strong style="text-align: center;">
+  Delegate allocation when passing methods as parameters
+</strong>
+
+## Conclusion
+
+Now let’s look at the results of the [corrected benchmark](https://github.com/alexeyfv/for-benchmark). "Bad" refers to the original benchmark, and "Better" is after fixes.
+
+<Image src={image04} alt="benchmark results" />
+<strong style="text-align: center;">
+  Comparison of results before and after benchmark fixes
+</strong>
+
+In the Bad benchmark (run on my laptop), the `ForEach_LinqParallel` method was actually a bit faster on .NET 9 than .NET 8. The difference mentioned by the author was within the margin of error.
+
+In the Better version, `ForEach_LinqParallel` was 90 microseconds slower on .NET 9 than on .NET 8. I would still consider that a negligible difference and wouldn’t make a big deal out of it.
+
+Overall, results across all three versions of .NET seem more or less the same. So, I wouldn't go so far as to say that ".NET 9 is slower than .NET 8."
