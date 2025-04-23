@@ -1,0 +1,194 @@
+---
+title: 'Speeding Up Dictionary with Structs'
+description: 'Optimizing Dictionary performance in C# using structs and CollectionsMarshal'
+pubDate: 'Apr 12 2024'
+cover: 'cover.png'
+tags: ['C#', 'Dictionary', 'Performance', 'Benchmarks']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+import image05 from './image05.png'
+import image06 from './image06.png'
+
+If you're a C# developer, you're probably familiar with the `Dictionary` class. Most likely, you've used it with classes as values. But what if I told you that structs can be used instead — and you can even avoid performance issues from copying? Yes, there’s a way to do that, and it's fast.
+
+## Disclaimer
+
+The information here only applies in specific situations. Benchmark results may vary depending on hardware, compiler version, or runtime behavior. Always test your code yourself — don’t rely only on articles like this one.
+
+## Use Case
+
+Let’s say you have a data array `data`. Your task is to:
+
+1. Convert `data` into a dictionary.
+2. Find a value by key and modify it.
+3. Repeat step 2 multiple times.
+
+Here's a simple version of that:
+
+```cs
+var dict = new Dictionary<int, SomeClass>(Length);
+
+foreach (var (i, obj) in data) {
+    dict.Add(i, obj);
+}
+
+for (int i = 0; i < Length; i++) {
+    dict[i].DoWork(i);
+}
+```
+
+The code works as expected. Let’s now replace `SomeClass` with a `SomeStruct` and see how the performance compares:
+
+```cs
+var dict = new Dictionary<int, SomeStruct>(Length);
+
+foreach (var (i, obj) in data) {
+    dict.Add(i, obj);
+}
+
+for (int i = 0; i < Length; i++) {
+    var obj = dict[i];
+    obj.DoWork(i);
+    dict[i] = obj;
+}
+```
+
+## Benchmark
+
+The test was run using an array of 100,000 elements. Struct and class sizes varied from 4 to 128 bytes. I used [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) for performance testing. The code and results are available on [GitHub](https://github.com/alexeyfv/speed-up-the-dictionary).
+
+<Image src={image01} alt="Benchmark result" />
+<strong style="text-align: center;">
+  Average execution time by struct size
+</strong>
+
+The results show that performance drops when struct size exceeds 20 bytes. Structs are copied multiple times, and dictionary lookups happen twice. Let’s break this down to see how we can improve it.
+
+### Dictionary Initialization
+
+The results are expected: initialization time grows linearly with struct size.
+
+<Image src={image02} alt="Init time by size" />
+<strong style="text-align: center;">
+  Avg. dictionary init time by struct size
+</strong>
+
+This happens because the [entries array](https://github.com/dotnet/runtime/blob/552b5e9b3249e61f87ac5cc73976c55b104971de/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/Dictionary.cs#L27) stores struct values directly — not references. So, larger structs require more memory.
+
+Technically, class-based versions also consume memory — but it happens earlier, during `data` array creation. If we include array creation in the measurements, classes may perform worse. But that's beyond this article.
+
+### Dictionary Fill
+
+Again, results are as expected: fill time increases with struct size. Up to 20 bytes, the difference is small.
+
+<Image src={image03} alt="Fill time by size" />
+<strong style="text-align: center;">
+  Avg. dictionary fill time by struct size
+</strong>
+
+### Lookup and Modify
+
+For the third time — structs perform worse.
+
+<Image src={image04} alt="Lookup + update" />
+<strong style="text-align: center;">
+  Avg. lookup + update time by struct size
+</strong>
+
+This is because structs are copied twice during each access:
+
+```cs
+SomeStruct s = dict[i]; // 1st lookup + copy
+s.DoWork(i);
+dict[i] = s;            // 2nd lookup + copy
+```
+
+This is where `CollectionsMarshal` comes in handy.
+
+## What is CollectionsMarshal?
+
+[`CollectionsMarshal`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.collectionsmarshal) is a helper class with four methods:
+
+1. `AsSpan<T>` – gets a span from a `List<T>`
+2. `GetValueRefOrAddDefault<TKey, TValue>` – gets a reference by key or adds a default value
+3. `GetValueRefOrNullRef<TKey, TValue>` – gets a reference or returns a null-like ref
+4. `SetCount<T>` – sets the `Count` of a list
+
+We only care about the second and third methods. They allow us to get a **reference** to a value in the dictionary and avoid copying:
+
+```cs
+ref SomeStruct s = ref CollectionsMarshal.GetValueRefOrNullRef(dict, i);
+s.DoWork(i);
+```
+
+## More Benchmarks
+
+Let’s benchmark this ref-based version and compare:
+
+<Image src={image05} alt="Marshal vs classic" />
+<strong style="text-align: center;">
+  Avg. lookup + update time by struct size
+</strong>
+
+It’s even faster than using classes! But this gain only matters if you have lots of lookup operations.
+
+<Image src={image06} alt="Time vs lookup count" />
+<strong style="text-align: center;">
+  Benchmark breakdown by number of lookups
+</strong>
+
+## CollectionsMarshal Gotchas
+
+### Checking for default and null
+
+As mentioned earlier, `GetValueRefOrAddDefault` returns a reference to a [default](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/default#default-literal) value. You can check if it existed using the `out` flag:
+
+```cs
+ref var element = ref CollectionsMarshal.GetValueRefOrAddDefault(
+    dict, key, out bool exists);
+
+if (exists) {
+    // safe to modify
+}
+```
+
+With `GetValueRefOrNullRef`, there's no flag. Comparing to `null` throws a `NullReferenceException`. Instead, use [`Unsafe.IsNullRef`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.compilerservices.unsafe.isnullref?view=net-8.0):
+
+```cs
+ref var element = ref CollectionsMarshal.GetValueRefOrNullRef(dict, key);
+if (Unsafe.IsNullRef(ref element)) {
+    // not found
+}
+```
+
+### Don't modify the dictionary after getting a ref
+
+The docs say clearly: **don’t modify the dictionary** after taking a reference. Here’s why:
+
+```cs
+ref var element = ref CollectionsMarshal.GetValueRefOrNullRef(dict, key);
+
+Console.WriteLine($"ref element: {element.Item1}"); // 30
+Console.WriteLine($"dict[key]: {dict[key].Item1}"); // 30
+
+element.Item1 = 50;
+
+Console.WriteLine($"ref element: {element.Item1}"); // 50
+Console.WriteLine($"dict[key]: {dict[key].Item1}"); // 50
+
+dict.Add(100, new (100));
+element.Item1 = 60;
+
+Console.WriteLine($"ref element: {element.Item1}"); // 60
+Console.WriteLine($"dict[key]: {dict[key].Item1}"); // 50 ← reference lost
+```
+
+## Conclusion
+
+Structs are an underrated feature in C#. Under the right conditions, they can boost performance. When using structs as dictionary values, consider using `CollectionsMarshal`. The methods `GetValueRefOrAddDefault` and `GetValueRefOrNullRef` return references, allowing you to skip extra lookups and copies. This can significantly improve performance when there are many lookup operations.

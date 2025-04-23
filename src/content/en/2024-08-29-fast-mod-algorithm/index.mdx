@@ -1,0 +1,51 @@
+---
+title: 'Fast Modulo Calculation in FrozenDictionary'
+description: 'An analysis of the optimized modulo calculation algorithm used in FrozenDictionary, compared to the classic approach'
+pubDate: 'Aug 29 2024'
+tags: ['C#', 'FrozenDictionary', 'Performance', 'Benchmarks', 'Algorithms']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.jpg'
+import image02 from './image02.jpg'
+
+While working on the [FrozenDictionary article](2024-08-22-frozen-dictionary), I found several interesting implementation details worth sharing. Let’s start simple — with a faster way to compute a modulo.
+
+As you know, the bucket index in a dictionary is calculated as `hashCode % bucketsCount`. In C# and many other languages, this is done using the `%` operator:
+
+```cs
+var bucketNum = hashCode % bucketsCount;
+```
+
+In general, division is [slower](https://stackoverflow.com/questions/15745819/why-is-division-more-expensive-than-multiplication) than multiplication or bitwise operations. So here’s a faster alternative:
+
+```cs
+uint FastModLemire(uint hashcode, ulong multiplier, uint bucketsNum) =>
+    (uint)((((UInt128)(hashcode * multiplier)) * bucketsNum) >> 64);
+```
+
+The idea is: if the number of buckets is known ahead of time, you can precompute the `multiplier` using the formula `ulong.MaxValue / bucketsNum + 1`. This allows replacing division with a combination of multiplications and bit shifts.
+
+If you're curious about the math behind it, check out [Daniel Lemire’s paper](https://r-libre.teluq.ca/1633/1/Faster_Remainder_of_the_Division_by_a_Constant.pdf), which describes this method. For a general understanding, reading Chapters 1 and 3.2 is enough.
+
+Both `FrozenDictionary` and `Dictionary` use a different [formula](https://github.com/dotnet/runtime/blob/2aca5e53dba1a620ae5b57972c355eebed0cdb08/src/libraries/System.Private.CoreLib/src/System/Collections/HashHelpers.cs#L99), which — according to [Microsoft developers](https://github.com/dotnet/runtime/pull/406) — is a bit faster. Benchmark results confirm this:
+
+```cs
+uint FastModDotNet(uint hashcode, ulong multiplier, uint bucketsNum) =>
+    (uint)(((((multiplier * hashcode) >> 32) + 1) * bucketsNum) >> 32);
+```
+
+<Image src={image02} alt="content" />
+<strong style="text-align: center;">
+  Benchmark results
+</strong>
+
+Additionally, the JIT compiler can optimize classic division and replace it with a combination of multiplications and shifts — if `bucketsCount` is known at compile time. In such cases, the generated assembly for `DefaultModConst` will be identical to `FastModDotNet`.
+
+<Image src={image01} alt="content" />
+<strong style="text-align: center;">
+  Assembly comparison for different modulo strategies
+</strong>
+
+You can find the benchmark code and results on [GitHub](https://github.com/alexeyfv/fastmod).

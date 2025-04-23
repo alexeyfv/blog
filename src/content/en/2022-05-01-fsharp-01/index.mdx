@@ -1,0 +1,171 @@
+---
+title: 'Functional Programming in F# (Part 1)'
+description: 'An example of how to implement the Fibonacci sequence in F# and C#'
+pubDate: 'May 01 2022'
+tags: ['.NET', 'F#', 'C#', 'Functional Programming']
+lang: 'en'
+---
+
+Recently I read a book [^1] called [Unit Testing Principles, Practices, and Patterns](https://www.manning.com/books/unit-testing) by Vladimir Khorikov. It’s a great and solid book. I’d say it’s as useful for .NET backend developers as _CLR via C#_, _Dependency Injection in .NET_, or _Patterns of Enterprise Application Architecture_.
+
+Besides testing, the book briefly touches on functional architecture and how it makes code easier to test. I had never worked with functional programming before, but after reading it, I wanted to try. Since I’m a C# developer, the easiest way was to explore Microsoft’s own F# language. In this post, we’ll implement the same algorithm in both C# and F# in a functional style and compare them.
+
+## Object-Oriented Programming
+
+Let’s say we need to compute the first `n` Fibonacci numbers and print them to the console. Here's [one way to do that in C#](https://github.com/alexeyfv/FunctionalProgramming):
+
+```csharp
+public class FibonacciWriter
+{
+    public void Write(uint n)
+    {
+        uint prev = 0;
+        uint next = 1;
+
+        Console.WriteLine(prev);
+
+        uint i = 1;
+
+        while (i++ < n)
+        {
+            var next2 = prev + next;
+            prev = next;
+            next = next2;
+
+            Console.WriteLine(prev);
+        }
+    }
+}
+```
+
+What’s the problem with this approach? For example, if we want to change the output from the console to a file, we can't — this breaks the Open/Closed Principle. One solution is to introduce an abstract method `Output`:
+
+```csharp
+public abstract class FibonacciWriter
+{
+    public void Write(uint n)
+    {
+        uint prev = 0;
+        uint next = 1;
+
+        Output(prev);
+
+        uint i = 1;
+
+        while (i++ < n)
+        {
+            var next2 = prev + next;
+            prev = next;
+            next = next2;
+
+            Output(prev);
+        }
+    }
+
+    protected abstract void Output(uint i);
+}
+
+public class FibonacciConsoleWriter : FibonacciWriter
+{
+    protected override void Output(uint i) =>
+        Console.Write($"{i} ");
+}
+```
+
+This implementation is common and mostly fine, but it breaks the Single Responsibility Principle. It’s also hard to unit-test because `Write` returns nothing — we’d have to override `Output` to verify results. Clearly, we need to separate logic from output. Functional programming helps with that.
+
+## Functional Programming
+
+Functional programming is based on **pure functions**. According to [Wikipedia](https://en.wikipedia.org/wiki/Pure_function), a pure function:
+
+1. Returns the same output for the same input
+2. Has no side effects (like modifying state or writing to files)
+
+So, is `Write` a pure function? Definitely not. It has side effects (writing to the console) and returns nothing.
+
+Let’s rewrite the Fibonacci class in a functional style:
+
+```csharp
+public class Fibonacci
+{
+    public IEnumerable<uint> Get(uint n) => Next(0, 1).Take(10);
+
+    private IEnumerable<uint> Next(uint previous, uint current)
+    {
+        yield return previous;
+
+        foreach (var item in Next(current, previous + current))
+        {
+            yield return item;
+        }
+    }
+}
+```
+
+### Key improvements:
+
+- The `Get` method returns a collection (`IEnumerable<uint>`), which is easier to test.
+- The data is immutable.
+- There are no side effects.
+- Logic and output are separate and can evolve independently.
+
+So yes, we can write functional-style code in C#. But why use F#?
+
+### A few reasons:
+
+- In F#, data is immutable by default. You can't just change values like in OOP languages.
+- F# syntax is designed for functional programming. It's clean and compact.
+
+Here’s the same logic written in F#:
+
+```fsharp
+module Fibonacci =
+
+    let next (previous, current) =
+        Some(previous, (current, previous + current))
+
+    let get n = Seq.unfold (next) (0, 1) |> Seq.take n
+```
+
+This version is much shorter. What's different:
+
+- No curly braces. Blocks are separated by indentation (like Python).
+- `Seq.unfold` is similar to `yield` in C#. It generates sequences.
+- The `|>` operator (pipe) is used to chain function calls.
+- You don’t have to write types — F# infers them.
+
+## C# + F# Together
+
+The beauty of .NET is that C# can use code written in F#. So you can write logic in F# and call it from your C# app:
+
+```csharp
+Console.Write("F# Fibonacci: ");
+foreach (var item in FSharp.Fibonacci.get(10))
+{
+    Console.Write($"{item} ");
+}
+Console.WriteLine();
+```
+
+When compiled, the `Fibonacci` module from F# becomes a static class in C#:
+
+```csharp
+public static class Fibonacci
+{
+    public static FSharpOption<Tuple<int, Tuple<int, int>>> next(int previous, int current)
+    {
+        // next implementation
+    }
+
+    public static IEnumerable<int> get(int n)
+    {
+        // get implementation
+    }
+}
+```
+
+This lets you separate concerns: you can write business logic in F# and everything else (like services, data access) in C#.
+
+## Summary
+
+Functional programming helps build clean architecture that follows SOLID principles. It makes code easier to test and maintain. F# is great for this style of programming, and because it works well with C#, you don’t have to choose just one language.

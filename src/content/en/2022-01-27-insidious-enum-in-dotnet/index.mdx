@@ -1,0 +1,332 @@
+---
+title: 'Tricky enum in .NET'
+description: 'Limitations and issues with enums in .NET, and how to solve them using the enum class pattern'
+pubDate: 'Jan 31 2022'
+tags: ['.NET', 'C#', 'WCF']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import projectTree from './project-tree.png'
+import firstResponse from './first-response.png'
+import secondResponse from './second-response.png'
+import thirdResponse from './third-response.png'
+
+Enums are a simple data type that seems easy to use. But this simplicity can be tricky. Why? Because `enum` is a `ValueType`, and value types in C# can't be inherited. Using types that break the Open/Closed principle can lead to problems later in your project.
+
+Let’s say you’re building a client-server application. The client should send sales data to the server. The request should contain the product price and the currency it was sold in. You might define that like this:
+
+```cs
+public enum CurrenciesEnum
+{
+    EUR,
+    USD
+}
+```
+
+And the request class:
+
+```cs
+public class SaleDetails
+{
+    public double Price { get; set; }
+
+    public CurrenciesEnum Currency { get; set; }
+}
+```
+
+Simple and elegant, right? But what happens when you need to add another currency, like GBP? You must change the enum:
+
+```cs
+public enum CurrenciesEnum
+{
+    EUR,
+    USD,
+    GBP
+}
+```
+
+Not a big deal — unless that enum is in a shared base project used by different customers. In that case, changing it can cause [shotgun surgery](https://en.wikipedia.org/wiki/Shotgun_surgery). Even worse if that enum is part of a WCF contract. I ran into this on a real project — that’s what motivated this post.
+
+## The problem
+
+I made a simplified version of that problem. You can find the [code on GitHub](https://github.com/alexeyfv/EnumerationDemo).
+
+Here’s the enum and class, updated with WCF attributes:
+
+```cs
+[DataContract]
+public enum CurrenciesEnum
+{
+    [EnumMember]
+    EUR,
+    [EnumMember]
+    USD
+}
+```
+
+```cs
+[DataContract]
+public class SaleDetails
+{
+    [DataMember]
+    public double Price { get; set; }
+
+    [DataMember]
+    public virtual CurrenciesEnum Currency { get; set; }
+}
+```
+
+These are located in the `Shared` project. Imagine we can't change this project directly because it's reused in multiple apps. So we try to customize via inheritance.
+
+<Image src={projectTree} alt="project-tree" />
+
+The `Server` project is a WCF service. It receives a request, converts it to XML, and sends the result back to the client.
+
+```cs
+public class Request : IRequest
+{
+    public void SendRequest(SaleDetails saleDetails)
+    {
+        var response = OperationContext.Current.GetCallbackChannel<IResponse>();
+
+        var responseString =
+            $"<SaleDetails>\n" +
+            $"\t<Price>{saleDetails.Price:N2}</Price>\n" +
+            $"\t<Currency>{saleDetails.Currency}</Currency>\n" +
+            $"</SaleDetails>";
+
+        response.SendResponse(responseString);
+    }
+}
+```
+
+The `Client` project is a console app. It handles the callback and prints the response:
+
+```cs
+class Callback : IRequestCallback
+{
+    public void SendResponse(string response) => Console.WriteLine(response);
+}
+```
+
+```cs
+internal class Program
+{
+    static void Main(string[] args)
+    {
+        var server = new RequestClient(new InstanceContext(new Callback()));
+        server.Open();
+        try
+        {
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 100,
+                Currency = CurrenciesEnum.USD
+            });
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 100,
+                Currency = CurrenciesEnum.EUR
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            server.Close();
+        }
+
+        Console.ReadLine();
+    }
+}
+```
+
+The result is expected: the client gets two XML responses:
+
+<Image src={firstResponse} alt="first-response" />
+
+Now let’s customize `SaleDetails` and add GBP as a new currency:
+
+```cs
+[DataContract(Name = "CurrenciesEnum")]
+enum CustomCurrenciesEnum
+{
+    [EnumMember]
+    EUR = CurrenciesEnum.EUR,
+    [EnumMember]
+    USD = CurrenciesEnum.USD,
+    [EnumMember]
+    GBP = 2
+}
+```
+
+```cs
+[DataContract]
+class CustomSaleDetails : SaleDetails
+{
+    [DataMember]
+    public new CustomCurrenciesEnum Currency { get; set; }
+}
+```
+
+We send one request using the base class and one using the custom one:
+
+```cs
+server.SendRequest(new SaleDetails()
+{
+    Price = 100,
+    Currency = CurrenciesEnum.USD
+});
+server.SendRequest(new CustomSaleDetails()
+{
+    Price = 100,
+    Currency = CustomCurrenciesEnum.GBP
+});
+```
+
+This won't work. The app compiles, but the server only replies to the first request. The second one times out and throws an exception.
+
+Same thing happens if you cast the value directly:
+
+```cs
+server.SendRequest(new SaleDetails()
+{
+    Price = 100,
+    Currency = (CurrenciesEnum) CustomCurrenciesEnum.GBP
+});
+```
+
+Why? Because the client and server data contracts are not [equivalent](https://docs.microsoft.com/en-us/dotnet/framework/wcf/feature-details/data-contract-equivalence).
+
+What if you can’t change the base `Shared` contract? On my real project, I had to work around this. The enum had some unused values — I reused one (like “USD”) to mean “GBP” and converted it manually on the client side. If you don’t have a spare value, you're out of luck.
+
+This problem could be avoided with enum classes.
+
+## The solution
+Instead of classic enums, you can use the `enum class` pattern. This idea has been around a long time, but not everyone knows it. I based my version on [this MSDN article](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/enumeration-classes-over-enum-types).
+
+Here’s the base class:
+
+```cs
+[DataContract]
+public abstract class Enumeration
+{
+    [DataMember]
+    public int Value { get; set; }
+
+    [DataMember]
+    public string DisplayName { get; set; }
+
+    public override string ToString() => DisplayName;
+}
+```
+
+Now we define `CurrenciesClass`:
+
+```cs
+[DataContract]
+public class CurrenciesClass : Enumeration
+{
+    [DataMember]
+    public static readonly CurrenciesClass EUR = new CurrenciesClass
+    {
+        Value = 0,
+        DisplayName = "EUR"
+    };
+
+    [DataMember]
+    public static readonly CurrenciesClass USD = new CurrenciesClass
+    {
+        Value = 1,
+        DisplayName = "USD"
+    };
+}
+```
+
+Use it in `SaleDetails`:
+
+```cs
+[DataContract]
+public class SaleDetails
+{
+    [DataMember]
+    public double Price { get; set; }
+
+    [DataMember]
+    public CurrenciesClass Currency { get; set; }
+}
+```
+
+Update the client and run:
+
+```cs
+internal class Program
+{
+    static void Main(string[] args)
+    {
+        var server = new RequestClient(new InstanceContext(new Callback()));
+        server.Open();
+        try
+        {
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 100,
+                Currency = CurrenciesClass.EUR
+            });
+            server.SendRequest(new SaleDetails()
+            {
+                Price = 200,
+                Currency = CurrenciesClass.USD
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            server.Close();
+        }
+
+        Console.ReadLine();
+    }
+}
+```
+
+<Image src={secondResponse} alt="second-response" />
+
+It works! Now let’s add GBP on the client side:
+
+```cs
+[DataContract]
+class CustomCurrenciesClass : CurrenciesClass
+{
+    [DataMember]
+    public static readonly CurrenciesClass GBR = new CurrenciesClass()
+    {
+        Value = 2,
+        DisplayName = "GBR"
+    };
+}
+```
+
+And send one more request:
+
+```cs
+server.SendRequest(new SaleDetails()
+{
+    Price = 300,
+    Currency = CustomCurrenciesClass.GBR
+});
+```
+
+Boom — it works:
+
+<Image src={thirdResponse} alt="third-response" />
+
+## Summary
+
+Using `enum classes` makes it much easier to extend existing enum-like structures. Yes, it's a bit more code, but the benefits are worth it. Of course, if you're sure the enum won't change or you control all parts of the system, a classic enum is fine. But when you can't change shared contracts, `enum classes` might be the only clean solution.

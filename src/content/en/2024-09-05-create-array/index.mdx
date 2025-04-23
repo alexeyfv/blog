@@ -1,0 +1,97 @@
+---
+title: 'Ways to Create Arrays in C#'
+description: 'A performance and applicability comparison of seven different ways to create arrays in C#'
+pubDate: 'Sep 05 2024'
+tags: ['C#', 'Performance', 'Benchmarks', 'Arrays']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+import image05 from './image05.png'
+import image06 from './image06.png'
+import image07 from './image07.png'
+
+How do you create an array in C#? It seems like a simple question. But with each new version of .NET, new features appear. Right now, I know 7 different ways to create arrays.
+
+## new T[]
+
+The most obvious, simple, and popular way to create arrays (and objects in general). This operator is used everywhere and is the default option in most scenarios.
+
+<Image src={image01} alt="new array benchmark" />
+<strong style="text-align: center;">
+  Baseline performance of new T[] array creation
+</strong>
+
+## stackalloc T[]
+
+Allocates memory on the stack for an array of a fixed size and returns a pointer. In the past, `stackalloc` required an `unsafe` context, but with `Span<T>`, it can now be used safely. This method is limited by the stack’s memory size and may cause a `StackOverflowException` if used carelessly.
+
+<Image src={image02} alt="stackalloc benchmark" />
+<strong style="text-align: center;">
+  stackalloc vs new T[]: performance on stack vs heap
+</strong>
+
+For small arrays, `stackalloc T[]` is on average 20% faster than `new T[]`, and up to 88% faster for large arrays. "Small arrays" means arrays smaller than 85,000 bytes (allocated on the Small Object Heap — SOH), "Large arrays" are allocated on the Large Object Heap (LOH).
+
+## ArrayPool\<T\>
+
+`ArrayPool<T>` returns an array from a shared pool, reducing memory allocations and GC pressure. The returned array may be larger than requested — e.g., a request for 700 elements might return an array of length 1024. This is useful for relatively large temporary arrays that are frequently created and discarded.
+
+`ArrayPool<T>` is on average 30% faster than `new T[]` for small arrays and 89% faster for large ones.  
+However, for arrays smaller than 300–400 bytes, using the pool can be slower.
+
+<Image src={image03} alt="array pool benchmark" />
+<strong style="text-align: center;">
+  Performance of ArrayPool\<T\> vs new T[]
+</strong>
+
+## GC.AllocateUninitializedArray\<T\>
+
+This method creates an array without initializing elements to their default values. It can be unsafe since the array contains uninitialized memory. You must overwrite all values before using them.
+
+`GC.AllocateUninitializedArray<T>` is about 15% faster than `new T[]` for arrays between 2,048 and 85,000 bytes.  
+In other cases, performance is similar to `new T[]`.
+
+<Image src={image04} alt="uninitialized array benchmark" />
+<strong style="text-align: center;">
+  GC.AllocateUninitializedArray\<T\> vs initialized allocation
+</strong>
+
+## Array.CreateInstance
+
+Allows you to create arrays with types known only at runtime. Useful when dealing with dynamically typed code.
+
+Performance is either the same or slightly worse than `new T[]`.
+
+<Image src={image05} alt="Array.CreateInstance benchmark" />
+<strong style="text-align: center;">
+  Runtime array creation performance with Array.CreateInstance
+</strong>
+
+## InlineArrayAttribute
+
+A relatively new feature introduced in C# 12. It allows you to define a struct with the `InlineArray` attribute that behaves like a fixed-size array.
+
+On average, it’s 39% faster than `new T[]` for small arrays and 91% faster for large arrays.
+
+<Image src={image06} alt="InlineArrayAttribute benchmark" />
+<strong style="text-align: center;">
+  InlineArrayAttribute performance vs traditional allocation
+</strong>
+
+## Collection Expressions
+
+Syntactic sugar that lets you define arrays using literals.  
+For example, `int[] array = [1, 2, 3]` creates a heap-allocated array (like `new T[]`),  
+while `Span<int> array = [1, 2, 3]` creates a stack-allocated array (like `stackalloc`).
+
+<Image src={image07} alt="collection expression benchmark" />
+<strong style="text-align: center;">
+  Collection expressions on heap and stack
+</strong>
+
+You can find the benchmark code and full results on [GitHub](https://github.com/alexeyfv/create-array).
