@@ -56,11 +56,11 @@ export default defineConfig({
       destination: '/ru/post/2022-01-27-insidious-enum-in-dotnet',
       status: 308,
     },
-    'https://www.alexeyfv.xyz/2022/05/01/fsharp-01.html': {
+    '/2022/05/01/fsharp-01.html': {
       destination: '/ru/post/2022-05-01-fsharp-01',
       status: 308,
     },
-    'https://www.alexeyfv.xyz/2022/05/08/fsharp-02.html': {
+    '/2022/05/08/fsharp-02.html': {
       destination: '/ru/post/2022-05-08-fsharp-02',
       status: 308,
     },
