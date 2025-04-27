@@ -1,20 +1,10 @@
 ---
-import type { CollectionEntry } from 'astro:content'
 import FormattedDate from '@/components/FormattedDate'
 import BaseLayout from '@/layouts/BaseLayout'
 import PostTag from '@/components/PostTag'
 import { getLangFromUrl, getTranslation } from '@/i18n/utils'
-import type { MarkdownHeading } from 'astro'
 import { Image } from 'astro:assets'
 import { getCover } from 'src/utils/cover'
-import { Lang } from '@/i18n/utils'
-
-type Props = {
-  id: CollectionEntry<Lang>['id']
-  data: CollectionEntry<Lang>['data']
-  headings: MarkdownHeading[]
-  readTime: string
-}
 
 const { data, readTime } = Astro.props
 const { title, description, pubDate, tags } = data
@@ -55,7 +45,7 @@ const t = getTranslation(lang)
       <section
         class="flex flex-wrap justify-center items-center gap-x-2 gap-y-4"
       >
-        {tags.map((tag) => <PostTag lang={lang} tag={tag} />)}
+        {tags.map((tag: string) => <PostTag lang={lang} tag={tag} />)}
       </section>
     </header>
 

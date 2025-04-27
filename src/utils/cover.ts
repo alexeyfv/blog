@@ -9,7 +9,7 @@ const defaultRatio = {
   height: 1024,
 }
 
-export function getCover(lang: Lang, props): ImageMetadata {
+export function getCover(lang: Lang, props: Record<string, any>): ImageMetadata {
   const cover = props.data.cover
 
   // If the cover is provided, use it

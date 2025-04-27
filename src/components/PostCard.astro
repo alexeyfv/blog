@@ -46,7 +46,7 @@ const t = getTranslation(lang)
 
     <footer class="flex flex-wrap gap-x-1 gap-y-2">
       {
-        tags.map((tag) =>
+        tags.map((tag: string) =>
           withoutTags ? null : <PostTag lang={lang} tag={tag} />,
         )
       }
