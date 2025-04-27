@@ -1,0 +1,85 @@
+---
+title: 'Генераторы кода в C#'
+description: 'Избавляемся от бойлерплейта в библиотеке EventFlow с помощью Source Generators'
+pubDate: 'Mar 10 2025'
+tags: ['C#', 'Source Generators', 'Event Sourcing', 'DDD']
+lang: 'ru'
+---
+
+В ноябре я [рассказывал](https://t.me/yet_another_dev/152) про EventFlow — библиотеку, предназначенную для DDD и Event Sourcing. Наша команда активно её использует. Спустя несколько месяцев работы с ней я заметил, что часто приходится писать повторяющийся код, что довольно утомительно.
+
+Например, чтобы создать событие для `OrderAggregate`, нужно каждый раз указывать тип агрегата и тип его ID:
+
+```cs
+public class OrderCreated :
+    IAggregateEvent<OrderAggregate, OrderAggregateId>
+```
+
+При подписке на события снова нужно указывать тип события, агрегата и ID:
+
+```cs
+public class OrderAggregateSubscribers :
+    ISubscribeSynchronousTo<OrderAggregate, OrderAggregateId, OrderCreated>
+```
+
+## Как избавиться от шаблонного кода?
+
+Можно объявить абстрактный класс для всех событий агрегата и использовать его:
+
+```cs
+public abstract class OrderAggregateEvent :
+    IAggregateEvent<OrderAggregate, OrderAggregateId>;
+```
+
+Создать новый интерфейс, принимающий только тип события:
+
+```cs
+public interface ISubscribeSynchronousTo<TEvent> :
+    ISubscribeSynchronousTo<OrderAggregate, OrderAggregateId, TEvent>
+```
+
+Но даже в этом случае всё равно приходится вручную дублировать код для каждого агрегата. А как гласит известная айтишная мудрость:
+
+> Никогда не тратьте 10 минут, чтобы сделать что-то вручную, если можно потратить 10 часов пытаясь это автоматизировать.
+
+Поэтому в начале февраля я занялся написанием генератора кода для EventFlow. Через 2 недели и 7 коммитов библиотека EventFlow.SourceGenerators была готова и на днях Расмус Микелсен (автор EventFlow) [принял изменения](https://github.com/eventflow/EventFlow/releases/tag/v1.2.0).
+
+## Как помогают генераторы кода?
+
+Теперь вся рутинная работа ложится на компилятор, и можно писать меньше кода, который к тому же лучше читается.
+
+```cs
+// Добавляем атрибут AggregateExtensions к агрегату
+[AggregateExtensions]
+public class OrderAggregate(OrderAggregateId id) :
+    AggregateRoot<OrderAggregate, OrderAggregateId>(id)
+
+// Описание событий — OrderAggregateEvent генерируется автоматически
+public class OrderCreated : OrderAggregateEvent;
+
+// Подписка на события — новый интерфейс генерируется автоматически
+public class OrderAggregateSubscribers :
+    ISubscribeSynchronousTo<OrderCreated>
+```
+
+Как видите, код стал заметно чище, и теперь нам не приходится снова и снова указывать тип агрегата и тип ID.
+
+## Сложности при работе с генераторами кода
+
+Стоит отметить, что генераторы кода — непростая тема. Существует множество ограничений и сложностей. Например, с чем я столкнулся:
+
+1. Генераторы можно писать только под .NET Standard 2.0.
+2. Возможны коллизии названий сгенерированных объектов.
+3. Тестирование сгенерированного кода имеет свои особенности.
+
+## Что дальше?
+
+Если вас заинтересовали генераторы кода, советую начать с [видео от Microsoft](https://youtu.be/KTsyS3rDUgg).
+
+Затем изучите следующие материалы:
+
+- [Creating an incremental generator](https://andrewlock.net/creating-a-source-generator-part-1-creating-an-incremental-source-generator/).
+- [Introducing C# Source Generators](https://devblogs.microsoft.com/dotnet/introducing-c-source-generators/).
+- [Incremental Generators Cookbook](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.cookbook.md).
+
+В качестве примера можно заглядывать в [исходный код библиотеки](https://github.com/eventflow/EventFlow/tree/develop-v1/Source/EventFlow.SourceGenerators) EventFlow.SourceGenerators и её [тестов](https://github.com/eventflow/EventFlow/tree/develop-v1/Source/EventFlow.SourceGenerators.Tests). Она довольна простая. Больше примеров её применения можно найти в [документации](https://geteventflow.net/additional/source-generation/).

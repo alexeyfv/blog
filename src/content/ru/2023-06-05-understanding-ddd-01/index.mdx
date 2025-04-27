@@ -1,0 +1,174 @@
+---
+title: 'Разбираемся в DDD: от анемичной к богатой доменной модели'
+description: 'Как улучшить код с помощью Domain-Driven Design и богатой доменной модели'
+pubDate: 'Jun 05 2023'
+tags:
+  [
+    'C#',
+    'Domain-Driven Design',
+    'Design Patterns',
+    'Architecture',
+    'Software Design',
+  ]
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+
+Недавно я прочитал книгу [Learning Domain-Driven Design](https://www.oreilly.com/library/view/learning-domain-driven-design/9781098100124/) по совету товарища, который более опытен в разработке, чем я. Я уже написал небольшой обзор об этой книге в [своем Telegram-канале](https://t.me/yet_another_dev/9). Теперь я собираюсь написать серию статей о том, как Domain-Driven Design (DDD) может улучшить ваш код и процесс разработки. Это первая статья в этой серии.
+
+## Анемичная доменная модель (ADM)
+
+Не уверен, что я смогу описать ADM лучше, чем [Мартин Фаулер](https://martinfowler.com/bliki/AnemicDomainModel.html). В первую очередь, очень рекомендую прочитать его статью об этом антипаттерне.
+
+По сути, ADM — это доменная модель, в которой отсутствует поведение: она состоит только из геттеров и сеттеров. Я создал [простое](https://gitlab.com/alexeyfv/understanding-ddd-01) CLI-приложение, использующее ADM. Код основан на том, что я видел за свою карьеру разработчика, и мы попробуем его улучшить.
+
+Приложение имитирует систему учёта тикетов. Оно содержит следующие [модели](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DomainLayer/Models.cs):
+
+1. `Worker` — человек, ответственный за решение тикетов.
+2. `Ticket` — сущность, описывающая проблему, которая может быть назначена любому сотруднику.
+
+Функциональность приложения позволяет:
+
+1. [Добавлять сотрудников](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L7).
+2. [Обновлять данные сотрудников](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L36).
+3. [Увольнять сотрудников](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L53).
+4. [Получать информацию о сотрудниках](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L24).
+5. [Открывать тикеты для сотрудников](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L67).
+6. [Закрывать тикеты для сотрудников](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L116).
+
+Представьте, что у нас есть тикет с `Id = 1`, и пользователь хочет обновить его `Description`. Он выполняет:
+
+```sh
+dotnet run -- ticket update -id 1 -c "Some new content"
+```
+
+Тикет будет обновлён, но что происходит внутри приложения? Ниже диаграмма последовательности для этого процесса:
+
+<Image src={image01} alt="Sequence diagram for ticket updating" />
+<strong style="text-align: center;">
+  Рисунок 1 — Диаграмма последовательности для обновления тикета
+</strong>
+
+Выглядит довольно сложно, не так ли? В чём недостатки такой архитектуры:
+
+1. Доменные модели и объекты базы данных практически идентичны. Нарушается [принцип DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself).
+2. Для реализации новой функциональности придётся писать минимум в два раза больше кода.
+3. Поддержка существующего кода будет занимать в два раза больше времени.
+4. Для каждой пары "доменная модель — объект БД" придётся писать мапперы. Больше кода — выше шанс ошибок.
+5. Лишние обращения к БД.
+6. При обработке сотен или тысяч сущностей нужно загружать все объекты БД в память и маппить их в доменные модели, что ухудшает производительность.
+
+Как можно улучшить этот код? Посмотрим на диаграмму последовательности для [открытия нового тикета](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/adm/DataAccessLayer/Handlers.cs#L67):
+
+<Image src={image02} alt="Sequence diagram for opening ticket" />
+<strong style="text-align: center;">
+  Рисунок 2 — Диаграмма последовательности для открытия тикета
+</strong>
+
+В этом примере нет лишних запросов к БД, но остальные проблемы остались. Где здесь бизнес-логика? Правильно — она размазана по разным обработчикам и просочилась в DAL.
+
+Можно ли сделать ещё лучше? Да — с помощью богатой доменной модели (RDM).
+
+## Богатая доменная модель (RDM)
+
+Как уже говорилось, ADM — это просто класс с набором геттеров и сеттеров. В отличие от неё, RDM содержит функциональность, связанную с бизнес-логикой.
+
+Чтобы преобразовать ADM в RDM, нужно:
+
+1. Избавиться от дублирующихся моделей и мапперов, объединив доменные модели и объекты БД.
+2. Заменить `Requests` и `Queries` на `Commands` и `Events`.
+3. Собрать все действия с БД в одном командном обработчике.
+4. Перенести бизнес-логику в доменные модели.
+
+### Избавляемся от дублирования
+
+Первым делом объединим дублирующиеся модели. Например, `Worker`:
+
+```csharp
+public record Worker
+{
+    public int Id { get; protected set; }
+    public string Name { get; protected set; } = string.Empty;
+    public string Email { get; protected set; } = string.Empty;
+    public string Position { get; protected set; } = string.Empty;
+    public bool Fired { get; protected set; }
+    public DateTimeOffset Created { get; protected set; }
+    public DateTimeOffset Updated { get; protected set; }
+    public ICollection<Ticket> AssignedTickets { get; protected set; } = new List<Ticket>();
+}
+```
+
+Теперь модель одна, свойства защищены (`protected set`), что предотвращает неконтролируемые изменения снаружи.
+
+## Команды и события
+
+Команды (`Commands`) описывают действие, которое изменяет доменную модель. События (`Events`) описывают результат изменения.
+
+Именование:
+
+- Команды — глагол в повелительном наклонении + сущность (`CreateWorker`, `UpdateWorker`).
+- События — сущность + глагол в прошедшем времени (`WorkerCreated`, `WorkerUpdated`).
+
+## Единый обработчик  команд
+
+Теперь создадим единый [CommandHandler](https://gitlab.com/alexeyfv/understanding-ddd-01/-/blob/main/rdm/ApplicationLayer/CommandHandler.cs):
+
+```csharp
+public class CommandHandler
+{
+    public EventBase Handle(CommandBase command)
+    {
+        var @event = command switch
+        {
+            TicketCommand cmd => Handle(cmd),
+            WorkerCommand cmd => Handle(cmd),
+            _ => throw new NotSupportedException(),
+        };
+        return @event;
+    }
+}
+```
+
+Метод `Handle` обрабатывает команды по общему шаблону: извлечение сущности из БД → вызов бизнес-метода → сохранение изменений → возврат события.
+
+## Обработчики в доменной модели
+
+Теперь обработчики логики живут внутри самих моделей. Например:
+
+```csharp
+public EventBase Handle(UpdateWorker request)
+{
+    if (request.Name != null) Name = request.Name;
+    if (request.Email != null) Email = request.Email;
+    if (request.Position != null) Position = request.Position;
+    if (request.Name != null || request.Email != null || request.Position != null)
+        Updated = DateTimeOffset.Now;
+    return new WorkerUpdated(this);
+}
+```
+
+## После рефакторинга
+
+Теперь посмотрим на диаграмму обновления тикета:
+
+<Image src={image03} alt="Sequence diagram for ticket updating using RDM" />
+<strong style="text-align: center;">
+  Рисунок 3 — Диаграмма обновления тикета через RDM
+</strong>
+
+Стало значительно проще! И такая схема работает для всех команд.
+
+## Вывод
+
+DDD и богатая доменная модель (RDM) помогают:
+
+1. Инкапсулировать данные и поведение.
+2. Использовать понятные соглашения об именовании.
+3. Избавиться от дублирования кода и мапперов.
+4. Минимизировать обращения к БД.
+
+Это делает код проще, понятнее и устойчивее к изменениям.

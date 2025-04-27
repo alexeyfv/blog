@@ -1,0 +1,191 @@
+---
+title: 'Упрощаем интеграционные тесты с Testcontainers'
+description: 'Интеграционное тестирование в C# с использованием Testcontainers'
+pubDate: 'Feb 12 2024'
+tags: ['C#', 'Тестирование', 'Docker']
+lang: 'ru'
+---
+
+Интеграционные тесты играют важную роль в разработке. Они позволяют увидеть, как система работает с внешними зависимостями, например, базами данных. Чтобы запустить такой тест, нужно где-то создать базу данных — например, на виртуальной машине или на локальной машине. Однако лучше использовать фреймворк [Testcontainers](https://testcontainers.com/).
+
+## Что такое Testcontainers?
+
+Testcontainers — это библиотека, которая предоставляет удобные API для запуска настоящих сервисов в контейнерах Docker для локальной разработки и тестирования. С помощью Testcontainers можно писать тесты, которые используют те же сервисы, что и в продакшене, без моков и встроенных реализаций ([источник](https://testcontainers.com/getting-started/)).
+
+## Пример использования
+
+Рассмотрим класс `UserInfoService`. Сервис сначала ищет `UserInfo` в кэше. Если не находит, обращается к базе данных. Если и там нет, возвращает `null`.
+
+```cs
+public record UserInfo(string Id, string Name, string Address);
+
+public class UserInfoService(IRepository _repository)
+{
+    private readonly ConcurrentDictionary<string, UserInfo> _cache = new();
+
+    public async Task<UserInfo?> Get(string id, CancellationToken ct)
+    {
+        if (_cache.TryGetValue(id, out var userInfo)) return userInfo;
+
+        userInfo = await _repository.Get(id, ct);
+
+        if (userInfo is not null)
+        {
+            _cache.TryAdd(id, userInfo);
+            return userInfo;
+        }
+
+        return null;
+    }
+}
+```
+
+Теперь задача: если ключа нет в кэше, сервис должен обратиться к базе. Зная это, можно написать интеграционные тесты с Testcontainers. Но для этого нам также нужны реализация `IRepository` и миграции.
+
+### Реализация репозитория
+
+Используем PostgreSQL. Добавляем зависимости:
+
+```sh
+dotnet add package Npgsql --version 8.0.2
+```
+
+И добавляем Dapper для упрощения работы с базой:
+
+```sh
+dotnet add package Dapper --version 2.1.28
+```
+
+Реализация репозитория:
+
+```cs
+public interface IRepository
+{
+    Task<UserInfo?> Get(string id, CancellationToken ct);
+    Task Add(UserInfo userInfo);
+}
+
+public class Repository(string _connectionString) : IRepository
+{
+    private readonly NpgsqlConnection connection = new(_connectionString);
+
+    private readonly string _selectQuery = @"SELECT ""Id"", ""Name"", ""Address"" FROM ""Users"" WHERE ""Id"" = @Id";
+    private readonly string _insertQuery = @"INSERT INTO ""Users"" (""Id"", ""Name"", ""Address"") VALUES (@Id, @Name, @Address)";
+
+    public async Task Add(UserInfo userInfo)
+    {
+        await connection.ExecuteAsync(_insertQuery, new { userInfo.Id, userInfo.Name, userInfo.Address });
+    }
+
+    public async Task<UserInfo?> Get(string id, CancellationToken ct)
+    {
+        return await connection.QueryFirstOrDefaultAsync<UserInfo>(_selectQuery, new { Id = id });
+    }
+}
+```
+
+### Миграции базы данных
+
+Для миграций будем использовать [FluentMigrator](https://github.com/fluentmigrator/fluentmigrator):
+
+```sh
+dotnet add package FluentMigrator --version 5.0.0
+dotnet add package FluentMigrator.Runner.Postgres --version 5.0.0
+```
+
+Первая миграция создаёт таблицу `Users`:
+
+```cs
+[Migration(20240212, "Создание таблицы Users")]
+public class InitialMigration : Migration
+{
+    public override void Up()
+    {
+        Create.Table("Users")
+            .WithColumn("Id").AsString().PrimaryKey()
+            .WithColumn("Name").AsString()
+            .WithColumn("Address").AsString();
+    }
+
+    public override void Down()
+    {
+        Delete.Table("Users");
+    }
+}
+```
+
+Запуск миграции:
+
+```cs
+public static class Migrator
+{
+    public static void MigrateUp(string connectionString)
+    {
+        var serviceProvider = new ServiceCollection()
+            .AddFluentMigratorCore()
+            .ConfigureRunner(rb => rb
+                .AddPostgres()
+                .WithGlobalConnectionString(connectionString)
+                .ScanIn(typeof(InitialMigration).Assembly).For.Migrations())
+            .AddLogging(lb => lb.AddFluentMigratorConsole())
+            .BuildServiceProvider(false);
+
+        var migrationRunner = serviceProvider.GetRequiredService<IMigrationRunner>();
+        migrationRunner.MigrateUp();
+    }
+}
+```
+
+### Интеграционные тесты
+
+Создадим новый проект для MSTest:
+
+```sh
+dotnet new mstest
+```
+
+Добавим пакет для Testcontainers PostgreSQL:
+
+```sh
+dotnet add package Testcontainers.PostgreSql
+```
+
+Код теста:
+
+```cs
+[TestClass]
+public class IntegrationTests
+{
+    private static readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .Build();
+
+    [ClassInitialize]
+    public static Task Init(TestContext _) => _postgres.StartAsync();
+
+    [ClassCleanup]
+    public static Task Cleanup() => _postgres.DisposeAsync().AsTask();
+
+    [TestMethod]
+    public async Task TestMethod()
+    {
+        var connectionString = _postgres.GetConnectionString();
+        Migrator.MigrateUp(connectionString);
+        var repository = new Repository(connectionString);
+        var expected = new UserInfo("1", "John Doe", "Some address");
+        await repository.Add(expected);
+        var sut = new UserInfoService(repository);
+
+        var actual = await sut.Get("1", CancellationToken.None);
+
+        Assert.IsNotNull(actual);
+        Assert.AreEqual(expected.Id, actual.Id);
+        Assert.AreEqual(expected.Name, actual.Name);
+        Assert.AreEqual(expected.Address, actual.Address);
+    }
+}
+```
+
+## Вывод
+
+Вот и всё. Как видно, базовое использование Testcontainers для интеграционных тестов очень простое.
