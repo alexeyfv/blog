@@ -11,8 +11,6 @@ interface TableOfContent {
 
 const { headings } = Astro.props
 
-const lang = getLangFromUrl(Astro.url)
-
 const buildToc = (headings: TableOfContent[]) => {
   let toc: TableOfContent[] = []
   let parentHeadings = new Map()
