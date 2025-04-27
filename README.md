@@ -1,6 +1,6 @@
 # Project repo for my personal blog
 
-[![deploy](https://github.com/alexeyfv/blog/actions/workflows/deploy.yml/badge.svg)](https://github.com/alexeyfv/blog/actions/workflows/deploy.yml) [![pages-build-deployment](https://github.com/alexeyfv/blog/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/alexeyfv/blog/actions/workflows/pages/pages-build-deployment)
+[![Deploy to GitHub Pages](https://github.com/alexeyfv/blog/actions/workflows/build_and_deploy.yaml/badge.svg)](https://github.com/alexeyfv/blog/actions/workflows/build_and_deploy.yaml)
 
 ## Run
 
