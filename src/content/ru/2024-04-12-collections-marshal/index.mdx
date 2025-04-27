@@ -168,4 +168,37 @@ if (exist) {
 }
 ```
 
-Со ссылкой на `null` ситуация другая. Булевого флага нет, а при сравнении с `null` будет выброшено исключение NullReferenceException. Лучше воспользоваться
+Со ссылкой на `null` ситуация другая. Булевого флага нет, а при сравнении с `null` будет выброшено исключение NullReferenceException. Лучше воспользоваться методом [Unsafe.IsNullRef\<T\>(ref T source)](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.compilerservices.unsafe.isnullref?view=net-8.0).
+
+```cs
+ref var element = ref CollectionsMarshal.GetValueRefOrNullRef(dict, key);
+if (Unsafe.IsNullRef<T>(ref element)) {
+    // some code here
+}
+```
+
+### Изменение словаря после получения ссылки на структуру
+
+В документации к методам `GetValueRefOrAddDefault` и `GetValueRefOrNullRef` прямым текстом указано, что нельзя изменять словарь после того, как была получена ссылка на структуру. Почему так делать не надо продемонстрировано на примере ниже. После изменения словаря, любые изменения структуры, полученной по ссылке, не повлияют на значение в словаре.
+
+```cs
+ref var element = ref CollectionsMarshal.GetValueRefOrNullRef(dict, key);
+
+Console.WriteLine($"ref element: {element.Item1}"); // 30
+Console.WriteLine($"dict[key]: {dict[key].Item1}"); // 30
+
+element.Item1 = 50; // change #1
+
+Console.WriteLine($"ref element: {element.Item1}"); // 50
+Console.WriteLine($"dict[key]: {dict[key].Item1}"); // 50
+
+dict.Add(100, new (100)); // add a new element
+element.Item1 = 60; // change #2
+
+Console.WriteLine($"ref element: {element.Item1}"); // 60
+Console.WriteLine($"dict[key]: {dict[key].Item1}"); // 50
+```
+
+## Выводы
+
+Структуры – недооценённые элементы C#, которые, при определённых условиях, способны ускорить ваше приложение. При использовании структур в качестве значений для `Dictionary` лучше воспользоваться классом `CollectionsMarshal`. Методы этого класса `GetValueRefOrAddDefault` и `GetValueRefOrNullRef` позволяют получать элементы словаря по ссылке. Это, в свою очередь, может положительно сказаться на производительности кода при относительно большом количестве операций поиска в словаре.

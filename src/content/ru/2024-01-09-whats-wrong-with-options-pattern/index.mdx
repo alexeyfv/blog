@@ -1,0 +1,185 @@
+---
+title: 'Что не так с паттерном Options в C#'
+description: 'Анализ ограничений паттерна Options в C#'
+pubDate: 'Jan 09 2024'
+tags: ['C#', 'ASP.NET', 'Паттерны проектирования']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import configDiagram from './image1.png'
+
+В .NET существует так называемый [паттерн Options](https://learn.microsoft.com/en-us/dotnet/core/extensions/options), который упрощает работу с конфигурацией приложений. Чтобы использовать его, разработчику нужно выполнить три шага: подключить нужный [провайдер конфигурации](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers), настроить сервисы через метод расширения [`Configure`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.optionsconfigurationservicecollectionextensions.configure), а затем внедрить `IOptions<T>`, `IOptionsMonitor<T>` или `IOptionsSnapshot<T>` через конструктор.
+
+Microsoft предоставляет стандартные провайдеры конфигурации, например, работу с JSON через [`AddJsonFile`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.jsonconfigurationextensions.addjsonfile). Однако провайдера для получения конфигурации из базы данных нет. В этой статье рассмотрим, как можно это реализовать.
+
+## Проблема
+
+Представим следующую ситуацию. Есть сервис `Configuration Updater`, который обновляет конфигурацию в базе данных. И есть сервис `Configuration Consumer`, который читает эту конфигурацию.
+
+<Image
+  src={configDiagram}
+  alt="Диаграмма работы Configuration Updater и Consumer с базой данных"
+/>
+
+Класс конфигурации `AppConfig` выглядит так:
+
+```cs
+public class AppConfig
+{
+    public int Id { get; init; }
+    public int Version { get; private set; }
+    public required string Guid { get; set; }
+
+    public void Update(string guid)
+    {
+        Guid = guid;
+        Version++;
+    }
+}
+```
+
+Сервис `Configuration Updater` каждую секунду обновляет запись в базе данных:
+
+```cs
+var db = new DatabaseContext("DataSource=./../Database/db.sqlite");
+
+while (true)
+{
+    var guid = Guid.NewGuid().ToString();
+
+    var appConfig = db.AppConfigs.FirstOrDefault();
+
+    if (appConfig is null)
+    {
+        db.AppConfigs.Add(new AppConfig() { Guid = guid, });
+    }
+    else
+    {
+        appConfig.Update(guid);
+    }
+
+    db.SaveChanges();
+
+    Console.WriteLine("Configuration updated: {0}", guid);
+
+    await Task.Delay(1000);
+}
+```
+
+А `Configuration Consumer` каждую секунду читает конфигурацию:
+
+```cs
+public class ConsumerClass(IOptionsMonitor<AppConfig> _optionsMonitor)
+{
+    public async Task DoWork()
+    {
+        while (true)
+        {
+            var config = _optionsMonitor.CurrentValue;
+            Console.WriteLine("Consume config: {0}", config.Guid);
+            await Task.Delay(1000);
+        }
+    }
+}
+```
+
+Теперь нужно реализовать получение конфигурации из базы данных. Примеры есть, например:
+
+- [Как создать свой провайдер конфигурации](https://learn.microsoft.com/en-us/dotnet/core/extensions/custom-configuration-provider)
+- [Custom Configuration Provider в .NET 7](https://medium.com/@gokerakce/implement-a-custom-configuration-provider-in-net-7-c0a195dcd05f)
+- [Обновляемый провайдер конфигурации SQL Server](https://mousavi310.github.io/posts/a-refreshable-sql-server-configuration-provider-for-net-core/)
+
+Идея одна: нужно создать два класса — источник конфигурации и сам провайдер.
+
+Класс `DatabaseConfigurationProvider` читает конфигурацию из базы, сериализует её в JSON и загружает в словарь `Data` через базовый `JsonConfigurationProvider`:
+
+```cs
+public class DatabaseConfigurationProvider(string _connectionString, JsonConfigurationSource source) : JsonConfigurationProvider(source)
+{
+    public static string Prefix => nameof(AppConfig);
+
+    public override void Load()
+    {
+        using var db = new DatabaseContext(_connectionString);
+
+        var appConfig = db.AppConfigs.FirstOrDefault() ?? throw new InvalidOperationException("Configuration");
+
+        var json = JsonSerializer.Serialize(new { AppConfig = appConfig });
+
+        if (string.IsNullOrWhiteSpace(json)) return;
+
+        var bytes = Encoding.UTF8.GetBytes(json);
+
+        using var stream = new MemoryStream(bytes);
+
+        Load(stream);
+    }
+}
+```
+
+Класс `DatabaseConfigurationSource` используется для регистрации провайдера в [composition root](https://blog.ploeh.dk/2011/07/28/CompositionRoot/):
+
+```cs
+public class DatabaseConfigurationSource(string _connectionString) : JsonConfigurationSource
+{
+    public override IConfigurationProvider Build(IConfigurationBuilder builder)
+    {
+        Console.WriteLine("Build configuration source");
+        EnsureDefaults(builder);
+        return new DatabaseConfigurationProvider(_connectionString, this);
+    }
+}
+
+public static class DatabaseConfigurationExtensions
+{
+    public static IConfigurationBuilder AddDatabaseConfiguration(this IConfigurationBuilder builder, string connectionString) =>
+        builder.Add(new DatabaseConfigurationSource(connectionString));
+}
+```
+
+Этот код компилируется и работает, но только один раз — при старте приложения. Причина в том, что конфигурация читается только при инициализации. В примерах предлагают решить это через [`Timer`](https://learn.microsoft.com/en-us/dotnet/api/system.timers.timer) или [`ChangeToken`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/change-tokens) для периодического обновления.
+
+Но здесь возникают проблемы:
+
+1. **Лишние запросы к базе:** Конфигурация читается даже тогда, когда в базе ничего не поменялось.
+2. **Несогласованность данных:** Конфигурация в базе уже обновилась, а таймер ещё не сработал. Значит, потребитель получит устаревшую версию.
+
+## Предложенное решение
+
+Если нужно всегда получать актуальные данные, можно проще: реализовать `IOptionsMonitor<AppConfig>` и зарегистрировать его как singleton:
+
+```cs
+public class DatabaseConfigurationMonitor(string _connectionString) : IOptionsMonitor<AppConfig>
+{
+    public AppConfig CurrentValue => Get();
+
+    public AppConfig Get(string? name) => Get();
+
+    private AppConfig Get() =>
+        new DatabaseContext(_connectionString)
+            .AppConfigs
+            .FirstOrDefault() ?? throw new InvalidOperationException("Configuration");
+
+    public IDisposable? OnChange(Action<AppConfig, string?> listener)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public static class DatabaseConfigurationExtensions
+{
+    public static IServiceCollection ConfigureDatabaseOptionsMonitor(this IServiceCollection collection, string connectionString) =>
+        collection.AddSingleton<IOptionsMonitor<AppConfig>>(provider => new DatabaseConfigurationMonitor(connectionString));
+}
+```
+
+Теперь при каждом обращении к `_optionsMonitor.CurrentValue` будет получена самая свежая версия из базы.
+
+Минус подхода: если понадобится заменить `IOptionsMonitor<T>` на `IOptions<T>`, придётся реализовать его отдельно.
+
+## Выводы
+
+В приложениях, использующих паттерн Options, нет готового решения для работы с базой данных. Обычно приходится писать свои классы на основе `ConfigurationProvider`, что может приводить к лишним запросам и устаревшим данным.
+
+Более простое и надёжное решение — реализовать `IOptionsMonitor<T>` или `IOptions<T>`, чтобы получать актуальную конфигурацию напрямую из базы.

@@ -1,0 +1,163 @@
+---
+title: 'Что такое ReadOnlySpan<T> в C# и насколько он быстрый'
+description: 'Сравнение производительности ReadOnlySpan<T> и string в C#'
+pubDate: 'Dec 02 2023'
+tags: ['C#', 'Производительность']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import image1 from './image1.png'
+import image2 from './image2.png'
+
+Ранее я уже писал статью о самом быстром способе извлечения подстроки в C#. Теперь подробно расскажу о Span. Недавно Microsoft выпустила платформу .NET 8, в которой появилось несколько новых [методов расширения](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions?view=net-8.0) для `ReadOnlySpan<T>`. Поэтому я решил сравнить производительность методов `MemoryExtensions` и аналогов в классе `string`.
+
+## Бенчмарк
+
+Все тесты используют JSON-файл с массивом строк из 135 892 элементов. Каждый элемент — это права доступа для разных папок. Строки имеют следующий шаблон:
+
+```
+<permission> for Folder: \\server-name\path\to\folder\
+```
+
+Например:
+
+```
+DENY Permission for Folder: \\server-name\path\to\folder\
+```
+
+Я не могу публиковать сам файл, так что придётся поверить на слово. :)
+
+В этом бенчмарке рассмотрены 8 методов:
+
+| `string` | `ReadOnlySpan<T>` |
+| -------- | ----------------- |
+| [Contains](https://learn.microsoft.com/en-us/dotnet/api/system.string.contains?view=net-8.0) | [Contains](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.contains?view=net-8.0) |
+| [StartsWith](https://learn.microsoft.com/en-us/dotnet/api/system.string.startswith?view=net-8.0) | [StartsWith](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.startswith?view=net-8.0) |
+| [IndexOf](https://learn.microsoft.com/en-us/dotnet/api/system.string.indexof?view=net-8.0) | [IndexOf](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.indexof?view=net-8.0) |
+| [Replace](https://learn.microsoft.com/en-us/dotnet/api/system.string.replace?view=net-8.0) | [Replace](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.replace?view=net-8.0) |
+| [Split](https://learn.microsoft.com/en-us/dotnet/api/system.string.split?view=net-8.0) | [Split](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.split?view=net-8.0) |
+| [ToLowerInvariant](https://learn.microsoft.com/en-us/dotnet/api/system.string.tolowerinvariant?view=net-8.0) | [ToLowerInvariant](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.tolower?view=net-8.0) |
+| [Trim](https://learn.microsoft.com/en-us/dotnet/api/system.string.trim?view=net-8.0) | [Trim](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.trim?view=net-8.0) |
+| [Substring](https://learn.microsoft.com/en-us/dotnet/api/system.string.substring?view=net-8.0) | [Slice](https://learn.microsoft.com/en-us/dotnet/api/system.span-1.slice?view=net-8.0) |
+
+Также я учитываю сценарий "Span + Аллокация", когда используется метод `ToString` после работы со `Span`, что приводит к созданию строки в памяти.
+
+Как обычно, я использовал библиотеку [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet). Полный код тестов доступен [здесь](https://gitlab.com/alexeyfv/readonlyspan-vs-string).
+
+## Результаты
+
+### Contains
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 615.7 | -- | 0 | 1 | -- |
+| `ReadOnlySpan<T>` | 624.1 | -2% | 0 | 1 | -- |
+
+### StartsWith
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 56681.1 | -- | 0 | 82 | -- |
+| `ReadOnlySpan<T>` | 329.6 | -99.4% | 0 | 0 | -100% |
+
+### IndexOf
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 224182.4 | -- | 0 | 245 | -- |
+| `ReadOnlySpan<T>` | 1131.6 | -99.5% | 0 | 1 | -99.6% |
+
+### Split
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 16241.3 | -- | 4468.75 | 56127351 | -- |
+| `ReadOnlySpan<T>` | 9977.2 | -39% | 0 | 1060 | -100% |
+
+### Replace
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 3156.8 | -- | 2019.53 | 25353195 | -- |
+| `ReadOnlySpan<T>` | 2663.0 | -16% | 0 | 3 | -100% |
+| `ReadOnlySpan<T>` с аллокацией | 16701.5 | +430% | 2015.62 | 25353204 | 0% |
+
+### ToLowerInvariant
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 3771.3 | -- | 2019.53 | 25353195 | -- |
+| `ReadOnlySpan<T>` | 3884.3 | +3% | 0 | 3 | -100% |
+| `ReadOnlySpan<T>` с аллокацией | 17938.6 | +374% | 2015.62 | 25353204 | 0% |
+
+### Trim
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 687.4 | -- | -- | 553 | -- |
+| `ReadOnlySpan<T>` | 469.1 | -32% | -- | -- | -99.8% |
+| `ReadOnlySpan<T>` с аллокацией | 2968.1 | +332% | 2019.53 | 25353195 | +4584565% |
+
+### Substring
+
+| Бенчмарк | Среднее время, мкс | Разница | Gen 0 на 1000 операций | Выделено памяти, байт | Разница по памяти |
+| -------- | ----------------- | ------- | ---------------------- | --------------------- | ----------------- |
+| `String` | 1523.8 | -- | 779.3 | 9784225 | -- |
+| `ReadOnlySpan<T>` | 347.9 | -77% | -- | -- | -100% |
+| `ReadOnlySpan<T>` с аллокацией | 1694.5 | +11% | 779.3 | 9784225 | 0% |
+
+## Выводы
+
+### `ReadOnlySpan<T>` без аллокации
+
+<Image src={image1} alt="Сравнение производительности ReadOnlySpan" />
+<strong style="text-align: center;">
+Производительность ReadOnlySpan
+</strong>
+
+Почти все методы расширения для `ReadOnlySpan<T>` работают быстрее, чем аналоги для `string`. Исключение — метод `ToLower`, потому что он [копирует символы в новый буфер](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/MemoryExtensions.Globalization.cs#L223).
+
+### `ReadOnlySpan<T>` с аллокацией
+
+<Image
+  src={image2}
+  alt="Сравнение производительности ReadOnlySpan с аллокацией"
+/>
+<strong style="text-align: center;">
+Производительность ReadOnlySpan с аллокацией
+</strong>
+
+Методы `string.Replace`, `string.ToLower`, `string.TrimEnd`, `string.Substring` работают быстрее комбинации `ReadOnlySpan<T>` и вызова `ToString`. Вероятно, это связано с тем, что стандартные строковые методы используют более эффективные внутренние механизмы, например [Buffer.Memmove](https://github.com/microsoft/referencesource/blob/master/mscorlib/system/buffer.cs#L299).
+
+### Потребление памяти
+
+Методы на основе `Span` не создают мусора и не вызывают сборку мусора Gen 0. Строковые методы, особенно `Split`, `Replace` и `ToLower`, выделяют гораздо больше памяти.  
+
+Однако если в конце операций на `Span` всё равно происходит создание строки (`ToString`), то преимущества по памяти теряются.
+
+Количество Gen0 на 1000 операций:
+
+| Категория  | String | Span | Span + Аллокация |
+| ----------- | ------ | ---- | ---------------- |
+| `Contains`  | 0 | 0 | - |
+| `StartsWith`| 0 | 0 | - |
+| `IndexOf`   | 0 | 0 | - |
+| `Split`     | 4468.75 | 0 | - |
+| `Replace`   | 2019.53 | 0 | 2015.62 |
+| `ToLower`   | 2019.53 | 0 | 2015.62 |
+| `Trim`      | 1333.33 | 0 | 2019.53 |
+| `Substring` | 779.3 | 0 | 779.3 |
+
+Память, выделенная (МБ):
+
+| Категория  | String | Span | Span + Аллокация |
+| ----------- | ------ | ---- | ---------------- |
+| `Contains`  | 0.00 | 0.00 | - |
+| `StartsWith`| 0.00 | 0.00 | - |
+| `IndexOf`   | 0.00 | 0.00 | - |
+| `Split`     | 53.53 | 0.00 | - |
+| `Replace`   | 24.18 | 0.00 | 24.18 |
+| `ToLower`   | 24.18 | 0.00 | 24.18 |
+| `Trim`      | 0.00 | 0.00 | 24.17 |
+| `Substring` | 9.33 | 0.00 | 9.33 |

@@ -1,0 +1,265 @@
+---
+title: 'Пулы объектов в C#: примеры, устройство и производительность'
+description: 'Анализ производительности и внутреннего устройства паттерна Object Pool в C#'
+pubDate: 'Dec 09 2024'
+cover: 'cover.jpg'
+tags:
+  [
+    'C#',
+    'ObjectPool',
+    'Паттерны проектирования',
+    'Производительность',
+    'Алгоритмы',
+  ]
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import cover from './cover.jpg'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+import image05 from './image05.png'
+import image06 from './image06.png'
+import image07 from './image07.png'
+import image08 from './image08.png'
+
+Пул объектов (Object Pool) — это паттерн, который позволяет повторно использовать объекты вместо создания новых. Это может быть полезно в ситуациях, когда инициализация объектов затратна. Паттерн широко применяется в разработке игр и приложениях, где важно минимизировать использование памяти. В этой статье мы рассмотрим, как этот шаблон реализован в C#, и как он может улучшить производительность.
+
+_Эта статья подготовлена в рамках [C# Advent 2024](https://www.csadvent.christmas/)._
+
+## Дисклеймер
+
+Результаты бенчмарков в этой статье очень условны и верны только при определённых условиях. Допускаю, что бенчмарк может показать другие результаты на другом ПК, с другим ЦП, с другим компилятором или при другом сценарии использования рассматриваемого функционала языка. Всегда проверяйте ваш код на конкретно вашем железе и не полагайтесь лишь на статьи из интернета.
+
+Исходный код бенчмарков и сырые данные результатов можно найти в [этом репозитории](https://github.com/alexeyfv/object-pool).
+
+## Что такое пул объектов?
+
+[Пул объектов](https://en.wikipedia.org/wiki/Object_pool_pattern) (Object Pool) — это паттерн, который позволяет повторно использовать объекты вместо создания новых. Это может быть полезно в ситуациях, когда инициализация объектов затратна. Использование пула состоит из следующих шагов:
+
+1. Получение объекта из пула.
+2. Использование объекта.
+3. Возврат объекта в пул.
+4. [Опционально] Пул объектов может сбрасывать состояние объекта при его возврате.
+
+Псевдокод использования пула объектов выглядит следующим образом:
+
+```cs
+var obj = objectPool.Get();
+
+try
+{
+    // выполняем какую-нибудь работу с obj
+}
+finally
+{
+    objectPool.Return(obj, reset: true);
+}
+```
+
+Пулы объектов широко используется в разработке игр и приложениях, где важно минимизировать использование памяти.
+
+<Image src={image01} alt="Пример поиска Object Pool на GitHub" />
+<strong style="text-align: center;">Пример поиска Object Pool на GitHub</strong>
+
+В .NET есть несколько классов, реализующих пул объектов:
+
+- [ObjectPool](https://learn.microsoft.com/en-us/aspnet/core/performance/objectpool) — универсальный пул объектов.
+- [ArrayPool](https://learn.microsoft.com/en-us/dotnet/api/system.buffers.arraypool-1) — класс, предназначенный специально для массивов.
+
+## Класс ObjectPool
+
+Класс `ObjectPool` по умолчанию доступен только в приложениях ASP.NET Core. Его исходный код можно найти [здесь](https://github.com/dotnet/aspnetcore/tree/eb68e016a554b4da50d7fb0aeffe897cfabf36c7/src/ObjectPool/src). Для других C# приложений необходимо установить пакет [Microsoft.Extensions.ObjectPool](https://www.nuget.org/packages/Microsoft.Extensions.ObjectPool/).
+
+Чтобы использовать пул, нужно вызвать метод `Create<T>` из статического класса `ObjectPool`:
+
+```cs
+var pool = ObjectPool.Create<SomeType>();
+var obj = pool.Get();
+```
+
+При помощи интерфейса `IPooledObjectPolicy` можно контролировать, как объекты создаются и возвращаются. Например, для `List<int>`, можно определить следующую политику:
+
+```cs
+public class ListPolicy : IPooledObjectPolicy<List<int>>
+{
+    public List<int> Create() => [];
+
+    public bool Return(List<int> obj)
+    {
+        obj.Clear(); // чистим список перед возвратом
+        return true;
+    }
+}
+```
+
+Теперь посмотрим, как класс `ObjectPool` работает внутри.
+
+### Что под капотом
+
+Пул состоит из одного поля `_fastItem` и потокобезопасной очереди `items`.
+
+<Image src={image02} alt="Внутреннее устройство ObjectPool<T>" />
+<strong style="text-align: center;">
+Внутреннее устройство ObjectPool\<T\>
+</strong>
+
+Получение объекта из пула [работает следующим образом](https://github.com/dotnet/aspnetcore/blob/main/src/ObjectPool/src/DefaultObjectPool.cs#L48):
+
+1. Алгоритм проверяет, не равен ли `_fastItem` `null` и может ли текущий поток использовать его значение. Потокобезопасность этой операции обеспечивается при помощи `Interlocked.CompareExchange`.
+
+2. Если `_fastItem` равен `null` или уже используется другим потоком, алгоритм пытается извлечь объект из `_items`.
+
+3. Если получить значение и из `_fastItem`, и из очереди не получилось, создается новый объект с помощью фабричного метода.
+
+Возврат объекта в пул [происходит противоположным образом:](https://github.com/dotnet/aspnetcore/blob/main/src/ObjectPool/src/DefaultObjectPool.cs#L76):
+
+1. Алгоритм проверяет, проходит ли объект валидацию с помощью `_returnFunc`. Если нет, это означает, что объект может быть проигнорирован. Это регулируется интерфесом [IPooledObjectPolicy](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.objectpool.ipooledobjectpolicy-1?view=net-9.0-pp).
+
+2. Если `_fastItem` равен `null`, объект сохраняется там при помощи `Interlocked.CompareExchange`.
+
+3. Если `_fastItem` уже используется, объект добавляется в `ConcurrentQueue`, но только если размер очереди не превышает максимальное значение.
+
+4. Если пул переполнен, то объект никуда не сохраняется.
+
+### Производительность
+
+Чтобы протестировать, как` ObjectPool<T>` влияет на производительность, созданы [два бенчмарка](https://github.com/alexeyfv/object-pool/blob/main/ObjectPoolBenchmark.cs):
+
+- без пула объектов (создаётся новый список для каждой операции);
+- с пулом объектов.
+
+Каждый бенчмарк выполняет следующие шаги в цикле:
+
+1. Создаёт новый список или получает из пула.
+2. Добавляет значения в список.
+3. Возвращает список в пул (если используется пул).
+
+Бенчмарки повторяют этот процесс 100 раз для каждого потока. Количество потоков варьируется от 1 до 32. Размер списка варьируется от 10 до 1 000 000 элементов.
+
+[Результаты](https://github.com/alexeyfv/object-pool/tree/main/BenchmarkDotNet.Artifacts/results) показаны на диаграмме ниже. Шкала оси x логарифмическая. Ось y показывает процентное отклонение по сравнению с бенчмарком без пула объектов.
+
+<Image src={image03} alt="Результаты бенчмарка ObjectPool<T>. Разница в процентах." />
+<strong style="text-align: center;">
+Результаты ObjectPool\<T\>. Разница в процентах.
+</strong>
+
+Из результатов видно, что использование `ObjectPool` в однопоточном сценарии быстрее на 10% – 50% по сравнению с созданием нового списка для каждой итерации. При многопоточном доступе к пулу и работе с относительно маленькими объектами, результаты `ObjectPool` хуже. Это, вероятно, связано с задержкой при синхронизации потоков во время доступа к `_fastItem` и `ConcurrentQueue`.
+
+<Image src={image04} alt="Результаты бенчмарка ObjectPool<T>. Абсолютные значения." />
+<strong style="text-align: center;">
+Результаты ObjectPool\<T\>. Абсолютные значения.
+</strong>
+
+## Класс ArrayPool
+
+`ArrayPool<T>` — это класс, доступный в любом C# приложении. Класс находится в пространстве имён `System.Buffers`. Его исходный код можно найти [здесь](https://github.com/dotnet/runtime/tree/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers). `ArrayPool` – это абстрактный класс с двумя реализациями: [SharedArrayPool](https://github.com/dotnet/runtime/blob/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers/SharedArrayPool.cs) и [ConfigurableArrayPool](https://github.com/dotnet/runtime/blob/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers/ConfigurableArrayPool.cs).
+
+Использовать `ArrayPool<T>` так же просто, как и `ObjectPool`. Пример с `SharedArrayPool` ниже:
+
+```cs
+var pool = ArrayPool<int>.Shared;
+var buffer = pool.Rent(10);
+
+try
+{
+    // работа с массивом
+}
+finally
+{
+    pool.Return(buffer, clear: true);
+}
+```
+
+При помощи статического метода `Create` можно настроить пул. В таком случае будет использована реализация `ConfigurableArrayPool`.
+
+```cs
+var pool = ArrayPool<int>.Create(
+    maxArrayLength: 1000,
+    maxArraysPerBucket: 20);
+```
+
+Этот метод позволяет указать максимальную длину массива и максимальное количество массивов в каждом бакете (о бакетах мы поговорим позже). По умолчанию эти значения равны 2^20 и 2^50 соответственно.
+
+**Важно отметить, что размер возвращаемого массива будет не меньше запрашиваемого размера, но он может быть больше**:
+
+```cs
+using System.Buffers;
+
+var (pow, cnt) = (4, 0);
+while (pow <= 30)
+{
+    var x = (1 << pow) - 1;
+    var arr = ArrayPool<int>.Shared.Rent(x);
+    Console.WriteLine(
+        "Renting #{0}. Requested size: {1}. Actual size: {2}.", 
+        ++cnt, x, arr.Length);
+    pow++;
+}
+
+// Renting #1. Requested size: 15. Actual size: 16.
+// Renting #2. Requested size: 31. Actual size: 32.
+// Renting #3. Requested size: 63. Actual size: 64.
+// ...
+// Renting #26. Requested size: 536870911. Actual size: 536870912.
+// Renting #27. Requested size: 1073741823. Actual size: 1073741824.
+```
+
+### Что под капотом
+
+Как уже упоминалось, `ArrayPool<T>` имеет две реализации. Рассмотрим их отдельно.
+
+#### Класс SharedArrayPool
+
+`SharedArrayPool` имеет двухуровневый кэш:
+
+1. Кэш для каждого потока (per-thread cache).
+2. Общий кэш.
+
+Кэш для каждого потока реализован как приватное статическое поле `t_tlsBuckets`, которое по сути является массивом массивов. У каждого потока своя собственная копия `t_tlsBuckets` благодаря [Thread Local Storage](https://en.wikipedia.org/wiki/Thread-local_storage) (TLS). В C# для этого используется атрибут [ThreadStaticAttribute](https://learn.microsoft.com/en-us/dotnet/api/system.threadstaticattribute?view=net-8.0). Использование TLS позволяет каждому потоку иметь свой небольшой кэш для различных размеров массивов, от 2^4 до 2^30 (всего 27 бакетов).
+
+При попытке получить массив из пула, алгоритм сначала пытается получить его из поля `t_tlsBuckets`. Если массив требуемого размера не найден в `t_tlsBuckets`, проверяется общий кэш в поле `_buckets`. Этот общий кэш представляет собой массив объектов `Partitions`, по одному для каждого допустимого размера бакетов. Каждый объект `Partitions` содержит массив объектов `Partition`, где `N` — это количество процессоров. Каждый объект `Partition` работает как стек, который может содержать до 32 массивов. Да, это звучит мудрёно, поэтому смотрим диаграмму ниже.
+
+<Image src={image05} alt="Внутреннее устройство SharedArrayPool<T>" />
+<strong style="text-align: center;">
+Внутреннее устройство SharedArrayPool\<T\>
+</strong>
+
+Когда массив возвращается в пул, алгоритм пытается сохранить его в кэше 1 уровня. Если `t_tlsBuckets` уже содержит массив того же размера, существующий массив из `t_tlsBuckets` помещается в общий кэш, а новый массив сохраняется в `t_tlsBuckets` для лучшей производительности (для лучшей локальности кэша процессора). Если стек в `Partition` текущего ядра переполнен, алгоритм ищет свободное место в стеках в `Partition` других ядер. Если все стеки переполнены, массив игнорируется.
+
+#### Класс ConfigurableArrayPool
+
+`ConfigurableArrayPool` устроен проще, чем `SharedArrayPool`. У него есть только одно приватное поле `_buckets`. Это поле является массивом объектов `Bucket`, где каждый Bucket представляет собой коллекцию массивов (смотрите диаграмму ниже). Поскольку поле `_buckets` используется всеми потоками, каждый `Bucket` [использует](https://github.com/dotnet/runtime/blob/234e2f7ec5dd315014f31574719900c0715f9477/src/libraries/System.Private.CoreLib/src/System/Buffers/ConfigurableArrayPool.cs#L191) SpinLock для обеспечения потокобезопасного доступа.
+
+<Image src={image06} alt="Внутреннее устройство ConfigurableArrayPool<T>" />
+<strong style="text-align: center;">
+Внутреннее устройство ConfigurableArrayPool\<T\>
+</strong>
+
+### Производительность
+
+[Бенчмарки](https://github.com/alexeyfv/object-pool/blob/main/ArrayPoolBenchmark.cs) для `ArrayPool<T>` похожи на бенчмарки для `ObjectPool<T>`:
+
+- без использования пула (создаётся новый массив для каждой операции);
+- с общим пулом (`SharedArrayPool`);
+- с настраиваемым пулом (`ConfigurableArrayPool`).
+
+<Image src={image07} alt="Результаты бенчмарка ArrayPool<T>. Разница в процентах." />
+<strong style="text-align: center;">
+Результаты ArrayPool\<T\>. Разница в процентах.
+</strong>
+
+Как видно из результатов, `SharedArrayPool` работает быстрее почти во всех случаях, особенно в сценариях с несколькими потоками. Единственное исключение — это когда размер массива равен 10.
+
+Противоположная ситуация наблюдается с `ConfigurableArrayPool`. Производительность в многопоточном сценарии и при работе с относительно небольшими массивами хуже. Думаю, что причина та же, что и у `ObjectPool<T>`: задержкой при синхронизации потоков во время доступа к массивам внутри `Bucket`.
+
+<Image src={image08} alt="Результаты бенчмарка ArrayPool<T>. Абсолютные значения." />
+<strong style="text-align: center;">
+Результаты ArrayPool\<T\>. Абсолютные значения.
+</strong>
+
+## Выводы
+
+`ObjectPool` и `ArrayPool` могут улучшить производительность если создание объектов затратно и их переиспользование возможно. Но нужно быть осторожным, т.к. механизмы синхронизации могут ухудшить производительность, особенно, если пулы используются для относительно небольших объектов.

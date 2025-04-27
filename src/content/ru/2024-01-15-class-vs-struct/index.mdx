@@ -1,0 +1,133 @@
+---
+title: 'Правило 16 байт: Производительность структур в C#'
+description: 'Подробный разбор различий в производительности структур и классов в C#'
+pubDate: 'Jan 15 2024'
+tags: ['C#', 'Производительность']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import performanceGraph from './image1.png'
+import structurePerformance from './image2.png'
+import ilCode from './image3.png'
+import jitCompiler from './image4.png'
+import memoryUsage from './image5.png'
+
+Многие разработчики на C# знают: при передаче или возврате из метода экземпляр типа-значения (структуры) копируется, а экземпляр ссылочного типа (класса) передаётся по ссылке. Отсюда пошло мнение, что использование структур может ухудшать производительность приложения, особенно если размер структуры больше 16 байт. Споры об этом [идут до сих пор](https://www.reddit.com/r/csharp/comments/yhsjjf/only_use_structs_if_they_are_under_16_bytes_but/). В этой статье попробуем разобраться.
+
+## Дисклеймер
+
+Всё, что написано ниже, справедливо только при определённых условиях. На другом процессоре или с другими структурами результаты могут отличаться. Проверяйте **свой код** на **своём железе** и не полагайтесь только на статьи из интернета. :)
+
+## Бенчмарк
+
+Бенчмарк простой: создаются структуры и классы размерами от 4 до 160 байт с шагом 4 байта (один int).
+
+```cs
+public record struct Struct04(int Param);
+
+// другие структуры
+
+public record struct Struct160(
+int Param1, int Param2, ..., int Param40);
+
+public record class Class04(int Param);
+
+// другие классы
+
+public record class Class160(
+int Param1, int Param2, ..., int Param40);
+```
+
+Для каждой структуры и класса есть метод, который создаёт экземпляр из одного значения `int`:
+
+```cs
+// другие методы
+
+public static Struct20 GetStruct20(int value) => new(value, value, value, value, value);
+
+// другие методы
+
+public static Class20 GetClass20(int value) => new(value, value, value, value, value);
+
+// другие методы
+```
+
+И методы бенчмарка создают списки из 1000 структур или классов:
+
+```cs
+public int Iterations { get; set; } = 1000;
+
+private static void Add<T>(List<T> list, T value) => list.Add(value);
+
+[Benchmark(Baseline = true)]
+public List<Struct04> GetStruct4()
+{
+    var list = new List<Struct04>(Iterations);
+    for (int i = 0; i < Iterations; i++) Add(list, GetStruct04(i));
+    return list;
+}
+
+// другие методы
+
+[Benchmark(Baseline = true)]
+public List<Class04> GetClass4()
+{
+    var list = new List<Class04>(Iterations);
+    for (int i = 0; i < Iterations; i++) Add(list, GetClass04(i));
+    return list;
+}
+
+// другие методы
+```
+
+Для тестов использовалась библиотека [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet). Весь код можно найти [здесь](https://github.com/alexeyfv/class-vs-struct).
+
+## Результаты
+
+### Измерение времени
+
+График показывает, что структуры работают быстрее, пока их размер не превышает 64 байта.
+
+<Image
+  src={performanceGraph}
+  alt="График производительности: структуры против классов"
+/>
+
+Если увеличить масштаб для размеров до 64 байт, видно, что структуры могут быть быстрее классов на 40–70%.
+
+<Image
+  src={structurePerformance}
+  alt="Детальное сравнение производительности для структур до 64 байт"
+/>
+
+Чтобы понять, почему так происходит, нужно посмотреть на скомпилированный код. Например, методы `GetStruct64` и `GetStruct128` компилируются в [одинаковый IL-код](https://sharplab.io/#gist:d1ddca6000c43cd364b84c894ce74528).
+
+<Image
+  src={ilCode}
+  alt="Сравнение IL-кода: одинаковая компиляция"
+/>
+
+Это значит, что стоит посмотреть ещё глубже — на ассемблерный код, сгенерированный JIT-компилятором. К счастью, BenchmarkDotNet [позволяет это сделать](https://benchmarkdotnet.org/articles/features/disassembler.html).
+
+При сравнении видно, что метод `GetStruct64(int value)` не вызывается. Вместо этого в коде много операций `mov`, которые просто переносят данные в регистры и память — именно так создаётся `Struct64`. Это результат оптимизации **встраивания метода** (**method inlining**).
+
+<Image
+  src={jitCompiler}
+  alt="Оптимизация JIT: вместо вызова метода — mov операции"
+/>
+
+Ещё одно наблюдение: **структуры не аллоцируются в стеке**. Компилятор настолько оптимизирует код, что данные хранятся только в регистрах, даже для структур больше 128 байт (благодаря [AVX-регистрам 256 бит](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions)).
+
+### Измерение памяти
+
+График использования памяти показывает плавную зависимость без резких скачков. Это значит, что разница в потреблении памяти между структурами и классами остаётся постоянной. Для структур до 64 байт экономия памяти составляет от 27% до 87%.
+
+<Image
+  src={memoryUsage}
+  alt="Сравнение использования памяти: структуры против классов"
+/>
+
+## Вывод
+
+Эта статья показала, что использование структур не всегда ухудшает производительность. JIT-компилятор достаточно умен, чтобы оптимизировать код на лету. Структуры до 64 байт работают эффективнее классов как по скорости, так и по памяти.

@@ -1,0 +1,86 @@
+---
+title: 'Утиная типизация в C#'
+description: 'Примеры утиной типизации в C#'
+pubDate: 'Mar 29 2025'
+cover: 'cover.png'
+tags: ['C#']
+lang: 'ru'
+---
+
+Думаю, опытные C#-разработчики знают ответ на вопрос: «Что нужно сделать, чтобы можно было перечислить объекты при помощи foreach?»
+
+Для этого не обязательно наследовать класс от интерфейса `IEnumerable`. Достаточно, чтобы класс имел публичный метод `GetEnumerator`, который возвращает объект, реализующий `IEnumerator`.
+
+```csharp
+// Этот код компилируется
+var obj = new MyType();
+foreach (var item in obj);
+
+class MyType {
+    public IEnumerator GetEnumerator() {
+        throw new Exception();
+    }
+}
+```
+
+Такое поведение иногда называют утиной типизацией — компилятору неважно, реализует ли класс интерфейс `IEnumerable` или нет. Главное, чтобы в нём был метод, возвращающий перечислитель.
+
+Аналогичное поведение встречается и при работе с async-await. Чтобы «ожидать» тип, достаточно, чтобы у него был метод `GetAwaiter()`, возвращающий тип `TaskAwaiter` или `ValueTaskAwaiter`. При этом даже не обязательно, чтобы этот метод был внутри самого ожидаемого типа.
+
+```csharp
+// Этот код тоже компилируется
+var obj = new MyType();
+await obj;
+
+class MyType {
+}
+
+static class MyTypeExtensions {
+    public static TaskAwaiter GetAwaiter(this MyType @object) {
+        throw new Exception();
+    }
+}
+```
+
+Недавно я наткнулся на ещё один случай, который можно считать примером утиной типизации. Начиная с версии 12, в C# появился упрощённый способ инициализации коллекций:
+
+```csharp
+int[] array = [1, 2, 3, 4, 5];
+List<int> list = [1, 2, 3, 4, 5];
+```
+
+Этот лаконичный синтаксис работает не со всеми коллекциями. Например, следующий код не скомпилируется:
+
+```csharp
+Queue<int> queue = [1, 2, 3, 4, 5];
+Stack<int> stack = [1, 2, 3, 4, 5];
+```
+
+Компилятор ожидает, что у типа коллекции будет метод `Add`, но в `Queue` вместо него используется `Enqueue`, а в `Stack` — `Push`. Изменить эти типы мы не можем, поэтому можно сделать следующий финт и помочь компилятору обнаружить метод `Add`:
+
+```csharp
+public static class CollectionExtensions {
+
+    public static void Add<T>(this Queue<T> collection, T item) =>
+        collection.Enqueue(item);
+
+    public static void Add<T>(this Stack<T> collection, T item) =>
+        collection.Push(item);
+}
+```
+
+Упрощённая инициализация работает и с кастомными коллекциями, при условии, что для них есть соответствующий метод `Add` — неважно, внутри типа или в методе-расширении.
+
+```csharp
+MyType collection = [1, 2, 3];
+
+class MyType : IEnumerable {
+    public IEnumerator GetEnumerator() {
+        throw new Exception();
+    }
+}
+
+static class MyTypeExtensions {
+    public static void Add(this MyType o, int value) { }
+}
+```

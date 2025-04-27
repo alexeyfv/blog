@@ -1,0 +1,189 @@
+---
+title: 'Cтратегия отображения типов и производительность EF'
+description: 'Сравнение производительности различных стратегий отображения типов в Entity Framework для SQL Server'
+pubDate: 'Feb 25 2023'
+cover: 'cover.png'
+tags: ['Performance', 'C#', 'Entity Framework', 'SQL Server']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import diagramTph from './diagram-tph.png'
+import diagramTpc from './diagram-tpc.png'
+import diagramTpt from './diagram-tpt.png'
+import diagramTphJson from './diagram-tphjson.png'
+import tphTphJsonInsert from './tph-vs-tphjson-insert.png'
+import tphTphJsonInsertRatioEntities from './tph-vs-tphjson-insert-ratio-entities.png'
+import tphTphJsonInsertRatioProps from './tph-vs-tphjson-insert-ratio-props.png'
+import tphTphJsonSelect from './tph-vs-tphjson-select.png'
+import tphTphJsonSelectRatioEntities from './tph-vs-tphjson-select-ratio-entities.png'
+import tphTphJsonSelectRatioProps from './tph-vs-tphjson-select-ratio-props.png'
+import mappingStrategiesInsertRatio from './mapping-strategies-insert-ratio-entities.png'
+import mappingStrategiesSelectRatio from './mapping-strategies-select-ratio-entities.png'
+
+Entity Framework (EF) — это популярный ORM-фреймворк для работы с базами данных в .NET-приложениях. EF поддерживает разные стратегии отображения сущностей, каждая из которых влияет на схему базы данных и взаимодействие EF с иерархией типов .NET. В этой статье мы рассмотрим, как эти стратегии влияют на производительность в SQL Server.
+
+## Стратегии отображения в Entity Framework
+
+В официальной документации Microsoft [описаны](https://learn.microsoft.com/en-us/ef/core/modeling/inheritance) три стратегии:
+
+- Table-per-hierarchy (TPH);
+- Table-per-class (TPC);
+- Table-per-type (TPT).
+
+Из моего опыта существует ещё одна стратегия, которую я называю `TPH с JSON`. Суть её в том, что свойства дочерних классов сериализуются в JSON и сохраняются в одну колонку.
+
+Рассмотрим следующую иерархию:
+
+```csharp
+public class Root { }
+
+public class ChildA : Root { }
+
+public class ChildB : Root { }
+
+public class ChildC : Root { }
+```
+
+Схемы баз данных для этой иерархии будут следующими:
+
+| TPH                                            | TPC                                            | TPT                                            | TPH с JSON                                                |
+| ---------------------------------------------- | ---------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| <Image src={diagramTph} alt="Диаграмма TPH" /> | <Image src={diagramTpc} alt="Диаграмма TPC" /> | <Image src={diagramTpt} alt="Диаграмма TPT" /> | <Image src={diagramTphJson} alt="Диаграмма TPH с JSON" /> |
+
+Описание:
+
+- В `TPH` все свойства всех сущностей находятся в одной таблице.
+- В `TPC` дочерние таблицы не связаны с родительской таблицей.
+- В `TPT` дочерние таблицы содержат только специфичные для типа столбцы и связаны с родительской.
+- В `TPH с JSON` все специфичные свойства упакованы в одну колонку `Payload`, а тип хранится в колонке `PayloadType`.
+
+Теперь посмотрим, как это влияет на производительность.
+
+## Бенчмарк
+
+В проекте бенчмарка есть [4 экземпляра](https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Contexts/Contexts.cs) `DbContext`, по одному для каждой стратегии. `TPH`, `TPC`, `TPT` стандартные. Для `TPH с JSON` требуется [дополнительный обёрточный класс](https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Models/Models.cs):
+
+```csharp
+public class RootWrapper : Root
+{
+    public string Payload { get; set; } = string.Empty;
+
+    [NotMapped]
+    public Root OriginalEntity { get; set; }
+
+    public PayloadTypes PayloadType { get; set; }
+
+    public enum PayloadTypes
+    {
+        Root,
+        ChildA,
+        ChildB,
+        ChildC,
+    }
+}
+```
+
+Для генерации тестовых данных использовалась библиотека [`Bogus`](https://www.nuget.org/packages/Bogus), для замеров — [`BenchmarkDotNet`](https://www.nuget.org/packages/BenchmarkDotNet).
+
+Проводились два теста: на [`INSERT`](https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Benchmarks/Default/InsertBenchmark.cs) и [`SELECT`](https://github.com/alexeyfv/ef-inheritance/blob/master/src/Demo/Benchmarks/Default/SelectBenchmark.cs) данных.
+
+### Результаты
+
+Вот [результаты](https://github.com/alexeyfv/ef-inheritance/tree/master/src/Demo/BenchmarkDotNet.Artifacts). Как видно:
+
+- `TPT` показывает худшие результаты для `SELECT` и `INSERT`.
+- `TPC` чуть быстрее при выборке, но медленнее при вставке по сравнению с `TPH`.
+- `TPH с JSON` показал лучшую производительность.
+
+<Image
+  src={mappingStrategiesInsertRatio}
+  alt="Время выполнения вставки данных"
+/>
+<strong style="text-align: center;">
+  Рисунок 1 — Время выполнения вставки данных
+</strong>
+
+<Image
+  src={mappingStrategiesSelectRatio}
+  alt="Время выполнения выборки данных"
+/>
+<strong style="text-align: center;">
+  Рисунок 2 — Время выполнения выборки данных
+</strong>
+
+## TPH против TPH с JSON
+
+Чтобы разобраться, почему `TPH с JSON` быстрее `TPH`, я провёл дополнительный бенчмарк: разные сущности содержали от 3 до 21 свойства.
+
+<Image
+  src={tphTphJsonInsert}
+  alt="Влияние количества свойств и сущностей на время вставки"
+/>
+<strong style="text-align: center;">
+  Рисунок 3 — Влияние количества свойств и сущностей на время вставки
+</strong>
+
+<Image
+  src={tphTphJsonInsertRatioEntities}
+  alt="Отношение времени вставки TPH к TPH с JSON по количеству сущностей"
+/>
+<strong style="text-align: center;">
+  Рисунок 4 — Отношение времени вставки TPH к TPH с JSON по количеству сущностей
+</strong>
+
+<Image
+  src={tphTphJsonInsertRatioProps}
+  alt="Отношение времени вставки TPH к TPH с JSON по количеству свойств"
+/>
+<strong style="text-align: center;">
+  Рисунок 5 — Отношение времени вставки TPH к TPH с JSON по количеству свойств
+</strong>
+
+Причины ухудшения производительности `TPH`:
+
+1. EF Core создаёт отдельный `INSERT` для каждого типа.
+2. EF Core создаёт параметр для каждого свойства.
+
+Для `TPH с JSON` создаётся один `INSERT`, а количество параметров в 4 раза меньше.
+
+### Выборка данных
+
+Для выборки (`SELECT`) ситуация чуть иная:
+
+<Image
+  src={tphTphJsonSelect}
+  alt="Влияние количества свойств и сущностей на время выборки"
+/>
+<strong style="text-align: center;">
+  Рисунок 6 — Влияние количества свойств и сущностей на время выборки
+</strong>
+
+<Image
+  src={tphTphJsonSelectRatioEntities}
+  alt="Отношение времени выборки TPH к TPH с JSON по количеству сущностей"
+/>
+<strong style="text-align: center;">
+  Рисунок 7 — Отношение времени выборки TPH к TPH с JSON по количеству сущностей
+</strong>
+
+<Image
+  src={tphTphJsonSelectRatioProps}
+  alt="Отношение времени выборки TPH к TPH с JSON по количеству свойств"
+/>
+<strong style="text-align: center;">
+  Рисунок 8 — Отношение времени выборки TPH к TPH с JSON по количеству свойств
+</strong>
+
+Если свойств меньше 8, `TPH с JSON` быстрее, если больше — выигрывает обычный `TPH`.
+
+## Вывод
+
+Результаты можно свести в таблицу:
+
+| Место | Стратегия    | Плюсы                                                     | Минусы                                                    |
+| ----- | ------------ | --------------------------------------------------------- | --------------------------------------------------------- |
+| 1     | `TPH с JSON` | Лучшая производительность почти во всех случаях           | Требует дополнительного кода, индексирования JSON         |
+| 1     | `TPH`        | Стандартная стратегия EF Core, хорошая производительность | Ухудшение производительности при большом количестве типов |
+| 2     | `TPC`        | Чуть лучше при вставке данных                             | Чуть хуже при выборке данных                              |
+| 3     | `TPT`        | ???                                                       | Худшая производительность                                 |

@@ -1,0 +1,65 @@
+---
+title: 'Как вызвать Program.Main с top-level statements'
+description: 'Как вызвать метод Main в C# с использованием top-level statements'
+pubDate: 'Aug 10 2023'
+tags: ['C#']
+lang: 'ru'
+---
+
+В последнее время я пишу много сервисов, использующих [top-level statements](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/top-level-statements). Такой синтаксический сахар упрощает метод `Main` и делает код читаемее. Но, с другой стороны, это усложняет написание интеграционных тестов для таких сервисов. Просто так вызвать метод `Main` и передать ему аргументы не получится.
+
+Начиная с версии C# 9, благодаря поддержке top-level statements больше не нужно писать код в стиле Java `public static void Main(string[] args)`. Теперь код
+
+```cs
+using System;
+
+namespace Application
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            Console.WriteLine($"args: {string.Join(",", args)}");
+        }
+    }
+}
+```
+
+можно заменить на одну строку:
+
+```cs
+System.Console.WriteLine($"args: {string.Join(",", args)}");
+```
+
+Но как передать аргументы в такой код? По умолчанию компилятор C# преобразует его в [следующий код](https://sharplab.io/#v2:D4AQTAjAsAULIQJwAoAkAiAhgJwOYGcAuAAgG8EAGAOgCkB7ASwDtl0Aad4nAgSgF90PANywgA==):
+
+```cs
+internal class Program
+{
+    private static void <Main>$(string[] args)
+    {
+        Console.WriteLine(string.Concat("args: ", string.Join(",", args)));
+    }
+}
+```
+
+Класс становится `internal`, а метод — `private`. Нельзя напрямую вызвать метод `<Main>`, особенно из другой сборки. Что можно сделать?
+
+Во-первых, нужно объявить класс `Program` как `public partial`. Это сделает его видимым для внешнего кода. Если изменить код нельзя, можно загрузить тип из сборки через [Assembly.GetType](https://learn.microsoft.com/en-us/dotnet/api/system.reflection.assembly.gettype).
+
+```cs
+System.Console.WriteLine($"args: {string.Join(",", args)}");
+
+public partial class Program { }
+```
+
+Теперь класс `Program` [становится видимым](https://sharplab.io/#v2:D4AQTAjAsAULIQJwAoAkAiAhgJwOYGcAuAAgG8EAGAOgCkB7ASwDtl0Aad4nAgSgF90PANyx4AZmIAHHABcGmADbFwyiAHYyxPrCA===) для других сборок, но метод `<Main>` всё ещё `private`. С помощью рефлексии можно найти метод в списке `DeclaredMethods` и вызвать его через `Invoke`:
+
+```cs
+var typeInfo = typeof(Program) as TypeInfo ?? throw new InvalidOperationException();
+var main = typeInfo.DeclaredMethods.First(m => m.Name == "<Main>");
+var args = new[] { "arg1", "arg2" };
+main.Invoke(null, new object[] { args });
+```
+
+Вот и всё. Рефлексия даёт мощный инструмент для написания тестов к программам с top-level кодом.
