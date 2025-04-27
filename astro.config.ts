@@ -61,7 +61,7 @@ export default defineConfig({
       status: 308,
     },
     'https://www.alexeyfv.xyz/2022/05/08/fsharp-02.html': {
-      destination: '/ru/post/2022-05-01-fsharp-01',
+      destination: '/ru/post/2022-05-08-fsharp-02',
       status: 308,
     },
     '/2022/07/14/how-to-create-blog.html': {
