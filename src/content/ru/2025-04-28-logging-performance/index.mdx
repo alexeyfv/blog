@@ -1,0 +1,211 @@
+---
+title: 'Влияние логирования в C# на производительность'
+description: 'Как логирование в C# влияет на производительность приложения. Сравнение интерполяции строк, шаблонов и LoggerMessageAttribute.'
+pubDate: 'Apr 28 2025'
+tags: ['C#', 'Performance', 'Logging']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import image1 from './image1.png'
+import image2 from './image2.png'
+import image3 from './image3.png'
+import image4 from './image4.png'
+
+## Логирование с интерполяцией строк
+
+Если вы писали такой код:
+
+```cs
+// CA2254: The logging message template
+// should not vary between calls
+logger.LogDebug($"Request Id: {id} finished with Error: {error}");
+```
+
+...то, скорее всего замечали, что IDE настойчиво рекомендовала так больше не делать.
+
+Почему? Потому что интерполированные строки — это синтаксический сахар.  
+После компиляции код будет выглядеть так:
+
+```cs
+var handler = new DefaultInterpolatedStringHandler(34, 2);
+handler.AppendLiteral("Request Id: ");
+handler.AppendFormatted(value);
+handler.AppendLiteral(" finished with Error: ");
+handler.AppendFormatted(value2);
+string text = handler.ToStringAndClear();
+logger.LogDebug(text);
+```
+
+Проблема здесь в том, что строка `text` создаётся всегда, даже если уровень логирования выше Debug и сообщение в лог не попадёт.
+
+## Логирование с шаблонами
+
+Более правильный вариант логирования выглядит так:
+
+```
+logger.LogDebug("Request Id: {Id} finished with Error: {Error}", Id, Error);
+```
+
+В этом случае строковый шаблон `Request Id: {Id} finished with Error: {Error}` не будет использоваться, если, например, минимальный уровень логирования Information.
+
+Лишних аллокаций удастся избежать… так я думал, пока не написал [бенчмарки](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/Logging) и не проверил результаты.
+
+## Делаем замеры производительности
+
+Если сделать профилирование памяти, видно, что в обоих случаях размер Gen0 растёт. При использовании шаблонов память выделяется действительно меньше, но аллокации всё равно происходят.
+
+<Image
+  src={image1}
+  alt="Профилирование памяти при использовании интерполированных строк"
+/>
+<strong style="text-align: center;">
+  Профилирование памяти при использовании интерполированных строк
+</strong>
+
+<Image src={image2} alt="Профилирование памяти при использовании шаблонов" />
+<strong style="text-align: center;">
+  Профилирование памяти при использовании шаблонов
+</strong>
+
+И это происходит даже если текущий уровень логирования — `Information`, а вызывается `LogDebug`.
+
+Причин этому несколько.
+
+## Использование params object[]
+
+Методы расширения из `LoggerExtensions` принимают `params object[]`. Поэтому, на каждый вызов методов логирования будет создан новый массив
+
+```cs
+// Исходный код
+logger.LogDebug("Integers: {i1}, {i2}, {i3}", 1, 2, 3);
+
+// Код после компиляции
+object[] array = new object[3];
+array[0] = 1;
+array[1] = 2;
+array[2] = 3;
+logger.LogDebug("Integers: {i1}, {i2}, {i3}", array);
+```
+
+Если логируются значимые типы (`int`, `bool`, `struct`), происходит упаковка (boxing), что приводит к дополнительным аллокациям.
+
+## Скрытые аллокации в классе Logger
+
+Методы `LogDebug`, `LogInformation`, `LogError` и другие, внутри вызывают [метод Log](https://github.com/dotnet/runtime/blob/143bd05597043509045a01d5e47533b8cbdec7ec/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/LoggerExtensions.cs#L486), в котором создаётся [структура FormattedLogValues](https://github.com/dotnet/runtime/blob/42fec5761b71383e97981ce2932c6962d83747e4/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/FormattedLogValues.cs#L16):
+
+```cs
+public static void Log(this ILogger logger, LogLevel logLevel, EventId eventId, Exception? exception, string? message, params object?[] args)
+{
+    ArgumentNullException.ThrowIfNull(logger);
+
+    logger.Log(logLevel, eventId, new FormattedLogValues(message, args), exception, _messageFormatter);
+}
+```
+
+Внутри `FormattedLogValues` есть `ConcurrentDictionary`, [использование которого](https://github.com/dotnet/runtime/blob/42fec5761b71383e97981ce2932c6962d83747e4/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/FormattedLogValues.cs#L44) тоже приводит к аллокациям
+
+Конструктор `FormattedLogValues`:.
+
+```cs
+public FormattedLogValues(string? format, params object?[]? values)
+{
+    if (values != null && values.Length != 0 && format != null)
+    {
+        if (s_count >= MaxCachedFormatters)
+        {
+            if (!s_formatters.TryGetValue(format, out _formatter))
+            {
+                // Аллокация
+                _formatter = new LogValuesFormatter(format);
+            }
+        }
+        else
+        {
+            // Аллокация
+            _formatter = s_formatters.GetOrAdd(format, f =>
+            {
+                Interlocked.Increment(ref s_count);
+                return new LogValuesFormatter(f);
+            });
+        }
+    }
+    else
+    {
+        _formatter = null;
+    }
+
+    _originalMessage = format ?? NullFormat;
+    _values = values;
+}
+```
+
+## Уровень логирования проверяется не сразу
+
+Прежде чем будет проверено, активен ли нужный уровень логирования, рантайм успевает:
+
+– создать `FormattedLogValues`;  
+– проверить наличие кэшированного шаблона в словаре;  
+– выполнить другие вспомогательные действия.
+
+Только после этого будет решено, писать ли что-то в лог.
+
+## Атрибут LoggerMessage
+
+Начиная с .NET 6 в C# есть [атрибут LoggerMessageAttribute](https://learn.microsoft.com/en-us/dotnet/core/extensions/logger-message-generator), который лишён недостатков, перечисленных ранее.
+
+Он работает на основе генераторов кода. Пример использования ниже.
+
+```cs
+[LoggerMessage(Level = LogLevel.Debug, Message = "Integers: {i1}, {i2}")]
+public static partial void LogIntegers(ILogger logger, int i1, int i2);
+```
+
+Компилятор сгенерирует типизированный делегат, отвечающий за логирование и тело метода `LogIntegers`.
+
+```cs
+private static readonly Action<ILogger, int, int, Exception?> __LogIntegers1Callback =
+    LoggerMessage.Define<int, int>(
+    LogLevel.Debug,
+    new EventId(666252842, nameof(LogIntegers)),
+    "Integers: {i1}, {i2}",
+    new LogDefineOptions() { SkipEnabledCheck = true });
+
+public static partial void LogIntegers(ILogger logger, int i1, int i2)
+{
+    if (logger.IsEnabled(LogLevel.Debug))
+    {
+        __LogIntegers1Callback(logger, i1, i2, null);
+    }
+}
+```
+
+Основные отличия следующие:
+
+1. Сразу проверяется уровень логирования.
+2. Сигнатура метода и типы делегата в точности повторяют передаваемые аргументы.
+
+Всё это позволяет улучшить производительность.
+
+<Image
+  src={image3}
+  alt="Профилирование памяти при использовании LoggerMessageAttribute"
+/>
+<strong style="text-align: center;">
+  Профилирование памяти при использовании LoggerMessageAttribute
+</strong>
+
+<Image src={image4} alt="Результаты бенчмарка" />
+<strong style="text-align: center;">Результаты бенчмарка</strong>
+
+## Выводы
+
+— Интерполяция строк в логировании приводит к лишним аллокациям даже при выключенных уровнях логирования.
+
+— Использование шаблонов снижает количество аллокаций, но полностью их не устраняет.
+
+— Причины скрытых аллокаций: создание массива `params object[]`, упаковка значимых типов, создание `FormattedLogValues` и обращение к словарю.
+
+— Самый эффективный способ логировать с точки зрения производительности — использовать `LoggerMessage`, доступный начиная с .NET 6: он минимизирует аллокации за счёт генерации кода.
+
+Итог: если важна производительность и особенно если логирование в «горячих» местах кода — используйте атрибут `LoggerMessage`.
