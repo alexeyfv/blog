@@ -9,18 +9,18 @@ lang: 'en'
 import { Image } from 'astro:assets'
 import benchmark from './benchmark.png'
 
-Recently at work, I needed to compute a stable hash for some objects. My first thought was to use one of the standard cryptographic algorithms — SHA1, SHA256, SHA512, or MD5. But they all have two major drawbacks:
+Recently at work, I needed to compute a stable hash for some objects. At first, I thought about using standard cryptographic algorithms like SHA1, SHA256, SHA512, or MD5. But they have two problems:
 
-1. The hashes are large — from 160 to 512 bits.
-2. They return a byte array, which leads to unnecessary memory allocations.
+1. The hash is too large — from 160 to 512 bits.
+2. They return a byte array, which causes extra memory allocations.
 
-That made me look for alternatives. I quickly found the [xxHash repository](https://github.com/Cyan4973/xxHash) and its [C# implementation](https://learn.microsoft.com/en-us/dotnet/api/system.io.hashing.xxhash3). What sets xxHash apart is its high performance and the ability to get a hash as an integer value.
+So I started looking for an alternative. I quickly found the [xxHash repository](https://github.com/Cyan4973/xxHash) and its [C# implementation](https://learn.microsoft.com/en-us/dotnet/api/system.io.hashing.xxhash3). The key advantages of xxHash are high speed and the ability to return the hash as an integer.
 
-It's important to note that xxHash is **not** a cryptographic algorithm. It's designed for other tasks like fast hashing, data comparison, and generating cache keys or database indexes.
+It's important to understand that xxHash is **not** a cryptographic algorithm. It's made for other use cases: fast hashing, comparing data, cache keys, or database indexes.
 
 ## xxHash in .NET
 
-To use xxHash in your .NET app, you just need to install the [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) package. It includes four implementations of the xxHash algorithm:
+To use xxHash in your app, you need to install the [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing) package. It includes four versions of the xxHash algorithm:
 
 | Algorithm | Hash size |
 | :-------- | :-------- |
@@ -31,27 +31,27 @@ To use xxHash in your .NET app, you just need to install the [System.IO.Hashing]
 
 ## Performance
 
-I [benchmarked](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/Hashing) these algorithms against each other, and also compared them to SHA1, SHA2, SHA3, and MD5. The results are as follows:
+I [compared](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/Hashing) these algorithms by how fast they compute a hash. I also added SHA1, SHA2, SHA3, and MD5 to the test. The results:
 
 <Image
   src={benchmark}
   alt="Comparison of xxHash speed with other hash algorithms"
 />
 <strong style="text-align: center;">
-  Benchmark results: xxHash outperforms SHA and MD5 by a large margin
+  Benchmark results: xxHash is much faster than SHA and MD5
 </strong>
 
-As expected, xxHash proved to be significantly faster than the alternatives.
+[Here are the full results](https://github.com/alexeyfv/DotNetBenchmarks/blob/a73512251ebd4e1c2d7af364b268d92c9d7136ee/Hashing/Results/Benchmark.HashAlgorithms-report-github.md). As expected, xxHash is one of the fastest.
 
 ## Example usage
 
-xxHash is particularly convenient because of the following features:
+xxHash is easy to use and has useful features:
 
-– **The `Append` method** — allows you to add data incrementally without intermediate allocations.  
-– **Integer-based output** — depending on the algorithm, you can get the hash as `uint`, `ulong`, or `UInt128` instead of a byte array.  
-– **Support for `Span<T>`** — lets you use stack memory and avoid heap allocations.
+– **`Append` method** — lets you add data step by step, without extra allocations.  
+– **Integer output** — the result can be `uint`, `ulong`, or `UInt128`, instead of a byte array.  
+– **Supports `Span<T>`** — so you can work with stack memory and avoid heap allocations.
 
-Here’s an example of how to compute a stable hash with xxHash:
+Here’s an example of how to use it:
 
 ```csharp
 public class SomeObject
@@ -88,8 +88,8 @@ public class SomeObject
 
 ## Conclusion
 
-Using xxHash for stable hash computation gives you several key benefits:
+Using xxHash to compute stable hashes gives you many benefits:
 
-- High performance — one of the fastest hashing algorithms available.
-- Zero allocations — with `Span` and `Append`, you can compute hashes using only the stack and CPU registers.
-- Compact representation — store the hash as `uint` or `ulong` (just 4 or 8 bytes). These values are easy to index in a database and simplify SQL query structure. Instead of a complex `WHERE col1 = ... AND col2 = ...`, you can just query `WHERE Hash = ...`. This becomes especially useful when working with tables containing hundreds of millions of rows.
+– **High performance.** One of the fastest algorithms available.  
+– **No heap allocations.** With `Span` and `Append`, you can hash using only the stack and CPU registers.  
+– **Small and simple values.** You get `uint` or `ulong` results (only 4 or 8 bytes). These work great with database indexes and allow simpler queries. Instead of `WHERE col1 = ... AND col2 = ...`, you can write `WHERE Hash = ...`. This is especially useful when your table has hundreds of millions of rows.
