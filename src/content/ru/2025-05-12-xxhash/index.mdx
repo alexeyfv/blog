@@ -1,0 +1,97 @@
+---
+title: 'xxHash: самый быстрый алгоритм хеширования в экосистеме .NET'
+description: 'Как использовать xxHash в C# для быстрого расчёта стабильных хэшей без аллокаций'
+pubDate: 'May 12 2025'
+tags: ['C#', 'Performance', 'Algorithms']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import benchmark from './benchmark.png'
+
+Недавно на работе возникла задача: нужно было посчитать стабильный хэш объектов. Я сразу подумал про стандартные криптографические алгоритмы вроде SHA1, SHA256, SHA512 и MD5. Но у них есть два недостатка:
+
+1. Хэш получается большим — от 160 до 512 бит.
+2. Возвращается массив байтов, что означает лишние аллокации памяти.
+
+Это подтолкнуло меня к поиску альтернатив. Так я быстро наткнулся на [репозиторий xxHash](https://github.com/Cyan4973/xxHash) и его [реализацию на C#](https://learn.microsoft.com/en-us/dotnet/api/system.io.hashing.xxhash3). Отличие xxHash в высокой скорости и возможности получить хэш в виде целого числа.
+
+Важно понимать, что xxHash не криптографический алгоритм — он предназначен для других задач: быстрого хэширования, сравнения данных, создания ключей для кэшей или индексов.
+
+## Реализации в .NET
+
+Для использования xxHash в своём приложении нужно установить пакет [System.IO.Hashing](https://www.nuget.org/packages/System.IO.Hashing). В нём есть 4 реализации алгоритма xxHash:
+
+| Алгоритм  | Генерируемый хэш |
+| :-------- | :--------------- |
+| XxHash32  | 32 бита          |
+| XxHash64  | 64 бита          |
+| XxHash3   | 64 бита          |
+| XxHash128 | 128 бит          |
+
+## Производительность
+
+Я [сравнил](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/Hashing) эти алгоритмы по скорости расчёта хэша между собой. К сравнению также добавил алгоритмы SHA1, SHA2, SHA3 и MD5. Результаты получились следующие:
+
+<Image
+  src={benchmark}
+  alt="Сравнение скорости xxHash и других алгоритмов хэширования"
+/>
+<strong style="text-align: center;">
+  Результаты бенчмарка: xxHash значительно опережает SHA и MD5
+</strong>
+
+[Результаты](https://github.com/alexeyfv/DotNetBenchmarks/blob/a73512251ebd4e1c2d7af364b268d92c9d7136ee/Hashing/Results/Benchmark.HashAlgorithms-report-github.md) оказались ожидаемыми — xxHash значительно быстрее остальных.
+
+## Пример использования
+
+xxHash особенно удобен благодаря следующим фишкам:
+
+– Метод `Append`. Он позволяет поэтапно добавлять данные к расчёту хэша без промежуточных аллокаций.  
+– Хэш в виде числа. В зависимости от алгоритма можно получить хэш как `uint`, `ulong` или `UInt128`, без массива байтов.  
+– Поддержка работы со `Span<T>`. Можно использовать стек вместо кучи и избежать лишних аллокаций.
+
+Пример реализации расчёта хэша с xxHash ниже.
+
+```csharp
+public class SomeObject
+{
+    [ThreadStatic]
+    private static readonly XxHash3 hasher;
+
+    static SomeObject() => hasher = new();
+
+    public required int IntValue { get; init; }
+    public required string StringValue { get; init; }
+    public required DateTimeOffset DateTimeValue { get; init; }
+
+    public ulong GetStableHashCode()
+    {
+        hasher.Reset();
+
+        var idBytes = MemoryMarshal.Cast<int, byte>([IntValue]);
+        hasher.Append(idBytes);
+
+        var bytesCount = Encoding.UTF8.GetByteCount(StringValue);
+        Span<byte> stringBytes = stackalloc byte[bytesCount];
+        Encoding.UTF8.GetBytes(StringValue, stringBytes);
+        hasher.Append(stringBytes);
+
+        var unixTime = DateTimeValue.ToUnixTimeMilliseconds();
+        var dateBytes = MemoryMarshal.Cast<long, byte>([unixTime]);
+        hasher.Append(dateBytes);
+
+        return hasher.GetCurrentHashAsUInt64();
+    }
+}
+```
+
+## Выводы
+
+Использование xxHash для расчёта стабильного хэша позволяет:
+
+– Быстро рассчитать хэш. Это один из самых быстрых алгоритмов.
+
+– Избежать аллокаций. Используя `Span` и `Append`, можно рассчитывать хэш, используя только стек и регистры.
+
+– Хранить хэш как `uint` или `ulong`. Это всего 4 и 8 байт соответственно. Такие значения хорошо индексируются БД и позволяют упростить структуру SQL запросов. Вместо сложных запросов с множеством условий, можно искать по одному полю: `WHERE Hash = ...` Это особенно полезно при работе с таблицами, где сотни миллионов строк.
