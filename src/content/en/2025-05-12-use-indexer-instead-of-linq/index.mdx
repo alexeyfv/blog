@@ -1,0 +1,50 @@
+---
+title: 'Use indexer instead of LINQ method'
+description: 'Analysis of CA1826 code quality rule and its impact on application performance'
+pubDate: 'May 12 2025'
+tags: ['C#', 'Performance', 'Code Quality']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import benchmark from './benchmark.png'
+
+This is part of a series where I analyze [.NET code quality rules](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/) from a performance perspective. Today, let's talk about [CA1826: Use property instead of Linq Enumerable method](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1826).
+
+## Rule description
+
+This rule simply asks not to use `First()`, `Last()`, `Count()` methods from LINQ with `IReadOnlyList<T>`:
+
+```cs
+IReadOnlyList<string> list = ["str1", "str2", "str3"];
+var first = list.First();   // CA1826
+var last = list.Last();     // CA1826
+var count = list.Count();   // CA1826
+```
+
+Instead, you should use indexer or `Count` property for better performance:
+
+```cs
+IReadOnlyList<string> list = ["str1", "str2", "str3"];
+var first = list[0];
+var last = list[^1];
+var count = list.Count;
+```
+
+## Performance analysis
+
+I wrote a simple [benchmark](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/CA1826.cs) to see how much LINQ methods really affect performance. The results are [in the repo](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/BenchmarkDotNet.Artifacts/results/Benchmark.Ca1826-report-github.md) and on the diagram below.
+
+<Image
+  src={benchmark}
+  alt="Performance comparison chart between LINQ methods and indexer and Count property"
+/>
+<strong style="text-align: center;">
+  Performance comparison between LINQ methods and indexer and Count property
+</strong>
+
+As you can see, there's a difference between LINQ and direct access. But the difference is very small — just a few microseconds on my machine.
+
+## Should you care?
+
+In most cases, no. The performance gain is small. But if you're writing high-performance code, or these LINQ methods appear in a loop, it might be worth to refactor your code.

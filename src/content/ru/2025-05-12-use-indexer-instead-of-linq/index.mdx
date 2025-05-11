@@ -1,0 +1,50 @@
+---
+title: 'Используйте индексаторы вместо методов LINQ'
+description: 'Анализ правила качества кода CA1826 и его влияния на производительность приложения'
+pubDate: 'May 12 2025'
+tags: ['C#', 'Performance', 'Code Quality']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import benchmark from './benchmark.png'
+
+Это часть серии, в которой я разбираю [правила качества кода .NET](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/) с точки зрения производительности. Сегодня поговорим про [CA1826: Use property instead of Linq Enumerable method](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1826).
+
+## Описание правила
+
+Правило рекомендует не использовать методы `First()`, `Last()`, `Count()` из LINQ с `IReadOnlyList<T>`:
+
+```cs
+IReadOnlyList<string> list = ["str1", "str2", "str3"];
+var first = list.First();   // CA1826
+var last = list.Last();     // CA1826
+var count = list.Count();   // CA1826
+```
+
+Вместо этого стоит использовать индексатор или свойство `Count`:
+
+```cs
+IReadOnlyList<string> list = ["str1", "str2", "str3"];
+var first = list[0];
+var last = list[^1];
+var count = list.Count;
+```
+
+## Анализ производительности
+
+Я написал простой [бенчмарк](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/CA1826.cs), чтобы проверить, насколько LINQ действительно влияет на производительность. Результаты [в репозитории](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/BenchmarkDotNet.Artifacts/results/Benchmark.Ca1826-report-github.md) и на диаграмме ниже.
+
+<Image
+  src={benchmark}
+  alt="График сравнения производительности между методами LINQ и индексатором и свойством Count"
+/>
+<strong style="text-align: center;">
+  График сравнения производительности между методами LINQ и индексатором и свойством Count
+</strong>
+
+Как видно, разница есть. Но она совсем небольшая — всего несколько микросекунд на моём ноутбуке.
+
+## Стоит ли заморачиваться?
+
+В большинстве случаев — нет. Прирост производительности минимальный. Но если вы пишете высокопроизводительный код или используете LINQ методы в цикле — возможно код стоит отрефакторить.
