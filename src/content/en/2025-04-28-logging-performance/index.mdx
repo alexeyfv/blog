@@ -2,7 +2,7 @@
 title: 'Impact of Logging on C# Performance'
 description: 'How logging in C# affects application performance. Comparing string interpolation, templates, and LoggerMessageAttribute.'
 pubDate: 'Apr 28 2025'
-tags: ['C#', 'Performance', 'Logging']
+tags: ['C#', 'Performance', 'Code Quality', 'Logging']
 lang: 'en'
 ---
 
@@ -61,9 +61,7 @@ If you run memory profiling, you can see that in both cases the Gen0 size keeps 
 </strong>
 
 <Image src={image2} alt="Memory profiling with templates" />
-<strong style="text-align: center;">
-Memory profiling with templates
-</strong>
+<strong style="text-align: center;">Memory profiling with templates</strong>
 
 And this happens even if the current logging level is `Information` and we are calling `LogDebug`.
 
@@ -192,9 +190,7 @@ All of this improves performance.
 </strong>
 
 <Image src={image4} alt="Benchmark results" />
-<strong style="text-align: center;">
-Benchmark results
-</strong>
+<strong style="text-align: center;">Benchmark results</strong>
 
 ## Conclusions
 
