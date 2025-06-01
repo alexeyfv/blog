@@ -1,0 +1,83 @@
+---
+title: 'StringBuilder: избегайте ToString при использовании Append'
+description: 'Анализ правила качества кода CA1830 и его влияния на производительность приложения'
+pubDate: 'June 01 2025'
+tags: ['C#', 'Performance', 'Code Quality']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import benchmark from './benchmark.png'
+
+Это новая часть серии, в которой я разбираю [правила качества кода .NET](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/) с точки зрения производительности. Сегодня поговорим про [CA1830: Prefer strongly-typed Append and Insert method overloads on StringBuilder](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1830).
+
+## Описание правила
+
+Правило рекомендует не преобразовывать значения в строку при вызове методов Append или Insert.
+
+```cs
+var i = 123;  
+var sb = new StringBuilder();  
+sb.Append(i.ToString()); // CA1830
+```
+
+Вместо этого лучше передать значение напрямую:
+
+```cs
+var i = 123;  
+var sb = new StringBuilder();  
+sb.Append(i);
+```
+
+Это правило касается примитивных типов вроде `byte`, `short`, `int`, `double`, `long` и других.
+
+## Анализ производительности
+
+Я написал [простой бенчмарк](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/CA1830.cs), чтобы оценить, насколько эти подходы отличаются по производительности. Результаты [в репозитории](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/BenchmarkDotNet.Artifacts/results/Benchmark.Ca1830-report-github.md) и на диаграмме ниже.
+
+<Image
+  src={benchmark}
+  alt="График сравнения производительности"
+/>
+<strong style="text-align: center;">
+  График сравнения производительности
+</strong>
+
+Разница по времени — небольшая: около 5 микросекунд на моём ноутбуке. Разница по памяти более заметная: около 20 КиБ.
+
+# Как работает эта оптимизация?
+
+Когда вы используете метод Append(int), под капотом StringBuilder вызываются методы [`AppendSpanFormattable<T>`](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Text/StringBuilder.cs#L1056) и [`InsertSpanFormattable<T>`](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Text/StringBuilder.cs#L1412).
+
+Например, упрощённая версия `AppendSpanFormattable<T>` выглядит так:
+
+``` cs
+private StringBuilder AppendSpanFormattable<T>(T value) where T : ISpanFormattable  
+{  
+    if (value.TryFormat(RemainingCurrentChunk, out int charsWritten, format: default, provider: null))  
+    {  
+        m_ChunkLength += charsWritten;  
+        return this;  
+    }
+
+    return Append(value.ToString());  
+}
+```
+
+Этот метод использует интерфейс [`ISpanFormattable.TryFormat`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanformattable.tryformat), чтобы записать значение напрямую во внутренний буфер `StringBuilder` как `Span<char>`. Это позволяет: избежать аллокации строки; упаковки (boxing) и вызова виртуального метода `ToString()`.
+
+# Стоит ли заморачиваться?
+
+Скорее да. Даже если не брать в расчёт прирост производительности, такой код:
+
+```cs
+sb.Append(i);
+```
+
+и выглядит проще и чище, чем:
+
+```cs
+sb.Append(i.ToString());
+```
+
+И в качестве бонуса, он работает быстрее и потребляет меньше памяти. Win-win.

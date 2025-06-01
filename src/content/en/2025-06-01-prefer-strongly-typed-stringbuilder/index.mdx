@@ -1,0 +1,82 @@
+---
+title: 'StringBuilder tip: use Append without ToString'
+description: 'Analysis of CA1830 code quality rule and its impact on application performance'
+pubDate: 'June 01 2025'
+tags: ['C#', 'Performance', 'Code Quality']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import benchmark from './benchmark.png'
+
+This is a new part of a series where I analyze [.NET code quality rules](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/) from a performance perspective. Today, let's talk about [CA1830: Prefer strongly-typed Append and Insert method overloads on StringBuilder](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca1830).
+
+## Rule description
+
+This rule suggest us not to convert parameters to string when using `Append` or `Insert` methods:
+
+```cs
+var i = 123;  
+var sb = new StringBuilder();  
+sb.Append(i.ToString()); // CA1830
+```
+
+Instead, pass the value directly:
+
+```cs
+var i = 123;  
+var sb = new StringBuilder();  
+sb.Append(i);
+```
+
+This rule applies to well-known primitive types like `byte`, `short`, `int`, `double`, `long`, and so on.
+
+## Performance analysis
+
+I wrote a simple [benchmark](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/CA1830.cs) to see how much these approaches really affect performance. The results are [in the repo](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/CodeAnalysis/BenchmarkDotNet.Artifacts/results/Benchmark.Ca1830-report-github.md) and on the diagram below.
+
+<Image
+  src={benchmark}
+  alt="Performance comparison chart "
+/>
+<strong style="text-align: center;">
+  Performance comparison chart 
+</strong>
+There's a small time difference between these two approaches — about 5 microseconds on my laptop. The memory difference is more significant — about 20 KiB.
+
+## How the optimization works?
+
+When you use a strongly-typed overload like Append(int), .NET internally calls methods like: [`AppendSpanFormattable<T>`](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Text/StringBuilder.cs#L1056) and [`InsertSpanFormattable<T>`](https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/System/Text/StringBuilder.cs#L1412).
+
+Here’s a simplified version of `AppendSpanFormattable<T>`:
+
+```cs
+private StringBuilder AppendSpanFormattable<T>(T value) where T : ISpanFormattable  
+{  
+    if (value.TryFormat(RemainingCurrentChunk, out int charsWritten, format: default, provider: null))  
+    {  
+        m_ChunkLength += charsWritten;  
+        return this;  
+    }
+
+    return Append(value.ToString());  
+}
+```
+
+This method uses [`ISpanFormattable.TryFormat`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanformattable.tryformat) to write the value directly into the internal buffer as a `Span<char>`. This avoids: allocating a temporary string, boxing value types, calling the virtual `ToString()` method.
+
+## Should you care?
+
+Yes, you probably should. Even if we don’t care about performance benefits, this code:
+
+```cs
+sb.Append(i);
+```
+
+…is cleaner and simpler than:
+
+```cs
+sb.Append(i.ToString());
+```
+
+And as a bonus — it's faster and allocates less memory. Win-win. 
