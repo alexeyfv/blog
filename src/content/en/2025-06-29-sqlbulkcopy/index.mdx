@@ -46,7 +46,7 @@ To make it faster, you can use bulk insert. In SQL Server, this is done with the
 
 In almost all examples with `SqlBulkCopy` that I saw, people use the `DataTable` approach. The idea is to fill a buffer as a `DataTable` and then insert it into the database.
 
-```
+``` cs
 const int batchSize = 250;  
 using var connection = new SqlConnection(ConnectionString);  
 connection.Open();
@@ -77,7 +77,7 @@ for (int i = 0; i < data.Length; i += batchSize)
 
 But not many people know that `SqlBulkCopy` can insert data as a stream using [IDataReader](https://learn.microsoft.com/en-us/dotnet/api/system.data.idatareader). Sadly, .NET does not have a standard implementation for working with `IEnumerable<T>` or `IAsyncEnumerable<T>`. So you have to write your own, or use third-party libraries. For example, there is a library called [Bulk Writer](https://github.com/jbogard/bulk-writer) by Jimmy Bogard.
 
-```
+``` cs
 using var reader = new MyDataReader(_arr);  
 using var connection = new SqlConnection(ConnectionString);
 
