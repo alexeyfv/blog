@@ -1,0 +1,120 @@
+---
+title: 'A fast way to insert large arrays into SQL Server'
+description: 'How to quickly and efficiently load large data into SQL Server: comparing regular INSERT, SqlBulkCopy with DataTable, and IDataReader.'
+pubDate: 'June 29 2025'
+tags: ['C#', 'Performance', 'SQL Server', 'ETL']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import benchmark from './benchmark.png'
+
+I've been very busy at work lately, so there are not many new posts. But I had an interesting case I want to share.
+
+## The Task
+
+I needed to download large CSV files, read them, filter the needed rows, and load them into a database. By large, I mean files of 0.5-1 GB – these are monthly reports from cloud providers about expenses.
+
+This is a standard ETL task. The challenge was that our pods in the Kubernetes cluster have a memory limit of 250 MB. I could just increase the limit, but that's too easy and not interesting. I wanted to do everything with minimal memory usage.
+
+### Downloading Files
+
+This is the easiest part. Microsoft Azure, Amazon Web Services, and Google Cloud Platform let you read data as streams. So you don't need to download the whole file at once.
+
+### Processing Data
+
+Next, I needed to unzip the CSV files and read them. For unzipping, I used the built-in [GZipStream](https://learn.microsoft.com/en-us/dotnet/api/system.io.compression.gzipstream) class. For reading CSV files, I used the third-party library [Sylvan.Data.Csv](https://github.com/MarkPflug/Sylvan/blob/main/docs/Csv/Sylvan.Data.Csv.md).
+
+### Inserting Data into Storage
+
+The most obvious way is a regular `INSERT`. But if you have a lot of data, this method takes a lot of time:
+
+``` cs
+using var connection = new SqlConnection(ConnectionString);  
+connection.Open();
+
+foreach (var row in data)  
+{  
+    using var cmd = connection.CreateCommand();  
+    cmd.CommandText = "INSERT INTO Table ...";  
+    cmd.Parameters.AddWithValue("@SomeColumn", row.SomeColumn);  
+    cmd.ExecuteNonQuery();  
+}
+```
+
+To make it faster, you can use bulk insert. In SQL Server, this is done with the [SqlBulkCopy](https://learn.microsoft.com/en-us/dotnet/api/microsoft.data.sqlclient.sqlbulkcopy) class from Microsoft.Data.SqlClient.
+
+In almost all examples with `SqlBulkCopy` that I saw, people use the `DataTable` approach. The idea is to fill a buffer as a `DataTable` and then insert it into the database.
+
+```
+const int batchSize = 250;  
+using var connection = new SqlConnection(ConnectionString);  
+connection.Open();
+
+var table = new DataTable();
+
+for (int i = 0; i < data.Length; i += batchSize)  
+{  
+    table.Clear();
+
+    int count = Math.Min(batchSize, data.Length - i);
+
+    for (int j = 0; j < count; j++)  
+    {  
+        var row = data[i + j];  
+        table.Rows.Add(row.A, row.B, row.C);  
+    }
+
+    using var bulk = new SqlBulkCopy(connection)  
+    {  
+        DestinationTableName = "Table",  
+        BatchSize = batchSize  
+    };
+
+    bulk.WriteToServer(table);  
+}
+```
+
+But not many people know that `SqlBulkCopy` can insert data as a stream using [IDataReader](https://learn.microsoft.com/en-us/dotnet/api/system.data.idatareader). Sadly, .NET does not have a standard implementation for working with `IEnumerable<T>` or `IAsyncEnumerable<T>`. So you have to write your own, or use third-party libraries. For example, there is a library called [Bulk Writer](https://github.com/jbogard/bulk-writer) by Jimmy Bogard.
+
+```
+using var reader = new MyDataReader(_arr);  
+using var connection = new SqlConnection(ConnectionString);
+
+connection.Open();
+
+using var bulk = new SqlBulkCopy(connection)  
+{  
+    DestinationTableName = "Table",  
+    EnableStreaming = true  
+};
+
+bulk.WriteToServer(reader);
+```
+
+## Benchmarks
+
+I wrote a [small benchmark](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/SqlBulkCopy) to compare three approaches:  
+- Regular row-by-row INSERT.  
+- SqlBulkCopy with DataTable.  
+- SqlBulkCopy with IDataReader.
+
+The results for speed and memory usage are below.
+
+<Image
+  src={benchmark}
+  alt="Performance comparison chart"
+/>
+<strong style="text-align: center;">
+  Performance comparison chart
+</strong>
+
+As expected, row-by-row insert is the slowest. Also, because of calling `connection.CreateCommand()` and creating a new `SqlCommand` on each iteration, this method uses the most memory.
+
+`SqlBulkCopy` with `DataTable` is much better for performance and memory, but the `IDataReader` implementation is even faster.
+
+The buffer size affects the `DataTable` approach. In the benchmark, it was 250 rows. For small amounts of data, the time difference is almost invisible. But the more data you have, the more `SqlBulkCopy` with `IDataReader` wins.
+
+## Conclusions
+
+To efficiently load large data into SQL Server, it's best to use streaming insert with `SqlBulkCopy` and `IDataReader`. This is much faster and uses less memory than regular `INSERT` or even `SqlBulkCopy` with `DataTable`.
