@@ -48,7 +48,7 @@ foreach (var row in data)
 
 Практически во всех примерах с `SqlBulkCopy` которые я видел, применялся подход с использованием `DataTable`. Суть его в том, что сперва заполняют буфер в виде `DataTable`, а потом вставляют его в базу данных.
 
-```
+``` cs
 const int batchSize = 250;  
 using var connection = new SqlConnection(ConnectionString);  
 connection.Open();
@@ -79,7 +79,7 @@ for (int i = 0; i < data.Length; i += batchSize)
 
 Но мало кто знает, что `SqlBulkCopy` позволяет вставлять данные потоком через [IDataReader](https://learn.microsoft.com/en-us/dotnet/api/system.data.idatareader). Но, к сожалению, в .NET нет стандартной реализации, позволяющей удобно работать с коллекциями `IEnumerable<T>` или `IAsyncEnumerable<T>`. Поэтому приходится городить велосипеды, либо использовать сторонние библиотеки. Например, есть библиотека [Bulk Writer](https://github.com/jbogard/bulk-writer) от Джимми Богарта.
 
-```
+``` cs
 using var reader = new MyDataReader(_arr);  
 using var connection = new SqlConnection(ConnectionString);
 
