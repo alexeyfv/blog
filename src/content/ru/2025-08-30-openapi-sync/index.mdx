@@ -1,0 +1,99 @@
+---
+title: 'Используем OpenAPI для синхронизации API на Frontend и Backend'
+description: 'Пошаговая инструкция по автоматической синхронизации типов и клиентов между ASP.NET Web API и фронтендом с помощью OpenAPI.'
+pubDate: 'Aug 30 2025'
+tags: ['C#', 'TypeScript', 'OpenAPI']
+lang: 'ru'
+---
+
+Очень часто в проектах приходится поддерживать в актуальном состоянии типы и описание эндпоинтов. Если делать это вручную, то высока вероятность допустить ошибку. В результате получаются баги и тратиться время на исправление. Сегодня я пошагово покажу:
+
+1. Как настроить бэкенд-проект ASP.NET Web API для генерации OpenAPI-спецификаций.
+2. Как из спецификации автоматически генерировать http-клиент и TypeScript-типы для фронта.
+
+В итоге синхронизировать бек и фронт можно будет всего двумя командами буквально за секунды.
+
+## Настраиваем бекенд
+
+Создаём новый проект:
+
+```bash
+mkdir -p backend
+cd backend
+dotnet new webapi
+```
+
+По умолчанию файл проекта (`*.csproj`) использует пакет `Swashbuckle.AspNetCore`. Этот пакет автоматически генерирует OpenAPI (Swagger) спецификацию для всех контроллеров и моделей в ASP.NET Web API.
+
+```xml
+<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+```
+
+Важно запомнить версию пакета. Она должна совпадать с версией dotnet‑утилиты, которую мы установим дальше. В моём проекте стояла версия 6.6.2, я обновил до последней (9.0.4 на момент написания):
+
+```bash
+dotnet add package Swashbuckle.AspNetCore –version 9.0.4
+```
+
+Следующий шаг – установка утилиты, которая будет генерировать спецификацию из сборки:
+
+```bash
+dotnet new tool-manifest
+dotnet tool install Swashbuckle.AspNetCore.Cli --version 9.0.4
+```
+
+Первая команда создаёт файл‑манифест для dotnet‑утилит (аналог package.json или Directory.Packages.props). Манифест полезен тем, что чтобы восстановить нужные для проекта утилиты, достаточно будет выполнить команду `dotnet tool restore`. Это удобно как и для остальных членов вашей команды, так и при сборке/деплое проекта в CI/CD.
+
+Осталось сгенерировать спецификацию:
+
+```bash
+dotnet build && dotnet swagger tofile \
+	--output openapi.yaml \
+	--yaml \
+	bin/Debug/net8.0/backend.dll \
+	v1
+```
+
+Файл спецификации будет лежать в `backend/openapi.yaml`.
+
+## Настраиваем фронтенд
+
+Создаём Svelte приложение (я использую pnpm).
+
+```bash
+pnpx sv create \
+	--template minimal \
+	--types ts \
+	--install pnpm \
+	--no-add-ons \
+	./frontend
+```
+
+Генерируем клиента со всеми типами.
+
+```bash
+pnpx swagger-typescript-api generate \
+	--path ./backend/openapi.yaml \
+	-o ./frontend/src/generated \
+	-n WebApi.ts
+```
+
+Готово. Сгенерированный файл лежит в `frontend/src/generated/WebApi.ts`.
+
+Теперь, после изменений в API, для синхронизации достаточно выполнить 2 команды:
+
+```bash
+dotnet build && dotnet swagger tofile \
+	--output openapi.yaml \
+	--yaml \
+	bin/Debug/net8.0/backend.dll \
+	v1
+
+pnpx swagger-typescript-api generate \
+	--path ./backend/openapi.yaml \
+	-o ./frontend/src/generated \
+	-n WebApi.ts
+```
+
+Полный пример скрипта [лежит в GitHub](https://gist.github.com/alexeyfv/4e0fd2da3129b722ced5a8f180d2e76a).
+
