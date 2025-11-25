@@ -1,0 +1,239 @@
+---
+title: 'Превращаем C# в Python, JavaScript и F#'
+description: 'Как новый синтаксис расширений в C# 14 позволяет имитировать поведение других языков программирования'
+pubDate: 'Nov 25 2025'
+cover: 'image01.png'
+tags: ['C#', 'Humor']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+
+В С# 14 появился новый синтаксис расширений ([extension members](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/extension-methods)), позволяющий добавлять методы, свойства и даже перегружать операторы для существующих типов без создания врапперов и без изменения исходных типов.
+
+Благодаря этому, стал возможен вот такой код:
+
+```cs
+var str = "Hello, C# code!"  
+        | No  
+        | ReplaceToFSharp  
+        | ToUpper;
+
+Console.WriteLine(str); // NO! HELLO F#-LIKE CODE!
+```
+
+Выглядит, мягко говоря, необычно, особенно для тех, кто не сталкивался с F# и функциональным программированием в целом. Давайте разберёмся, что тут вообще происходит…
+
+*Дисклеймер: Я не призываю никого писать такой код. Статья написана в качестве развлечения, но долей полезной информации.*
+
+## Блоки расширений
+
+Нововведение, о котором сегодня пойдёт речь, – `extension members`. Мне больше нравится называть это «блоки расширений», поэтому дальше я буду использовать именно этот термин.
+
+Блоки расширений позволяют определять сразу несколько расширений для одного типа. Например класс c обычными методами расширения:
+
+```cs
+public static class Extensions  
+{  
+    public static bool IsNullOrEmpty(this string source) => string.IsNullOrEmpty(source);  
+    public static bool IsNullOrWhiteSpace(this string source) => string.IsNullOrWhiteSpace(source);  
+}
+```
+
+теперь записать вот так:
+
+```cs
+public static class ExtensionMembers  
+{  
+    extension(string source)  
+    {  
+        public bool IsNullOrEmpty() => string.IsNullOrEmpty(source);  
+        public bool IsNullOrWhiteSpace() => string.IsNullOrWhiteSpace(source);  
+    }  
+}
+```
+
+С точки зрения IL это будут всё те же статические методы-расширения.
+
+Но кроме методов, можно определить расширение в виде оператора… И это открывает простор для полёта фантазии. Например, теперь можно написать расширение и умножать строки как в Python:
+
+```cs
+Console.WriteLine("C# goes b" + "r" * 10);
+
+public static class ExtensionMembers  
+{  
+    extension(string source)  
+    {  
+        public static string operator *(string str, int count)  
+        {  
+            return string.Concat(Enumerable.Repeat(str, count));  
+        }  
+    }  
+}
+```
+
+Точно так же можно складывать массивы:
+
+```cs
+int[] a = [1, 2, 3];  
+int[] b = [4, 5, 6];
+
+var concat = a + b;  
+Console.WriteLine(string.Join(", ", concat));
+
+public static class ExtensionMembers  
+{  
+    extension<T>(T[] arr)  
+    {  
+        public static T[] operator +(T[] a, T[] b)  
+        {  
+            var result = new T[a.Length + b.Length];  
+            Array.Copy(a, result, a.Length);  
+            Array.Copy(b, 0, result, a.Length, b.Length);  
+            return result;  
+        }  
+    }  
+}
+```
+
+А помните мемы про JavaScript со складыванием и вычитанием строк и чисел? Теперь аналогичное поведение можно реализовать и в C#!
+
+<div style="display: flex; flex-direction: column; align-items: center;">
+  <Image
+    src={image02}
+    alt="Это C# код, если что"
+  />
+  Это C# код, если что
+</div>
+
+```cs
+Console.WriteLine("5" - 3); // 2  
+Console.WriteLine("5" + 3); // 53  
+Console.WriteLine("10" - "4"); // 6
+
+public static class ExtensionMembers  
+{  
+    extension(string source)  
+    {  
+        public static int operator -(string str, int number) => int.Parse(str) - number;  
+        public static string operator +(string str, int number) => str + number.ToString();  
+        public static int operator -(string a, string b) => int.Parse(a) - int.Parse(b);  
+    }  
+}
+```
+
+JavaScript разработчикам будет значительно проще вкатиться в С#.
+
+Ну и напоследок – превратим C# в F#. Для этого нужно объявить обобщённое расширение для оператора `|` (побитовое ИЛИ) и всё – pipe-оператор из говна и палок готов.
+
+```cs
+public static class FunctionalExtensions  
+{  
+    extension<T, TResult>(T)  
+    {  
+        public static TResult operator |(T source, Func<T, TResult> f) => f(source);  
+    }  
+}
+```
+
+<div style="display: flex; flex-direction: column; align-items: center;">
+  <Image
+    src={image03}
+    alt="Двое из ларца - одинаковых с лица"
+  />
+  Двое из ларца - одинаковых с лица
+</div>
+
+Теперь можно объявить несколько статических методов и делать цепочку вызовов функций прямо как в функциональных языках.
+
+```cs
+using static StringExtensions;
+
+var str = "Hello, C# code!"  
+        | No  
+        | ReplaceToFSharp  
+        | ToUpper;
+
+Console.WriteLine(str); // NO! HELLO F#-LIKE CODE!
+
+public static class StringExtensions  
+{  
+    public static string No(string source) => $"No! {source}";  
+    public static string ReplaceToFSharp(string source) => source.Replace("C#", "F#-like");  
+    public static string ToUpper(string source) => source.ToUpper();  
+}
+```
+
+## Что же под капотом?
+
+Синтаксический сахар (или синтаксическая соль, тут уж кому как) который мы использовали, компилируется в довольно страшную конструкцию. 
+
+Например, код имитирующий F#, упрощённо можно записать вот так.
+
+```cs
+var str = FunctionalExtensions.op_BitwiseOr(  
+    FunctionalExtensions.op_BitwiseOr(  
+        FunctionalExtensions.op_BitwiseOr(  
+            "Hello, C# code!",  
+            new Func<string, string>(No)  
+        ),  
+        new Func<string, string>(ReplaceToFSharp)  
+    ),  
+    new Func<string, string>(ToUpper)  
+);
+```
+
+Этот код тоже компилируется и выполняется, потому что компилятор для оператора `|` генерирует статический дженерик `op_BitwiseOr`, доступный из пользовательского кода (как обычный метод):
+
+```cs
+public static class FunctionalExtensions  
+{  
+  public static TResult op_BitwiseOr<T, TResult>(T source, Func<T, TResult> f)  
+  {  
+    return f(source);  
+  }  
+}
+```
+
+## А как было раньше?
+
+Раньше тоже можно было писать похожий код, но если класс недоступен для изменений, как тот же `string`, то нужно было писать враппер. Пример кода в функциональном стиле с использованием структуры-враппера:
+
+```cs
+using static FunctionalString;
+
+var str = new FunctionalString("Hello, C# code!")  
+        | No  
+        | ReplaceToFSharp  
+        | ToUpper;
+
+Console.WriteLine(str); // Output: NO, HELLO F#-LIKE CODE!
+
+public record struct FunctionalString(string Value)  
+{  
+    public static FunctionalString operator >>(FunctionalString fs, Func<FunctionalString, FunctionalString> f) => f(fs);
+
+    public static implicit operator FunctionalString(string s) => new(s);  
+    public static implicit operator string(FunctionalString fs) => fs.Value;
+
+    public static FunctionalString No(FunctionalString fs) => $"No! {fs.Value}";  
+    public static FunctionalString ReplaceToFSharp(FunctionalString fs) => fs.Value.Replace("C#", "F#-like");  
+    public static FunctionalString ToUpper(FunctionalString fs) => fs.Value.ToUpper();  
+}
+```
+
+<div style="display: flex; flex-direction: column; align-items: center;">
+  <Image
+    src={image04}
+    alt="Осталось только приделать pipe-оператор, каррирование и discriminated unions"
+  />
+  Осталось только приделать pipe-оператор, каррирование и discriminated unions
+</div>
+
+## И что будет дальше?
+
+Разработчикам C# осталось лишь добавить pipe-оператор, каррирование, discriminated unions и можно, как минимум, отправлять F# на пенсию.

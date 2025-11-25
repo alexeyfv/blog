@@ -1,0 +1,239 @@
+---
+title: 'Turning C# into Python, JavaScript and F#'
+description: 'How the new extension syntax in C# 14 allows mimicking behavior from other programming languages'
+pubDate: 'Nov 25 2025'
+cover: 'image01.png'
+tags: ['C#', 'Humor']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './image01.png'
+import image02 from './image02.png'
+import image03 from './image03.png'
+import image04 from './image04.png'
+
+C# 14 introduced a new extension syntax ([extension members](https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/extension-methods)) that allows adding methods, properties, and even overloading operators for existing types without creating wrappers and without modifying the original types.
+
+Thanks to this, the following code is now possible:
+
+```cs
+var str = "Hello, C# code!"  
+        | No  
+        | ReplaceToFSharp  
+        | ToUpper;
+
+Console.WriteLine(str); // NO! HELLO F#-LIKE CODE!
+```
+
+It looks unusual, to say the least, especially for those who haven't worked with F# and functional programming in general. Let's figure out what's happening here...
+
+*Disclaimer: I'm not encouraging anyone to write code like this. This article is written for fun, but with some useful information.*
+
+## Extension Blocks
+
+The new feature we're talking about today is `extension members`. I prefer to call it "extension blocks", so I'll use this term from now on.
+
+Extension blocks allow defining multiple extensions for one type at once. For example, a class with regular extension methods:
+
+```cs
+public static class Extensions  
+{  
+    public static bool IsNullOrEmpty(this string source) => string.IsNullOrEmpty(source);  
+    public static bool IsNullOrWhiteSpace(this string source) => string.IsNullOrWhiteSpace(source);  
+}
+```
+
+can now be written like this:
+
+```cs
+public static class ExtensionMembers  
+{  
+    extension(string source)  
+    {  
+        public bool IsNullOrEmpty() => string.IsNullOrEmpty(source);  
+        public bool IsNullOrWhiteSpace() => string.IsNullOrWhiteSpace(source);  
+    }  
+}
+```
+
+From the IL perspective, these are still the same static extension methods.
+
+But besides methods, you can define an extension as an operator... And this opens up space for creativity. For example, now you can write an extension and multiply strings like in Python:
+
+```cs
+Console.WriteLine("C# goes b" + "r" * 10);
+
+public static class ExtensionMembers  
+{  
+    extension(string source)  
+    {  
+        public static string operator *(string str, int count)  
+        {  
+            return string.Concat(Enumerable.Repeat(str, count));  
+        }  
+    }  
+}
+```
+
+Similarly, you can add arrays:
+
+```cs
+int[] a = [1, 2, 3];  
+int[] b = [4, 5, 6];
+
+var concat = a + b;  
+Console.WriteLine(string.Join(", ", concat));
+
+public static class ExtensionMembers  
+{  
+    extension<T>(T[] arr)  
+    {  
+        public static T[] operator +(T[] a, T[] b)  
+        {  
+            var result = new T[a.Length + b.Length];  
+            Array.Copy(a, result, a.Length);  
+            Array.Copy(b, 0, result, a.Length, b.Length);  
+            return result;  
+        }  
+    }  
+}
+```
+
+Remember the memes about JavaScript with adding and subtracting strings and numbers? Now you can implement similar behavior in C#!
+
+<div style="display: flex; flex-direction: column; align-items: center;">
+  <Image
+    src={image02}
+    alt="This is C# code, by the way"
+  />
+  This is C# code, by the way
+</div>
+
+```cs
+Console.WriteLine("5" - 3); // 2  
+Console.WriteLine("5" + 3); // 53  
+Console.WriteLine("10" - "4"); // 6
+
+public static class ExtensionMembers  
+{  
+    extension(string source)  
+    {  
+        public static int operator -(string str, int number) => int.Parse(str) - number;  
+        public static string operator +(string str, int number) => str + number.ToString();  
+        public static int operator -(string a, string b) => int.Parse(a) - int.Parse(b);  
+    }  
+}
+```
+
+JavaScript developers will find it much easier to get into C#.
+
+Finally, let's turn C# into F#. To do this, we need to declare a generic extension for the `|` operator (bitwise OR) and that's it – a pipe operator from scratch is ready.
+
+```cs
+public static class FunctionalExtensions  
+{  
+    extension<T, TResult>(T)  
+    {  
+        public static TResult operator |(T source, Func<T, TResult> f) => f(source);  
+    }  
+}
+```
+
+<div style="display: flex; flex-direction: column; align-items: center;">
+  <Image
+    src={image03}
+    alt="Two peas in a pod"
+  />
+  Two peas in a pod
+</div>
+
+Now you can declare several static methods and chain function calls just like in functional languages.
+
+```cs
+using static StringExtensions;
+
+var str = "Hello, C# code!"  
+        | No  
+        | ReplaceToFSharp  
+        | ToUpper;
+
+Console.WriteLine(str); // NO! HELLO F#-LIKE CODE!
+
+public static class StringExtensions  
+{  
+    public static string No(string source) => $"No! {source}";  
+    public static string ReplaceToFSharp(string source) => source.Replace("C#", "F#-like");  
+    public static string ToUpper(string source) => source.ToUpper();  
+}
+```
+
+## What's Under the Hood?
+
+The syntactic sugar (or syntactic salt, depending on your perspective) that we used compiles into a pretty scary construction.
+
+For example, the code imitating F# can be simplified to this:
+
+```cs
+var str = FunctionalExtensions.op_BitwiseOr(  
+    FunctionalExtensions.op_BitwiseOr(  
+        FunctionalExtensions.op_BitwiseOr(  
+            "Hello, C# code!",  
+            new Func<string, string>(No)  
+        ),  
+        new Func<string, string>(ReplaceToFSharp)  
+    ),  
+    new Func<string, string>(ToUpper)  
+);
+```
+
+This code also compiles and executes because the compiler generates a static generic method `op_BitwiseOr` for the `|` operator, which is accessible from user code (as a regular method):
+
+```cs
+public static class FunctionalExtensions  
+{  
+  public static TResult op_BitwiseOr<T, TResult>(T source, Func<T, TResult> f)  
+  {  
+    return f(source);  
+  }  
+}
+```
+
+## How Was It Done Before?
+
+Previously, you could write similar code, but if the class wasn't available for modification, like `string`, you had to write a wrapper. An example of functional-style code using a wrapper structure:
+
+```cs
+using static FunctionalString;
+
+var str = new FunctionalString("Hello, C# code!")  
+        | No  
+        | ReplaceToFSharp  
+        | ToUpper;
+
+Console.WriteLine(str); // Output: NO, HELLO F#-LIKE CODE!
+
+public record struct FunctionalString(string Value)  
+{  
+    public static FunctionalString operator >>(FunctionalString fs, Func<FunctionalString, FunctionalString> f) => f(fs);
+
+    public static implicit operator FunctionalString(string s) => new(s);  
+    public static implicit operator string(FunctionalString fs) => fs.Value;
+
+    public static FunctionalString No(FunctionalString fs) => $"No! {fs.Value}";  
+    public static FunctionalString ReplaceToFSharp(FunctionalString fs) => fs.Value.Replace("C#", "F#-like");  
+    public static FunctionalString ToUpper(FunctionalString fs) => fs.Value.ToUpper();  
+}
+```
+
+<div style="display: flex; flex-direction: column; align-items: center;">
+  <Image
+    src={image04}
+    alt="Just need to add pipe operator, currying and discriminated unions"
+  />
+  Just need to add pipe operator, currying and discriminated unions
+</div>
+
+## What's Next?
+
+C# developers just need to add a pipe operator, currying, discriminated unions and they can at least send F# into retirement.
