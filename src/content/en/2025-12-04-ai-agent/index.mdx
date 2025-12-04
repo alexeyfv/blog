@@ -1,0 +1,52 @@
+---
+title: 'How we integrated AI into the FinOps dashboard'
+description: 'Integrating an AI agent into the FinOps dashboard for fast analysis and automatic SQL generation.'
+pubDate: 'Dec 4 2025'
+tags: ['AI', 'MCP']
+cover: 'cover.webp'
+lang: 'en'
+---
+
+The AI craze reached us too — we integrated an agent into the FinOps dashboard.
+
+Despite mixed public opinions about AI, I believe this specific use is genuinely useful. But let me explain everything step by step.
+
+## Why an agent in the dashboard
+
+An agent can do analysis faster than a person. Imagine that instead of manually filtering tables and checking costs, any app user can ask the AI agent in plain language and get an answer in natural language.
+
+For example, a manager could ask: "What's the reason of the cost spike in October 2025?” How long would it take a person to do this? Tens of minutes or several hours? The AI agent can prepare the analysis in less than a minute. But for the agent to do that, it must be able to reach our data — and that is where MCP servers come in.
+
+## How the agent works and what MCP is
+
+The main piece that connects the app to the agent is MCP ([Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro)), a special interface the agent can use.
+
+The easiest way to think about MCP is as a REST API for AI. Instead of a usual UI client you have an LLM, and instead of controllers you have "tools" on the MCP server. The agent sees a list of tools and decides which one to call, filling in arguments and handling the response.
+
+Tools can be anything: a function that runs queries against a database, any API, and so on. Library authors are already building MCP servers around their products so agents in our IDEs can get the latest information about usage. For example, there are MCP servers for [Next.js](https://nextjs.org/docs/app/guides/mcp), [Chakra UI](https://chakra-ui.com/docs/get-started/ai/mcp-server), and [React Suite](https://rsuitejs.com/guide/mcp-server/).
+
+## Solution architecture and request lifecycle
+
+The diagram shows a typical request flow.
+
+1. The user asks a question in the dashboard UI.
+2. The backend adds a system prompt (who the agent is, what data it can access, and its limits) and sends the conversation to the agent with MCP enabled.
+3. The agent analyzes the question, chooses an MCP tool, generates an SQL query, and sends it to the MCP server.
+4. The MCP server runs the SQL on the database as a read-only user and returns either the result or an error.
+5. The agent interprets the data, creates a human-readable answer, and the backend returns it to the user.
+
+## Agent setup and security
+
+1. If you plan to use a third-party MCP server, be sure to check it for vulnerabilities. For example, the Postgres MCP server by Anthropic once [had a SQL injection vulnerability](https://securitylabs.datadoghq.com/articles/mcp-vulnerability-case-study-SQL-injection-in-the-postgresql-mcp-server/).
+
+2. Give the MCP server read-only access and [only to the data needed for the task](https://en.wikipedia.org/wiki/Principle_of_least_privilege). Ideally, restrict this by the database user's privileges.
+
+3. Choose the reasoning level that fits your needs. Higher reasoning gives more meaningful answers but increases processing time. We use GPT-5 mini, and the default reasoning made requests take about half a minute. That was too slow for us, so we lowered it to a low level, which was enough for generating SQL queries.
+
+4. The system prompt can be very large, and that's fine. Explain the database schema, data types, sample queries, and the expected result format in detail. Without a good prompt, LLMs can pick the wrong data or misinterpret results. Our system prompt is around 24,000 characters (500+ lines).
+
+5. Be ready to implement workarounds. MCP tools and libraries are still immature. For example, we had to run the MCP server in the same container as the app because Microsoft’s Azure MCP server [only supports](https://github.com/microsoft/mcp/issues/479) stdio.
+
+## Conclusion
+
+From a technical point of view, the implementation is simple — it is a wrapper around GPT with an MCP server and read-only database access. Still, such an app can save many human hours: the agent shortens the path from a question to initial figures. Now you can get answers in about a minute. The main rule remains: do not trust AI blindly and always double-check the results.
