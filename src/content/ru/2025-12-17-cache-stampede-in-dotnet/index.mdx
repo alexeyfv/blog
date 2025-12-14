@@ -1,0 +1,183 @@
+---
+title: 'Ваш кэш не защищён от cache stampede'
+description: 'Узнайте, как ConcurrentDictionary и MemoryCache могут вызывать множественные одинаковые запросы под нагрузкой, и как HybridCache решает эту проблему.'
+pubDate: 'Dec 17 2025'
+tags:
+  [
+    'C#',
+    '.NET',
+    'Cache',
+    'ConcurrentDictionary',
+    'MemoryCache',
+    'HybridCache',
+    'Performance',
+    'Concurrency',
+  ]
+cover: 'cover.jpg'
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './results_cd.png'
+import image02 from './results_mc.png'
+import image03 from './results_hc_l1.png'
+import image04 from './results_hc_l1l2.png'
+
+У вас есть запрос к базе данных или к платному API, и вы кэшируете результат? Для кэша используете ConcurrentDictionary или MemoryCache?
+
+У кэша, построенного на этих классах, есть одна неприятная проблема: отсутствие защиты от [давки кэша](https://en.wikipedia.org/wiki/Cache_stampede) (cache stampede). При определённой нагрузке **кэш будет многократно выполнять один и тот же запрос** из-за отсутствия координации между потоками и репликами. В этой статье я наглядно покажу, как давка кэша влияет на C# приложение и что с этим делать.
+
+## Что такое cache stampede
+
+Представим, что мы кэшируем результат долгого запроса в базу. К этому результату десятки раз в секунду обращаются клиенты. Пока значение лежит в кэше, всё хорошо: каждый запрос просто читает его из памяти.
+
+Проблема начинается, когда кэш протухает. Если кэш не умеет координировать параллельные запросы к одному и тому же ключу, то десятки потоков одновременно идут в базу за одним и тем же значением. Аналогичная ситуация может возникнуть после рестарта приложения, когда кэш ещё не прогрет и пустой.
+
+В итоге, вместо одной «тяжёлой» операции вы получаете десятки. Это и называется cache stampede (давка кэша).
+
+## Бенчмарки
+
+Я сравнивал поведение ConcurrentDictionary, MemoryCache, а также относительно новый HybridCache в двух сценариях:
+
+- IO-bound – имитация запроса к базе данных или внешнему API.
+
+```cs
+async Task<int> IOBoundOperation(CancellationToken ct)
+{
+    // Имитируем IO-операцию
+    await Task.Delay(200, ct);
+
+    // Имитируем аллокацию 1 КБ памяти
+    var result = new byte[1024].Length;
+
+    return result;
+}
+```
+
+- CPU-bound – имитация «тяжёлых» вычислений.
+
+```cs
+Task<int> CPUBoundOperation(CancellationToken _)
+{
+    // Имитируем CPU-операцию
+    var result = 0;
+    for (int i = 0; i < 200_000_000; i++)
+    {
+        result += i % 7;
+    }
+
+    return Task.FromResult(result);
+}
+```
+
+Количество параллельных запросов изменяется от `1` до `Environment.ProcessorCount * 2` (количество логических процессоров).
+
+Измеряемые параметры:
+
+1. Median execution time — медианное время выполнения бенчмарка.
+2. Allocated memory — сколько выделилось памяти.
+3. Operations executed — сколько раз фактически была вызвана IO-bound или CPU-bound операция (метод ExecuteOperation).
+
+Полный код бенчмарков и результаты лежат в [репозитории](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/CacheStampede).
+
+## Проверяем ConcurrentDictionary
+
+Кэш на `ConcurrentDictionary` обычно выглядит так:
+
+1. Пробуем прочитать значение по ключу используя [TryGetValue](https://github.com/dotnet/dotnet/blob/dc803dea8a5917a87a812a05bae596c299368a43/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentDictionary.cs#L517). Если значение есть, то возвращаем.
+
+2. Если нет, то выполняем «тяжёлую» операцию, сохраняем результат через [TryAdd](https://github.com/dotnet/dotnet/blob/dc803dea8a5917a87a812a05bae596c299368a43/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentDictionary.cs#L921) и возвращаем его.
+
+```cs
+if (!_dictionary.TryGetValue(CacheKey, out var existing))
+{
+    var value = await ExecuteOperation(Operation, CancellationToken.None);
+
+    _dictionary.TryAdd(CacheKey, value);
+
+    return value;
+}
+
+return existing;
+```
+
+Важно понимать, что методы TryGetValue и TryAdd потокобезопасны, но они защищают нас только от гонок внутри отдельных операций. Между TryGetValue и TryAdd синхронизации потоков нет.
+
+<Image src={image01} alt="Результаты бенчмарка ConcurrentDictionary" />
+
+В результате мы видим:
+
+- Для CPU-bound операций с ростом числа параллельных запросов медианное время увеличивается примерно в 2 – 3 раза. Значение Operations executed вырастает до 15.
+
+- Для IO-bound операций количество выполнений растёт линейно: сколько параллельных запросов, столько раз и выполняется ExecuteOperation.
+
+В ConcurrentDictionary также есть метод [GetOrAdd](<https://learn.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentdictionary-2.getoradd?view=net-10.0#system-collections-concurrent-concurrentdictionary-2-getoradd(-0-system-func((-0-1)))>) который кажется атомарным. Код бенчмарка можно было бы переписать вот так:
+
+```cs
+private readonly ConcurrentDictionary<string, Task<int>> _dictionary = new();
+
+return await _dictionary.GetOrAdd(CacheKey, _ =>
+{
+    return ExecuteOperation(Operation, CancellationToken.None);
+});
+```
+
+Но если смотреть на [реализацию GetOrAdd](https://github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/System.Collections.Concurrent/src/System/Collections/Concurrent/ConcurrentDictionary.cs#L1184C13-L1204C35), то он ничем не отличается от примера с TryGetValue и TryAdd выше. То есть он также не гарантирует однократный вызов передаваемого делегата. Обсуждению этого неочевидного поведения посвящено [вот в этом ишью в GitHub](https://github.com/dotnet/runtime/issues/36499).
+
+## Проверяем MemoryCache
+
+В MemoryCache тоже есть удобный метод GetOrCreateAsync:
+
+```cs
+return await _memoryCache.GetOrCreateAsync(CacheKey, async entry =>
+{
+    return await ExecuteOperation(Operation, CancellationToken.None);
+});
+```
+
+И, как в ConcurrentDictionary, на первый взгляд может показаться, что при его использовании, метод ExecuteOperation будет вызван всего один раз. Но если посмотреть исходники [GetOrCreateAsync](https://github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/MemoryCacheExtensions.cs#L224), видно, что защиты от давки кэша там нет. Это подтверждается и результатами бенчмарков.
+
+На графиках почти то же самое, что и у ConcurrentDictionary:
+
+<Image src={image02} alt="Результаты бенчмарка MemoryCache" />
+
+- Для CPU-bound операций с ростом числа параллельных запросов медианное время увеличивается до 3 – 4 раз.
+
+- Для IO-bound операций количество выполнений также растёт линейно: сколько параллельных запросов, столько раз и выполняется метод ExecuteOperation.
+
+## Проверяем HybridCache
+
+Следующий кандидат – HybridCache. Эта библиотека появилась с выходом .NET 9 и объединяет L1 (локальный, IMemoryCache) и L2 (персистентный, IDistributedCache). На уровне API всё выглядит так же, как в IMemoryCache:
+
+```cs
+return await hybridCache.GetOrCreateAsync(CacheKey, async (cancellationToken) =>
+{
+    return await ExecuteOperation(Operation, cancellationToken);
+});
+```
+
+Ключевое отличие в том, что в HybridCache встроена защита от давки кэша, **но только в рамках одного процесса**. Если вам интересно как именно она реализована, то смотрите методы [GetOrCreateAsync](https://github.com/dotnet/extensions/blob/20db54162d1acfc811921a1fa9c3088c729db202/src/Libraries/Microsoft.Extensions.Caching.Hybrid/Internal/DefaultHybridCache.cs#L138) и [GetOrCreateStampedeState](https://github.com/dotnet/extensions/blob/20db54162d1acfc811921a1fa9c3088c729db202/src/Libraries/Microsoft.Extensions.Caching.Hybrid/Internal/DefaultHybridCache.Stampede.cs#L17).
+
+При использовании только L1, мы наконец-то получаем защиту от давки кэша, что подтверждается результатами бенчмарка – количество вызовов ExecuteOperation всегда равно 1.
+
+<Image src={image03} alt="Результаты бенчмарка HybridCache с L1" />
+
+Но, как я уже говорил, эта защита только на уровне процесса. Если у сервиса несколько реплик, то каждая реплика выполнит метод ExecuteOperation.
+
+<Image src={image04} alt="Результаты бенчмарка HybridCache с L1 и L2" />
+
+Наличие уровня L2 не поможет от давки кэша: в HybridCache нет механизма распределённой блокировки (distributed lock). Хотя разработчики .NET согласны, что было бы неплохо добавить такой функционал [когда-нибудь в будущем](https://github.com/dotnet/aspnetcore/issues/56043#issuecomment-2151060998).
+
+## Заключение
+
+1. Не используйте ConcurrentDictionary и MemoryCache без защиты от давки кэша. В высоконагруженных приложениях это гарантированно приведёт к излишнему выполнению «тяжёлых» операций.
+
+2. Если у вас одна реплика, то просто используйте HybridCache – его функционала будет достаточно.
+
+3. Если реплик несколько и вам допустимо выполнить «тяжёлую» операцию несколько раз, то HybridCache всё так же подходит.
+
+4. Если реплик несколько и выполнение лишних «тяжёлых» операций недопустимо, то можете
+
+- Применить Cache TTL Jittering (дрожание TTL кэша) – добавление к значению TTL ключа кэша случайного времени, чтобы TTL не был одинаковым. Это не гарантирует защиту от давки кэша, но заметно уменьшает вероятность синхронного обновления на всех репликах. В некоторых библиотеках, как, например [FusionCache](https://github.com/ZiggyCreatures/FusionCache), эта функциональность есть из коробки.
+
+- Применить паттерн Single Flight на уровне L2. В таком случае, только одна реплика будет выполнять «тяжёлую» операцию. Остальные будут ждать и прочитают уже обновлённое значение из L2. Я, к сожалению, не нашёл готовых библиотек для распределённых кэшей, реализующих этот функционал. Если вы знаете о таких, то напишите в комментариях.

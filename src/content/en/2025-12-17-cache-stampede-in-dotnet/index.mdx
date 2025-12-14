@@ -1,0 +1,183 @@
+---
+title: 'Your cache is not protected from cache stampede'
+description: 'Learn how ConcurrentDictionary and MemoryCache can cause multiple identical requests under load, and discover how HybridCache solves this problem.'
+pubDate: 'Dec 17 2025'
+tags:
+  [
+    'C#',
+    '.NET',
+    'Cache',
+    'ConcurrentDictionary',
+    'MemoryCache',
+    'HybridCache',
+    'Performance',
+    'Concurrency',
+  ]
+cover: 'cover.jpg'
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image01 from './results_cd.png'
+import image02 from './results_mc.png'
+import image03 from './results_hc_l1.png'
+import image04 from './results_hc_l1l2.png'
+
+Do you have a database query or a paid API call, and you cache the result? Are you using ConcurrentDictionary or MemoryCache for caching?
+
+Caches built on these classes have one problem: lack of protection against [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede). Under certain load, **the cache will execute the same request multiple times** due to lack of coordination between threads and replicas. In this article, I'll show you how cache stampede affects C# applications and what you can do about it.
+
+## What is cache stampede
+
+Imagine we're caching the result of a long database query. Clients access this result dozens of times per second. While the value is in the cache, everything is fine: each request simply reads it from memory.
+
+The problem starts when the cache expires. If the cache doesn't know how to coordinate parallel requests to the same key, dozens of threads simultaneously go to the database for the same value. A similar situation can happen after application restart, when the cache is not yet warmed up and is empty.
+
+As a result, instead of one "heavy" operation, you get dozens. This is called cache stampede.
+
+## Benchmarks
+
+I compared the behavior of ConcurrentDictionary, MemoryCache, and the relatively new HybridCache in two scenarios:
+
+- IO-bound – simulating a database query or external API call.
+
+```cs
+async Task<int> IOBoundOperation(CancellationToken ct)
+{
+    // Simulate IO operation
+    await Task.Delay(200, ct);
+
+    // Simulate 1 KB memory allocation
+    var result = new byte[1024].Length;
+
+    return result;
+}
+```
+
+- CPU-bound – simulating "heavy" computations.
+
+```cs
+Task<int> CPUBoundOperation(CancellationToken _)
+{
+    // Simulate CPU operation
+    var result = 0;
+    for (int i = 0; i < 200_000_000; i++)
+    {
+        result += i % 7;
+    }
+
+    return Task.FromResult(result);
+}
+```
+
+The number of parallel requests varies from `1` to `Environment.ProcessorCount * 2` (number of logical processors).
+
+Measured parameters:
+
+1. Median execution time — median benchmark execution time.
+2. Allocated memory — how much memory was allocated.
+3. Operations executed — how many times the IO-bound or CPU-bound operation was actually called (ExecuteOperation method).
+
+Full benchmark code and results are in the [repository](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/CacheStampede).
+
+## Testing ConcurrentDictionary
+
+A cache based on `ConcurrentDictionary` usually looks like this:
+
+1. Try to read the value by key using [TryGetValue](https://github.com/dotnet/dotnet/blob/dc803dea8a5917a87a812a05bae596c299368a43/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentDictionary.cs#L517). If the value exists, return it.
+
+2. If not, execute the "heavy" operation, save the result through [TryAdd](https://github.com/dotnet/dotnet/blob/dc803dea8a5917a87a812a05bae596c299368a43/src/runtime/src/libraries/System.Private.CoreLib/src/System/Collections/Concurrent/ConcurrentDictionary.cs#L921) and return it.
+
+```cs
+if (!_dictionary.TryGetValue(CacheKey, out var existing))
+{
+    var value = await ExecuteOperation(Operation, CancellationToken.None);
+
+    _dictionary.TryAdd(CacheKey, value);
+
+    return value;
+}
+
+return existing;
+```
+
+It's important to understand that TryGetValue and TryAdd methods are thread-safe, but they only protect us from races within individual operations. There's no thread synchronization between TryGetValue and TryAdd.
+
+<Image src={image01} alt="ConcurrentDictionary benchmark results" />
+
+As a result, we see:
+
+- For CPU-bound operations, as the number of parallel requests grows, the median time increases by about 2-3 times. The Operations executed value grows up to 15.
+
+- For IO-bound operations, the number of executions grows linearly: as many parallel requests, as many times ExecuteOperation is executed.
+
+ConcurrentDictionary also has a [GetOrAdd](<https://learn.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentdictionary-2.getoradd?view=net-10.0#system-collections-concurrent-concurrentdictionary-2-getoradd(-0-system-func((-0-1)))>) method that seems atomic. The benchmark code could be rewritten like this:
+
+```cs
+private readonly ConcurrentDictionary<string, Task<int>> _dictionary = new();
+
+return await _dictionary.GetOrAdd(CacheKey, _ =>
+{
+    return ExecuteOperation(Operation, CancellationToken.None);
+});
+```
+
+But if you look at the [GetOrAdd implementation](https://github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/System.Collections.Concurrent/src/System/Collections/Concurrent/ConcurrentDictionary.cs#L1184C13-L1204C35), it's no different from the example with TryGetValue and TryAdd above. That means it also doesn't guarantee a single call to the passed delegate. This non-obvious behavior is discussed in [this GitHub issue](https://github.com/dotnet/runtime/issues/36499).
+
+## Testing MemoryCache
+
+MemoryCache also has a convenient GetOrCreateAsync method:
+
+```cs
+return await _memoryCache.GetOrCreateAsync(CacheKey, async entry =>
+{
+    return await ExecuteOperation(Operation, CancellationToken.None);
+});
+```
+
+And, like in ConcurrentDictionary, at first glance it might seem that when using it, the ExecuteOperation method will be called only once. But if you look at the [GetOrCreateAsync source code](https://github.com/dotnet/dotnet/blob/b0f34d51fccc69fd334253924abd8d6853fad7aa/src/runtime/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/MemoryCacheExtensions.cs#L224), you can see that there's no cache stampede protection there. This is confirmed by the benchmark results.
+
+The graphs show almost the same thing as ConcurrentDictionary:
+
+<Image src={image02} alt="MemoryCache benchmark results" />
+
+- For CPU-bound operations, as the number of parallel requests grows, the median time increases by 3-4 times.
+
+- For IO-bound operations, the number of executions also grows linearly: as many parallel requests, as many times the ExecuteOperation method is executed.
+
+## Testing HybridCache
+
+The next candidate is HybridCache. This library appeared with the release of .NET 9 and combines L1 (local, IMemoryCache) and L2 (persistent, IDistributedCache). At the API level, everything looks the same as in IMemoryCache:
+
+```cs
+return await hybridCache.GetOrCreateAsync(CacheKey, async (cancellationToken) =>
+{
+    return await ExecuteOperation(Operation, cancellationToken);
+});
+```
+
+The key difference is that HybridCache has built-in cache stampede protection, **but only within a single process**. If you're interested in how exactly it's implemented, check out the [GetOrCreateAsync](https://github.com/dotnet/extensions/blob/20db54162d1acfc811921a1fa9c3088c729db202/src/Libraries/Microsoft.Extensions.Caching.Hybrid/Internal/DefaultHybridCache.cs#L138) and [GetOrCreateStampedeState](https://github.com/dotnet/extensions/blob/20db54162d1acfc811921a1fa9c3088c729db202/src/Libraries/Microsoft.Extensions.Caching.Hybrid/Internal/DefaultHybridCache.Stampede.cs#L17) methods.
+
+When using only L1, we finally get cache stampede protection, which is confirmed by the benchmark results – the number of ExecuteOperation calls is always 1.
+
+<Image src={image03} alt="HybridCache with L1 benchmark results" />
+
+But, as I already mentioned, this protection is only at the process level. If the service has multiple replicas, each replica will execute the ExecuteOperation method.
+
+<Image src={image04} alt="HybridCache with L1 and L2 benchmark results" />
+
+Having an L2 level won't help with cache stampede: HybridCache doesn't have a distributed lock mechanism. Although .NET developers agree that it would be nice to add such functionality [sometime in the future](https://github.com/dotnet/aspnetcore/issues/56043#issuecomment-2151060998).
+
+## Conclusion
+
+1. Don't use ConcurrentDictionary and MemoryCache without cache stampede protection. In high-load applications, this will definitely lead to excessive execution of "heavy" operations.
+
+2. If you have a single replica, just use HybridCache – its functionality will be enough.
+
+3. If you have multiple replicas and it's acceptable to execute the "heavy" operation several times, HybridCache is still suitable.
+
+4. If you have multiple replicas and executing extra "heavy" operations is unacceptable, you can
+
+- Apply Cache TTL Jittering – adding random time to the cache key's TTL value so that TTL is not the same. This doesn't guarantee protection from cache stampede, but significantly reduces the probability of synchronous updates on all replicas. In some libraries, such as [FusionCache](https://github.com/ZiggyCreatures/FusionCache), this functionality is available out of the box.
+
+- Apply the Single Flight pattern at the L2 level. In this case, only one replica will execute the "heavy" operation. The others will wait and read the already updated value from L2. Unfortunately, I haven't found ready-made libraries for distributed caches that implement this functionality. If you know of any, please write in the comments.
