@@ -23,6 +23,8 @@ import image02 from './results_mc.png'
 import image03 from './results_hc_l1.png'
 import image04 from './results_hc_l1l2.png'
 
+_This article is presented as a part of [C# Advent 2025](https://www.csadvent.christmas/)._
+
 Do you have a database query or a paid API call, and you cache the result? Are you using ConcurrentDictionary or MemoryCache for caching?
 
 Caches built on these classes have one problem: lack of protection against [cache stampede](https://en.wikipedia.org/wiki/Cache_stampede). Under certain load, **the cache will execute the same request multiple times** due to lack of coordination between threads and replicas. In this article, I'll show you how cache stampede affects C# applications and what you can do about it.
