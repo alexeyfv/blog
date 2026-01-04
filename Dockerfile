@@ -17,3 +17,5 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 
 RUN npm install -g serve
+
+CMD ["serve", "-s", "dist", "-l", "3000"]
