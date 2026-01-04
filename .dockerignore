@@ -1,4 +1,11 @@
 .github
+.git
 .astro
 .vscode
 node_modules
+dist
+.cache
+.pnpm-store
+.npm
+.env
+.env.*
