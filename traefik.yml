@@ -38,8 +38,8 @@ http:
           img-src 'self' data: https://alexeyfv.xyz https://www.alexeyfv.xyz;
           style-src 'self' 'unsafe-inline' https://giscus.app;
           font-src 'self' data:;
-          script-src 'self' 'wasm-unsafe-eval' https://giscus.app;
-          connect-src 'self' https://giscus.app https://api.github.com;
+          script-src 'self' 'wasm-unsafe-eval' https://giscus.app https://cloud.umami.is;
+          connect-src 'self' https://giscus.app https://api.github.com https://cloud.umami.is;
           frame-src https://giscus.app;
           worker-src 'self' blob:;
           manifest-src 'self';
