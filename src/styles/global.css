@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  margin-left: calc(100vw - 100%);
+}
+
 @layer base {
   /* body {
 		transition: background-color 0.5s ease;

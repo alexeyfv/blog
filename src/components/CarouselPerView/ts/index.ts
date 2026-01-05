@@ -5,17 +5,33 @@ import '../style/embla.css'
 
 const OPTIONS: EmblaOptionsType = { align: 'start' }
 
-const emblaNode = <HTMLElement>document.querySelector('.embla')
-const viewportNode = <HTMLElement>emblaNode.querySelector('.embla__viewport')
-const prevBtnNode = <HTMLElement>emblaNode.querySelector('.embla__button--prev')
-const nextBtnNode = <HTMLElement>emblaNode.querySelector('.embla__button--next')
+export function initEmblaCarousel(): void {
+  const emblaNodes = document.querySelectorAll<HTMLElement>('.embla')
+  if (!emblaNodes.length) return
 
-const emblaApi = EmblaCarousel(viewportNode, OPTIONS)
+  for (const emblaNode of emblaNodes) {
+    if (emblaNode.dataset.emblaBound === 'true') continue
 
-const removePrevNextBtnsClickHandlers = addPrevNextBtnsClickHandlers(
-  emblaApi,
-  prevBtnNode,
-  nextBtnNode,
-)
+    const viewportNode =
+      emblaNode.querySelector<HTMLElement>('.embla__viewport')
+    const prevBtnNode = emblaNode.querySelector<HTMLElement>(
+      '.embla__button--prev',
+    )
+    const nextBtnNode = emblaNode.querySelector<HTMLElement>(
+      '.embla__button--next',
+    )
 
-emblaApi.on('destroy', removePrevNextBtnsClickHandlers)
+    if (!viewportNode || !prevBtnNode || !nextBtnNode) continue
+
+    const emblaApi = EmblaCarousel(viewportNode, OPTIONS)
+
+    const removePrevNextBtnsClickHandlers = addPrevNextBtnsClickHandlers(
+      emblaApi,
+      prevBtnNode,
+      nextBtnNode,
+    )
+
+    emblaNode.dataset.emblaBound = 'true'
+    emblaApi.on('destroy', removePrevNextBtnsClickHandlers)
+  }
+}

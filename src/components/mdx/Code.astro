@@ -4,32 +4,15 @@ import CheckIcon from '@/components/icons/Check'
 ---
 
 <pre
-  class="relative bg-grayDeep rounded-xl"><button aria-label="copy-button" id='copy-button' class="absolute z-20 top-4 right-4 rounded-xl transition-opacity hover:text-gray-400"><CopyIcon /></button><span id='check-span' class="absolute z-10 top-4 right-4 rounded-xl transition-opacity opacity-0"><CheckIcon /></span><slot /></pre>
+  data-codeblock
+  class="relative bg-grayDeep rounded-xl">
+  <button aria-label="copy-button" data-copy-button class="absolute z-20 top-4 right-4 rounded-xl transition-opacity hover:text-gray-400">
+    <CopyIcon />
+  </button>
 
-<script>
-  const copyBlock = () => {
-    const codeBlock = document.querySelectorAll('pre')
+  <span data-copy-check class="absolute z-10 top-4 right-4 rounded-xl transition-opacity opacity-0">
+    <CheckIcon />
+  </span>
 
-    codeBlock.forEach((code) => {
-      const button = code.querySelector('#copy-button')
-      const check = code.querySelector('#check-span')
-
-      if (button && check)
-        button.addEventListener('click', () => {
-          navigator.clipboard.writeText(code.textContent?.trim() || '')
-
-          check.classList.remove('opacity-0')
-          button.classList.add('opacity-0')
-          setTimeout(() => {
-            check.classList.add('opacity-0')
-            button.classList.remove('opacity-0')
-          }, 1500)
-        })
-    })
-  }
-
-  // init
-  copyBlock()
-  // re-run after each page change
-  document.addEventListener('astro:after-swap', copyBlock)
-</script>
+  <slot />
+</pre>

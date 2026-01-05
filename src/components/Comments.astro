@@ -1,49 +1,16 @@
 <section class="mx-auto mt-10">
-  <div id="giscusContainer"></div>
+  <div
+    id="giscusContainer"
+    data-repo="alexeyfv/blog"
+    data-repo-id="R_kgDOGwr_nA"
+    data-category="General"
+    data-category-id="DIC_kwDOGwr_nM4CpL7x"
+    data-mapping="og:title"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-loading="lazy"
+  >
+  </div>
 </section>
-
-<script is:inline>
-  function loadGiscus(theme) {
-    const script = document.createElement('script')
-    script.id = 'giscusConfig'
-    script.src = 'https://giscus.app/client.js'
-    script.setAttribute('data-repo', 'alexeyfv/blog')
-    script.setAttribute('data-repo-id', 'R_kgDOGwr_nA')
-    script.setAttribute('data-category', 'General')
-    script.setAttribute('data-category-id', 'DIC_kwDOGwr_nM4CpL7x')
-    script.setAttribute('data-mapping', 'og:title')
-    script.setAttribute('data-strict', '0')
-    script.setAttribute('data-reactions-enabled', '1')
-    script.setAttribute('data-emit-metadata', '0')
-    script.setAttribute('data-input-position', 'top')
-    script.setAttribute('data-theme', theme)
-    script.setAttribute('data-lang', document.documentElement.lang)
-    script.setAttribute('data-loading', 'lazy')
-    script.setAttribute('crossorigin', 'anonymous')
-    script.async = true
-
-    const container = document.getElementById('giscusContainer')
-    container.innerHTML = ''
-    container.appendChild(script)
-  }
-
-  // Get initial theme
-  const initialTheme = document.documentElement.classList.contains('dark')
-    ? 'dark'
-    : 'light'
-  loadGiscus(initialTheme)
-
-  // update giscus theme when html class changes
-  const observer = new MutationObserver(() => {
-    const theme = document.documentElement.classList.contains('dark')
-      ? 'dark'
-      : 'light'
-    loadGiscus(theme)
-  })
-
-  const html = document.querySelector('html')
-  observer.observe(html, {
-    attributes: true,
-    attributeFilter: ['class'],
-  })
-</script>
