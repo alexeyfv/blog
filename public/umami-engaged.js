@@ -1,17 +1,17 @@
-const scheduleEngagedPing = () => {
-  setTimeout(() => {
+let t
+
+const schedule = () => {
+  if (t) clearTimeout(t)
+  t = setTimeout(() => {
     if (document.visibilityState !== 'visible') return
-    window.umami?.track?.({ name: 'engaged' })
+    window.umami?.track?.('engaged')
   }, 5000)
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', scheduleEngagedPing, {
-    once: true,
-  })
+  document.addEventListener('DOMContentLoaded', schedule, { once: true })
 } else {
-  scheduleEngagedPing()
+  schedule()
 }
 
-// Astro client-side navigation (View Transitions) hook.
-document.addEventListener('astro:after-swap', scheduleEngagedPing)
+document.addEventListener('astro:after-swap', schedule)
