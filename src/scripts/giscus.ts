@@ -69,15 +69,12 @@ export function initGiscus(): void {
 
     ensureGiscusMounted(container, getCurrentTheme())
 
-    // Keep in sync on theme changes (no re-inject; update via postMessage)
+    // Keep in sync on theme changes
     if (!themeListenerBound) {
       themeListenerBound = true
       document.addEventListener('theme-change', () => {
         postGiscusTheme(getCurrentTheme())
       })
     }
-
-    // Also attempt a sync after iframe loads (first paint)
-    window.setTimeout(() => postGiscusTheme(getCurrentTheme()), 250)
   })
 }

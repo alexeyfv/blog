@@ -38,7 +38,13 @@ export function setTheme(theme: Theme): void {
 }
 
 export function getCurrentTheme(): Theme {
-  return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+  // Check document classes first to reflect current state
+  // If none, fall back to preferred theme.
+  return document.documentElement.classList.contains('dark')
+    ? 'dark'
+    : document.documentElement.classList.contains('light')
+      ? 'light'
+      : getPreferredTheme()
 }
 
 export function toggleTheme(): Theme {
