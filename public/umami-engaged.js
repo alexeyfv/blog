@@ -1,7 +1,7 @@
 const scheduleEngagedPing = () => {
   setTimeout(() => {
     if (document.visibilityState !== 'visible') return
-    ;(window as any).umami?.track?.({ name: 'engaged' })
+    window.umami?.track?.({ name: 'engaged' })
   }, 5000)
 }
 
