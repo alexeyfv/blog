@@ -7,7 +7,6 @@ import ProviderAnimations from '@/components/ProviderAnimations'
 import TwSizeIndicator from '@/components/test/TwSizeIndicator'
 import { getLangFromUrl } from '@/i18n/utils'
 import type { Props } from '@/components/BaseHead'
-import clientUrl from '../scripts/client.ts?url'
 
 const lang = getLangFromUrl(Astro.url)
 const { title, description, ogImage, articleDate }: Props = Astro.props
@@ -35,6 +34,6 @@ const { title, description, ogImage, articleDate }: Props = Astro.props
       <Footer />
     </main>
     <TwSizeIndicator />
-    <script type="module" src={clientUrl}></script>
+    <script src="../scripts/client.ts"></script>
   </body>
 </html>
