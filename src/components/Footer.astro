@@ -1,12 +1,43 @@
 ---
+import TbBrandGitHub from './icons/TbBrandGitHub.astro'
+import TbBrandLinkedin from './icons/TbBrandLinkedin.astro'
+import TbBrandTelegram from './icons/TbBrandTelegram.astro'
+
 const today = new Date()
 ---
 
-<footer
-  class="flex flex-col justify-center items-center w-full px-16 h-28 border-t-2"
->
+<footer class="flex flex-col justify-center items-center w-full mb-6">
   <div>&copy; {today.getFullYear()} Alexey Fedorov</div>
-  <div>
-    Powered by <a href="https://astro.build" class="hover:underline">Astro</a>
-  </div>
+
+  <section class="flex gap-3 mt-3">
+    <a
+      href="https://github.com/alexeyfv"
+      target="_blank"
+      rel="noopener noreferrer"
+      data-umami-event="social_click"
+      data-umami-event-platform="github"
+      data-umami-event-location="footer"
+      aria-label="Open Github"><TbBrandGitHub /></a
+    >
+
+    <a
+      href="https://www.linkedin.com/in/alexeyfv/"
+      target="_blank"
+      rel="noopener noreferrer"
+      data-umami-event="social_click"
+      data-umami-event-platform="linkedin"
+      data-umami-event-location="footer"
+      aria-label="Open LinkedIn"><TbBrandLinkedin /></a
+    >
+
+    <a
+      href="https://t.me/alexeyfv"
+      target="_blank"
+      rel="noopener noreferrer"
+      data-umami-event="social_click"
+      data-umami-event-platform="telegram"
+      data-umami-event-location="footer"
+      aria-label="Open Telegram"><TbBrandTelegram /></a
+    >
+  </section>
 </footer>

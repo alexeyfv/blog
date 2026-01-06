@@ -2,11 +2,10 @@ import { Lang } from '@/i18n/utils'
 import { getCollection } from 'astro:content'
 import { slugifyTag } from './slugify'
 
-export const getPosts = async (lang: Lang, max?: number) => {
+export const getPosts = async (lang: Lang) => {
   const posts = await getCollection(lang)
+  posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
   return posts
-    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-    .slice(0, max)
 }
 
 export const getTags = async (lang: Lang) => {

@@ -1,15 +1,15 @@
 ---
-import SunIcon from '@/components/icons/Sun'
-import MoonIcon from '@/components/icons/Moon'
+import TbSun from '@/components/icons/TbSun'
+import TbMoonStars from '@/components/icons/TbMoonStars'
 ---
 
 <!-- to avoid the absolute position mode dispatch from the document flow causes the display bug when user click the search button to open the Modal component --><!-- there need to set the index value as -10 -->
 <button id="themeToggle" class="relative size-6" aria-label="Toggle Theme">
   <div class="absolute -z-10 left-0 top-0 opacity-0 dark:opacity-100">
-    <SunIcon />
+    <TbSun />
   </div>
 
   <div class="absolute -z-10 left-0 top-0 opacity-100 dark:opacity-0">
-    <MoonIcon />
+    <TbMoonStars />
   </div>
 </button>

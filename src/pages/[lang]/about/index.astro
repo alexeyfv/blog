@@ -15,33 +15,15 @@ const t = getTranslation(lang)
   <main class="space-y-10">
     <section class="space-y-5">
       <h1 class="text-3xl font-semibold">{t.about.aboutMe}</h1>
-      <!-- <h2 class="font-bold">{t.about.title}</h2> -->
-
       <article class="md:w-8/12 text-slate-500 space-y-4">
         {t.about.aboutMeParagraphs.map((text) => <p>{text}</p>)}
       </article>
-
-      <!-- <a
-        class="inline-block bg-grayDeep text-white active:ring-2 font-semibold py-2 px-4 rounded-xl"
-        href="https://github.com/alexeyfv"
-      >
-        GitHub
-      </a> -->
     </section>
     <section class="space-y-5">
       <h1 class="text-3xl font-semibold">{t.about.aboutBlog}</h1>
-      <!-- <h2 class="font-bold">{t.about.title}</h2> -->
-
       <article class="md:w-8/12 text-slate-500 space-y-4">
         {t.about.aboutBlogParagraphs.map((text) => <p>{text}</p>)}
       </article>
-
-      <!-- <a
-        class="inline-block bg-grayDeep text-white active:ring-2 font-semibold py-2 px-4 rounded-xl"
-        href="https://github.com/alexeyfv"
-      >
-        GitHub
-      </a> -->
     </section>
   </main>
 </BaseLayout>

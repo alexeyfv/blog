@@ -1,8 +1,8 @@
 ---
 import type { CollectionEntry } from 'astro:content'
 import PostCard from '@/components/PostCard'
-import ArrowLeft from '@/components/icons/ArrowLeft'
-import ArrowRight from '@/components/icons/ArrowRight'
+import TbChevronLeft from '@/components/icons/TbChevronLeft'
+import TbChevronRight from '@/components/icons/TbChevronRight'
 import { Lang } from '@/i18n/utils'
 interface Props {
   posts: CollectionEntry<Lang>[]
@@ -10,7 +10,6 @@ interface Props {
 const { posts }: Props = Astro.props
 ---
 
-<!-- thanks to Embla Carousel -->
 <section class="embla">
   <section class="embla__viewport">
     <div class="embla__container">
@@ -44,7 +43,7 @@ const { posts }: Props = Astro.props
         type="button"
         aria-label="Previous slide"
       >
-        <ArrowLeft />
+        <TbChevronLeft />
       </button>
 
       <button
@@ -52,7 +51,7 @@ const { posts }: Props = Astro.props
         type="button"
         aria-label="Next slide"
       >
-        <ArrowRight />
+        <TbChevronRight />
       </button>
     </div>
   </nav>

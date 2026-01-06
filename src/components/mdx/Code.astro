@@ -1,18 +1,8 @@
 ---
-import CopyIcon from '@/components/icons/Copy'
-import CheckIcon from '@/components/icons/Check'
+import TbCopy from '@/components/icons/TbCopy'
+import TbCheck from '@/components/icons/TbCheck'
 ---
 
 <pre
   data-codeblock
-  class="relative bg-grayDeep rounded-xl">
-  <button aria-label="copy-button" data-copy-button class="absolute z-20 top-4 right-4 rounded-xl transition-opacity hover:text-gray-400">
-    <CopyIcon />
-  </button>
-
-  <span data-copy-check class="absolute z-10 top-4 right-4 rounded-xl transition-opacity opacity-0">
-    <CheckIcon />
-  </span>
-
-  <slot />
-</pre>
+  class="relative bg-grayDeep leading-none md:leading-none p-4 md:p-4 text-sm"><button aria-label="copy-button" data-copy-button class="absolute z-20 top-4 right-4  transition-opacity hover:text-gray-400"><TbCopy /></button><span data-copy-check class="absolute z-10 top-4 right-4  transition-opacity opacity-0"><TbCheck /></span><slot /></pre>

@@ -1,8 +1,8 @@
-# Project repo for my personal blog
+# Blog
 
-[![Deploy to GitHub Pages](https://github.com/alexeyfv/blog/actions/workflows/build_and_deploy.yaml/badge.svg)](https://github.com/alexeyfv/blog/actions/workflows/build_and_deploy.yaml)
+Link to the live site: [https://alexeyfv.xyz](https://alexeyfv.xyz).
 
-## Run
+To run the project locally, use:
 
 ``` sh
 pnpm start

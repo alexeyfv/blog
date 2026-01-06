@@ -17,11 +17,7 @@ const posts = await getPosts(lang)
 
 <BaseLayout lang={lang} title={t.blog.title}>
   <TitlePage title={t.blog.title} />
-  <hr />
   <section>
-    <h2 class="text-lg font-medium tracking-wide text-end">
-      {t.blog.latestPosts}
-    </h2>
     <ListPosts FirstBig={false} posts={posts} />
   </section>
 </BaseLayout>

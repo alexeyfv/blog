@@ -1,34 +1,128 @@
 ---
 import { siteConfig } from '@/data/site.config'
-import LinkedinIcon from '@/components/icons/Linkedin'
-import XIcon from '@/components/icons/X'
 import { getLangFromUrl, getTranslation } from '@/i18n/utils'
+import TbCheck from '@/components/icons/TbCheck'
+import TbBrandTelegram from '@/components/icons/TbBrandTelegram'
+import TbBrandVk from '@/components/icons/TbBrandVk'
+import TbBrandReddit from '@/components/icons/TbBrandReddit'
+import TbBrandLinkedin from '@/components/icons/TbBrandLinkedin'
+import TbBrandX from '@/components/icons/TbBrandX'
+import TbCopy from '@/components/icons/TbCopy'
 
 const lang = getLangFromUrl(Astro.url)
 const t = getTranslation(lang)
 
-const message = siteConfig.shareMessage
-const URL = Astro.url.href
+const url = Astro.props.url
+const title = Astro.props.title
+
+const canonicalUrl = url ?? new URL(Astro.url.pathname, Astro.site).href
+const shareText = encodeURIComponent(title ?? siteConfig.shareMessage)
+
+const telegramUrl = encodeURIComponent(buildShareUrl(canonicalUrl, 'telegram'))
+const vkUrl = encodeURIComponent(buildShareUrl(canonicalUrl, 'vk'))
+const redditUrl = encodeURIComponent(buildShareUrl(canonicalUrl, 'reddit'))
+const linkedinUrl = encodeURIComponent(buildShareUrl(canonicalUrl, 'linkedin'))
+const xUrl = encodeURIComponent(buildShareUrl(canonicalUrl, 'x'))
+
+const telegramShareLink = `https://t.me/share/url?url=${telegramUrl}&text=${shareText}`
+const vkShareLink = `https://vk.com/share.php?url=${vkUrl}`
+const redditShareLink = `https://www.reddit.com/submit?url=${redditUrl}&title=${shareText}`
+const linkedinShareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${linkedinUrl}`
+const xShareLink = `https://twitter.com/intent/tweet?url=${xUrl}&text=${shareText}`
+
+type ShareSource = 'telegram' | 'vk' | 'reddit' | 'linkedin' | 'x' | 'copy'
+
+function buildShareUrl(baseUrl: string, source: ShareSource): string {
+  const siteOrigin = import.meta.env.SITE ?? 'http://localhost'
+  let url = new URL(baseUrl, siteOrigin)
+  url.searchParams.set('utm_source', source)
+  url.searchParams.set('utm_medium', 'share')
+  return url.toString()
+}
 ---
 
 <section class="flex flex-col gap-2">
   <h1 class="mb-1 font-semibold text-2xl">{t.share}</h1>
 
   <ul class="flex justify-start items-center gap-1">
+    {
+      lang === 'ru' && (
+        <>
+          <li>
+            <a
+              href={telegramShareLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-umami-event="share_click"
+              data-umami-event-platform="telegram"
+              data-umami-event-lang={lang}
+              aria-label="Share on Telegram"
+            >
+              <TbBrandTelegram />
+            </a>
+          </li>
+
+          <li>
+            <a
+              href={vkShareLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-umami-event="share_click"
+              data-umami-event-platform="vk"
+              data-umami-event-lang={lang}
+              aria-label="Share on VK"
+            >
+              <TbBrandVk />
+            </a>
+          </li>
+        </>
+      )
+    }
+
+    {
+      lang === 'en' && (
+        <li>
+          <a
+            href={redditShareLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-umami-event="share_click"
+            data-umami-event-platform="reddit"
+            data-umami-event-lang={lang}
+            aria-label="Share on Reddit"
+          >
+            <TbBrandReddit />
+          </a>
+        </li>
+      )
+    }
+
     <li>
       <a
-        href={`https://twitter.com/intent/tweet?text=${message + ' ' + URL}`}
-        aria-label="Share on Twitter"><XIcon /></a
+        href={linkedinShareLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-umami-event="share_click"
+        data-umami-event-platform="linkedin"
+        data-umami-event-lang={lang}
+        aria-label="Share on LinkedIn"
       >
+        <TbBrandLinkedin />
+      </a>
     </li>
 
     <li>
       <a
-        href={`https://www.linkedin.com/shareArticle?mini=true&url=${URL}`}
-        aria-label="Share on Linkedin"
+        href={xShareLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-umami-event="share_click"
+        data-umami-event-platform="x"
+        data-umami-event-lang={lang}
+        aria-label="Share on X"
       >
-        <LinkedinIcon /></a
-      >
+        <TbBrandX />
+      </a>
     </li>
   </ul>
 </section>

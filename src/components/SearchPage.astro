@@ -1,6 +1,6 @@
 ---
-import CloseIcon from '@/components/icons/Close'
-import SearchIcon from '@/components/icons/Search'
+import TbX from '@/components/icons/TbX'
+import TbSearch from '@/components/icons/TbSearch'
 import Search from 'astro-pagefind/components/Search'
 import '../styles/pagefind-ui.css'
 
@@ -18,7 +18,7 @@ const { title }: Props = Astro.props
   class="w-[24px] h-[24px]"
   aria-label="Search Blog Contents"
 >
-  <SearchIcon />
+  <TbSearch />
 </button>
 
 <dialog
@@ -33,7 +33,7 @@ const { title }: Props = Astro.props
       <h1 class="text-3xl">{title}</h1>
 
       <button id="closeSearchPage" aria-label="Close Search Page">
-        <CloseIcon />
+        <TbX />
       </button>
     </section>
 

@@ -1,12 +1,14 @@
 ---
 import HeaderLink from '@/components/HeaderLink'
-import GithubIcon from '@/components/icons/Github'
+import TbBrandGitHub from '@/components/icons/TbBrandGitHub'
+import TbBrandLinkedin from './icons/TbBrandLinkedin.astro'
 import SearchPage from '@/components/SearchPage'
-import BurgerIcon from '@/components/icons/Burger'
+import TbMenu2 from '@/components/icons/TbMenu2'
 import ToggleTheme from '@/components/ToggleTheme'
 import LanguagePicker from '@/components/LanguagePicker'
 import Modal from '@/components/Modal'
 import { getLangFromUrl, getTranslation } from '@/i18n/utils'
+import TbBrandTelegram from './icons/TbBrandTelegram.astro'
 
 const lang = getLangFromUrl(Astro.url)
 const t = getTranslation(lang)
@@ -31,14 +33,42 @@ const t = getTranslation(lang)
         </HeaderLink>
       </section>
 
+      <section class="hidden md:flex gap-3 mr-3">
+        <a
+          href="https://github.com/alexeyfv"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-umami-event="social_click"
+          data-umami-event-platform="github"
+          data-umami-event-location="header"
+          data-umami-event-lang={lang}
+          aria-label="Open Github"><TbBrandGitHub /></a
+        >
+
+        <a
+          href="https://www.linkedin.com/in/alexeyfv/"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-umami-event="social_click"
+          data-umami-event-platform="linkedin"
+          data-umami-event-location="header"
+          data-umami-event-lang={lang}
+          aria-label="Open LinkedIn"><TbBrandLinkedin /></a
+        >
+
+        <a
+          href="https://t.me/alexeyfv"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-umami-event="social_click"
+          data-umami-event-platform="telegram"
+          data-umami-event-location="header"
+          data-umami-event-lang={lang}
+          aria-label="Open Telegram"><TbBrandTelegram /></a
+        >
+      </section>
+
       <LanguagePicker />
-
-      <a
-        href="https://github.com/alexeyfv"
-        target="_blank"
-        aria-label="Open Github"><GithubIcon /></a
-      >
-
       <SearchPage title="Search" />
       <ToggleTheme aria-label="Switch Blog Theme" />
 
@@ -58,7 +88,7 @@ const t = getTranslation(lang)
           ]}
           type="outline"
         >
-          <BurgerIcon aria-label="Open Navigation on Mobile Devices" />
+          <TbMenu2 aria-label="Open Navigation on Mobile Devices" />
         </Modal>
       </nav>
     </nav>
