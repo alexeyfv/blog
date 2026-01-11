@@ -9,7 +9,7 @@ import { remarkReadingTime } from './src/utils/readTime'
 // https://astro.build/config
 export default defineConfig({
   site: 'https://alexeyfv.xyz',
-  trailingSlash: 'ignore',
+  trailingSlash: 'never',
 
   devToolbar: {
     enabled: false,
