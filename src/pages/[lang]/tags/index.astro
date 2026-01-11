@@ -15,9 +15,10 @@ const t = getTranslation(lang)
 const tags = await getTags(lang)
 ---
 
-<BaseLayout lang={lang} title={t.tags.title}>
+<BaseLayout lang={lang} title={t.tags.title} description={t.tags.description}>
   <TitlePage title={t.tags.title} />
   <section class="flex justify-center flex-wrap gap-x-2 gap-y-4">
+    <h2 class="sr-only">{t.tags.title}</h2>
     {tags.map((tag) => <PostTag lang={lang} tag={tag} size="lg" />)}
   </section>
 </BaseLayout>

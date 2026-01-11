@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout'
+import TitlePage from '@/components/TitlePage'
 import { getLangFromUrl, getTranslation } from '@/i18n/utils'
 import { Lang, ui } from '@/i18n/utils'
 
@@ -11,16 +12,17 @@ const lang = getLangFromUrl(Astro.url)
 const t = getTranslation(lang)
 ---
 
-<BaseLayout lang={lang} title={t.about.title}>
+<BaseLayout lang={lang} title={t.about.title} description={t.about.description}>
+  <TitlePage title={t.about.title} />
   <main class="space-y-10">
     <section class="space-y-5">
-      <h1 class="text-3xl font-semibold">{t.about.aboutMe}</h1>
+      <h2 class="text-3xl font-semibold">{t.about.aboutMe}</h2>
       <article class="md:w-8/12 text-slate-500 space-y-4">
         {t.about.aboutMeParagraphs.map((text) => <p>{text}</p>)}
       </article>
     </section>
     <section class="space-y-5">
-      <h1 class="text-3xl font-semibold">{t.about.aboutBlog}</h1>
+      <h2 class="text-3xl font-semibold">{t.about.aboutBlog}</h2>
       <article class="md:w-8/12 text-slate-500 space-y-4">
         {t.about.aboutBlogParagraphs.map((text) => <p>{text}</p>)}
       </article>

@@ -7,10 +7,12 @@ type Translations = {
   }
   tags: {
     title: string
+    description: string
   }
   blog: {
     title: string
     latestPosts: string
+    description: string
   }
   about: {
     title: string
@@ -18,6 +20,7 @@ type Translations = {
     aboutMeParagraphs: string[]
     aboutBlog: string
     aboutBlogParagraphs: string[]
+    description: string
   }
   published: string
   minutes: string
@@ -36,10 +39,13 @@ export const en: Translations = {
   },
   tags: {
     title: 'Tags',
+    description: 'Browse posts grouped by topics and technologies.',
   },
   blog: {
     title: 'Blog',
     latestPosts: 'Latest Posts',
+    description:
+      'Technical posts, experiments, and notes about software engineering and performance.',
   },
   about: {
     title: 'About',
@@ -55,6 +61,8 @@ export const en: Translations = {
       'You’ll find a mix of everything here: short notes, performance experiments and benchmarks, thoughts, and deep dives into complex topics. I write mainly for myself, to document and revisit what I’ve learned. But I believe many posts are helpful to others too. If you find something useful, that’s already a win.',
       'Posts are published in both Russian and English so that as many readers as possible can access the same content.',
     ],
+    description:
+      'A short bio and explanation of the motivations behind this blog, ideas, and audience.',
   },
   published: 'Published on',
   minutes: 'min read',
@@ -73,10 +81,13 @@ export const ru: Translations = {
   },
   tags: {
     title: 'Теги',
+    description: 'Просматривайте публикации по темам и технологиям.',
   },
   blog: {
     title: 'Блог',
     latestPosts: 'Последние публикации',
+    description:
+      'Технические заметки, эксперименты и мысли о разработке и производительности.',
   },
   about: {
     title: 'Эбаут',
@@ -92,6 +103,8 @@ export const ru: Translations = {
       'Здесь всё понемногу: короткие заметки, эксперименты с производительностью и бенчмарки, размышления, разборы сложных тем. Я пишу для себя, чтобы фиксировать и переосмысливать то, что узнал. Но, думаю, многим эти материалы тоже будут полезны. Если вы нашли здесь что-то ценное, это уже победа.',
       'Посты публикуются на русском и английском, чтобы как можно больше читателей могли получить доступ к одному и тому же контенту.',
     ],
+    description:
+      'Краткая биография и объяснение целей блога, идей и аудитории.',
   },
   published: 'Опубликовано',
   minutes: 'мин чтения',

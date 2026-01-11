@@ -15,9 +15,10 @@ const t = getTranslation(lang)
 const posts = await getPosts(lang)
 ---
 
-<BaseLayout lang={lang} title={t.blog.title}>
+<BaseLayout lang={lang} title={t.blog.title} description={t.blog.description}>
   <TitlePage title={t.blog.title} />
   <section>
+    <h2 class="sr-only">{t.blog.latestPosts}</h2>
     <ListPosts FirstBig={false} posts={posts} />
   </section>
 </BaseLayout>
