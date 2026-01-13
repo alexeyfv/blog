@@ -1,0 +1,7 @@
+---
+export const prerender = true
+
+export function GET() {
+  // Redirect the old /cv/ URL that still appears in Google coverage to the current about page
+  return Astro.redirect('/en/about/', 308)
+}

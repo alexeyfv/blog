@@ -1,0 +1,7 @@
+---
+export const prerender = true
+
+export function GET() {
+  // Redirect the legacy /tag root Google still crawls to the current tag listing
+  return Astro.redirect('/en/tags/', 308)
+}
