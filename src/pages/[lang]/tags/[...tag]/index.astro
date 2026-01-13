@@ -28,8 +28,7 @@ const lang: Lang = Astro.params.lang
 const { tag, tagTitle } = Astro.props
 const posts = await getPostByTag(lang, tag)
 const t = getTranslation(lang)
-const langMarker = lang.toUpperCase()
-const detailTitle = `${t.tags.detailTitlePrefix}${tagTitle} (${langMarker})`
+const detailTitle = `${t.tags.detailTitlePrefix} ${tagTitle}`
 const detailDescription = `${t.tags.detailDescriptionPrefix}${tagTitle}${t.tags.detailDescriptionSuffix}`
 ---
 

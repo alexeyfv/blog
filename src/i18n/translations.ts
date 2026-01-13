@@ -43,7 +43,7 @@ export const en: Translations = {
   tags: {
     title: 'Tags',
     description: 'Browse posts grouped by topics and technologies.',
-    detailTitlePrefix: 'Tag #',
+    detailTitlePrefix: 'Tag',
     detailDescriptionPrefix: 'Explore posts tagged “',
     detailDescriptionSuffix: '”.',
   },
@@ -88,7 +88,7 @@ export const ru: Translations = {
   tags: {
     title: 'Теги',
     description: 'Просматривайте публикации по темам и технологиям.',
-    detailTitlePrefix: 'Тег #',
+    detailTitlePrefix: 'Тег',
     detailDescriptionPrefix: 'Публикации под тегом «',
     detailDescriptionSuffix: '».',
   },
