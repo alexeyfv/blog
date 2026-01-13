@@ -3,7 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout'
 import ListPosts from '@/components/ListPosts'
 import TitlePage from '@/components/TitlePage'
 import { getTags, getPostByTag, slugifyTag } from '@/utils'
-import { Lang, ui } from '@/i18n/utils'
+import { Lang, ui, getTranslation } from '@/i18n/utils'
 
 export const getStaticPaths = async () => {
   const result: any[] = []
@@ -27,9 +27,13 @@ export const getStaticPaths = async () => {
 const lang: Lang = Astro.params.lang
 const { tag, tagTitle } = Astro.props
 const posts = await getPostByTag(lang, tag)
+const t = getTranslation(lang)
+const langMarker = lang.toUpperCase()
+const detailTitle = `${t.tags.detailTitlePrefix}${tagTitle} (${langMarker})`
+const detailDescription = `${t.tags.detailDescriptionPrefix}${tagTitle}${t.tags.detailDescriptionSuffix}`
 ---
 
-<BaseLayout lang={lang} title={tagTitle}>
+<BaseLayout lang={lang} title={detailTitle} description={detailDescription}>
   <TitlePage title={tagTitle} />
   <ListPosts posts={posts} />
 </BaseLayout>

@@ -8,6 +8,9 @@ type Translations = {
   tags: {
     title: string
     description: string
+    detailTitlePrefix: string
+    detailDescriptionPrefix: string
+    detailDescriptionSuffix: string
   }
   blog: {
     title: string
@@ -40,6 +43,9 @@ export const en: Translations = {
   tags: {
     title: 'Tags',
     description: 'Browse posts grouped by topics and technologies.',
+    detailTitlePrefix: 'Tag #',
+    detailDescriptionPrefix: 'Explore posts tagged “',
+    detailDescriptionSuffix: '”.',
   },
   blog: {
     title: 'Blog',
@@ -82,6 +88,9 @@ export const ru: Translations = {
   tags: {
     title: 'Теги',
     description: 'Просматривайте публикации по темам и технологиям.',
+    detailTitlePrefix: 'Тег #',
+    detailDescriptionPrefix: 'Публикации под тегом «',
+    detailDescriptionSuffix: '».',
   },
   blog: {
     title: 'Блог',
