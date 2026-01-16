@@ -1,6 +1,6 @@
 ---
-title: 'Impact of Logging on C# Performance'
-description: 'How logging in C# affects application performance. Comparing string interpolation, templates, and LoggerMessageAttribute.'
+title: 'CA2254, logging in C# and performance issues'
+description: 'Short guide to CA2254, why logging can degrade performance, and how LoggerMessageAttribute helps.'
 pubDate: 'Apr 28 2025'
 tags: ['C#', 'Performance', 'Code Quality', 'Logging']
 lang: 'en'
@@ -12,22 +12,31 @@ import image2 from './image2.png'
 import image3 from './image3.png'
 import image4 from './image4.png'
 
-## Logging with string interpolation
+## What is CA2254?
 
-If you have written code like this:
+CA2254 is an analyzer warning for `Microsoft.Extensions.Logging`. It says the following: 
 
-```cs
-// CA2254: The logging message template
-// should not vary between calls
-logger.LogDebug($"Request Id: {id} finished with Error: {error}");
+> The logging message template should not vary between calls. 
+
+In simple words, the template text must be constant.
+
+``` cs
+// Bad
+logger.LogDebug($"Request Id: {Id} finished with Error: {Error}");
+
+// Better
+logger.LogDebug("Request Id: {Id} finished with Error: {Error}", Id, Error);
 ```
 
-...you probably noticed that your IDE strongly recommended against it.
+## Why is logging like this bad practice?
 
-Why? Because string interpolation is just syntactic sugar.  
-After compilation, the code will look like this:
+Because string interpolation is just syntactic sugar. After compilation, the code will look like this:
 
 ```cs
+// Before compilation
+logger.LogDebug($"Request Id: {Id} finished with Error: {Error}");
+
+// After compilation
 var handler = new DefaultInterpolatedStringHandler(34, 2);
 handler.AppendLiteral("Request Id: ");
 handler.AppendFormatted(value);
@@ -37,9 +46,9 @@ string text = handler.ToStringAndClear();
 logger.LogDebug(text);
 ```
 
-The problem here is that the `text` string is **always** created, even if the logging level is higher than `Debug` and the log message would not be written.
+The problem here is that the `text` string is **always** created, even if the logging level is higher than `Debug` and the log message would not be written. This leads to unnecessary memory allocations and performance degradation.
 
-## Logging with templates
+## Will using templates help?
 
 The correct way to write logging would be:
 
@@ -51,9 +60,9 @@ In this case, the string template `"Request Id: {Id} finished with Error: {Error
 
 This should avoid unnecessary allocations… or so I thought, until I wrote some [benchmarks](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/Logging) and checked the results.
 
-## Measuring performance
+## How is performance affected?
 
-If you run memory profiling, you can see that in both cases the Gen0 size keeps growing. When using templates, memory allocations are indeed lower, but they still happen.
+If you run memory profiling, you can see that in both cases the Gen0 size keeps growing. When using templates, memory allocations are indeed lower (3.09 MB vs 8.22 MB), but they still happen.
 
 <Image src={image1} alt="Memory profiling with string interpolation" />
 <strong style="text-align: center;">
@@ -61,13 +70,17 @@ If you run memory profiling, you can see that in both cases the Gen0 size keeps 
 </strong>
 
 <Image src={image2} alt="Memory profiling with templates" />
-<strong style="text-align: center;">Memory profiling with templates</strong>
+<strong style="text-align: center;">
+  Memory profiling with templates
+</strong>
 
 And this happens even if the current logging level is `Information` and we are calling `LogDebug`.
 
 There are several reasons for this behavior.
 
-## Use of params object[]
+## Reasons for hidden allocations
+
+### Reason 1 -- Use of params object[]
 
 The extension methods from `LoggerExtensions` accept `params object[]`. Therefore, a new array is created on each logging method call.
 
@@ -87,7 +100,7 @@ logger.LogDebug("Integers: {i1}, {i2}, {i3}", array);
 
 If you are logging value types (`int`, `bool`, `struct`), additional memory allocations happen because of boxing.
 
-## Hidden allocations inside Logger
+### Reason 2 -- Hidden allocations inside Logger
 
 The `LogDebug`, `LogInformation`, `LogError`, and other methods internally call [the Log method](https://github.com/dotnet/runtime/blob/143bd05597043509045a01d5e47533b8cbdec7ec/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/LoggerExtensions.cs#L486), where [a FormattedLogValues structure](https://github.com/dotnet/runtime/blob/42fec5761b71383e97981ce2932c6962d83747e4/src/libraries/Microsoft.Extensions.Logging.Abstractions/src/FormattedLogValues.cs#L16) is created:
 
@@ -137,17 +150,17 @@ public FormattedLogValues(string? format, params object?[]? values)
 }
 ```
 
-## Logging level is not checked immediately
+### Reason 3 --  Logging level is not checked immediately
 
 Before checking if the current log level is enabled, the runtime does a lot of work:
 
-– creates `FormattedLogValues`;  
-– checks if the formatter template is cached;  
-– does some additional operations.
+- creates `FormattedLogValues`;  
+- checks if the formatter template is cached;  
+- does some additional operations.
 
 Only after that, it decides whether to actually write to the log or not.
 
-## LoggerMessage attribute
+## Solution -- Use LoggerMessageAttribute
 
 Starting from .NET 6, C# has a [LoggerMessageAttribute](https://learn.microsoft.com/en-us/dotnet/core/extensions/logger-message-generator), which avoids all the problems listed above.
 
@@ -182,7 +195,7 @@ Main differences:
 1. The log level is checked immediately.
 2. Method signature and delegate types match the provided arguments exactly.
 
-All of this improves performance.
+All of this improves performance. Instead of previous memory allocations, we get only 1.36 MB of Gen0 memory usage and it's stable.
 
 <Image src={image3} alt="Memory profiling using LoggerMessageAttribute" />
 <strong style="text-align: center;">
@@ -190,16 +203,15 @@ All of this improves performance.
 </strong>
 
 <Image src={image4} alt="Benchmark results" />
-<strong style="text-align: center;">Benchmark results</strong>
+<strong style="text-align: center;">
+  Benchmark results
+</strong>
 
 ## Conclusions
 
-— String interpolation in logging leads to unnecessary memory allocations, even when the log level is disabled.
+- String interpolation in logging leads to unnecessary memory allocations, even when the log level is disabled.
+- Using templates reduces allocations but does not completely eliminate them.
+- Reasons for hidden allocations: creation of `params object[]`, boxing of value types, creation of `FormattedLogValues`, and dictionary lookups.
+- The most efficient way to log, in terms of performance, is to use `LoggerMessage`, available since .NET 6. It minimizes allocations through code generation.
 
-— Using templates reduces allocations but does not completely eliminate them.
-
-— Reasons for hidden allocations: creation of `params object[]`, boxing of value types, creation of `FormattedLogValues`, and dictionary lookups.
-
-— The most efficient way to log, in terms of performance, is to use `LoggerMessage`, available since .NET 6. It minimizes allocations through code generation.
-
-Bottom line: if you care about performance, especially in hot code paths — use the `LoggerMessage` attribute.
+If you care about performance, especially in hot code paths — use the `LoggerMessage` attribute.
