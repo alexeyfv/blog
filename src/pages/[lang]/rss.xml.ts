@@ -9,8 +9,9 @@ export async function getStaticPaths() {
   }))
 }
 
-export const GET = async ({ lang, site }) => {
-  const posts = await getCollection(lang as Lang)
+export const GET = async ({ params, site }) => {
+  const lang = params.lang as Lang
+  const posts = await getCollection(lang)
 
   return rss({
     title: siteConfig.title,
