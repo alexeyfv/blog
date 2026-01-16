@@ -1,4 +1,6 @@
 export { cn } from './cn'
+export { buildBreadcrumbs } from './breadcrumbs'
+export type { BreadcrumbItem } from './breadcrumbs'
 export { slugifyTag } from './slugify'
 export { getPosts, getTags, getPostByTag } from './post'
 export { remarkReadingTime } from './readTime'

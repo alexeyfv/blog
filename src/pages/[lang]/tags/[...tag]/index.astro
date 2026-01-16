@@ -32,7 +32,12 @@ const detailTitle = `${t.tags.detailTitlePrefix} ${tagTitle}`
 const detailDescription = `${t.tags.detailDescriptionPrefix}${tagTitle}${t.tags.detailDescriptionSuffix}`
 ---
 
-<BaseLayout lang={lang} title={detailTitle} description={detailDescription}>
+<BaseLayout
+  lang={lang}
+  title={detailTitle}
+  description={detailDescription}
+  breadcrumbLabel={tagTitle}
+>
   <TitlePage title={tagTitle} />
   <ListPosts posts={posts} />
 </BaseLayout>

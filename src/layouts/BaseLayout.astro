@@ -5,11 +5,25 @@ import Footer from '@/components/Footer'
 import ProviderTheme from '@/components/ProviderTheme'
 import ProviderAnimations from '@/components/ProviderAnimations'
 import TwSizeIndicator from '@/components/test/TwSizeIndicator'
-import { getLangFromUrl } from '@/i18n/utils'
+import { getLangFromUrl, getTranslation } from '@/i18n/utils'
+import { buildBreadcrumbs } from '@/utils'
 import type { Props } from '@/components/BaseHead'
 
 const lang = getLangFromUrl(Astro.url)
-const { title, description, ogImage, articleDate }: Props = Astro.props
+const { title, description, ogImage, articleDate, breadcrumbLabel }: Props =
+  Astro.props
+const t = getTranslation(lang)
+const breadcrumbs = buildBreadcrumbs({
+  site: Astro.site ?? Astro.url,
+  pathname: Astro.url.pathname,
+  lang,
+  pageTitle: title,
+  currentLabel: breadcrumbLabel,
+  labels: {
+    home: t.menu.home,
+    tags: t.menu.tags,
+  },
+})
 ---
 
 <html lang={lang} class="scroll-smooth">
@@ -20,6 +34,7 @@ const { title, description, ogImage, articleDate }: Props = Astro.props
       ogImage={ogImage}
       articleDate={articleDate}
       lang={lang}
+      breadcrumbs={breadcrumbs}
     />
     <ProviderTheme />
     <ProviderAnimations />
