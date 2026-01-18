@@ -1,0 +1,107 @@
+---
+title: 'Запускаем бенчмарки всего с одним C# файлом'
+description: 'Как запустить бенчмарк BenchmarkDotNet, используя всего один C# файл.'
+pubDate: 'Jan 18 2026'
+tags: ['C#', '.NET', 'BenchmarkDotNet', 'Performance', 'Benchmarks']
+lang: 'ru'
+---
+
+Если вы когда-нибудь задумывались, можно ли запустить бенчмарк, используя всего один C#-файл, то ответ: да, можно. Начиная с .NET 10, существует возможность создавать C#-приложения в одном \*.cs‑файле. Проблема в том, что BenchmarkDotNet (BDN) не поддерживает такие бенчмарки с настройками по умолчанию. В этой статье я покажу, как обойти это ограничение, используя режим in-process.
+
+## Что такое однофайловые C#-приложения?
+
+Однофайловые C#-приложения — это [функционал, который появился в .NET 10](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/tutorials/file-based-programs) и позволяет поместить весь код в один \*.cs-файл и запускать его напрямую:
+
+```cs
+// HelloWorld.cs
+Console.WriteLine("Hello, world!");
+```
+
+Запуск:
+
+```sh
+dotnet HelloWorld.cs
+# или
+dotnet run HelloWorld.cs
+```
+
+## Почему BenchmarkDotNet не работает «из коробки»?
+
+По умолчанию BDN использует [изоляцию на уровне процесса (process-level isolation)](https://benchmarkdotnet.org/articles/configs/toolchains.html): он генерирует, собирает и запускает отдельное консольное приложение для каждого бенчмарка. Такая изоляция обеспечивает более точные и стабильные измерения. В однофайловых приложениях .NET генерирует проект и собирает артефакты во временную папку. У BDN пока нет функционала для работы с такими проектами.
+
+## Обходим ограничение, используя in-process режим
+
+Чтобы запустить бенчмарк в том же процессе, нужно использовать атрибут `InProcess`. Учтите, что такие измерения менее изолированы и на результаты может влиять хост-процесс.
+
+Минимальный рабочий пример:
+
+```cs
+#:package BenchmarkDotNet@0.15.8
+#:property Optimize=true
+#:property Configuration=Release
+#:property PublishAot=false
+
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
+
+BenchmarkRunner.Run<Benchmarks>();
+
+[InProcess]
+public class Benchmarks
+{
+    [Benchmark]
+    public Task Example() => Task.Delay(100);
+}
+```
+
+Возможно вы заметили, что указаны флаги `Optimize=true`, `Configuration=Release` и `PublishAot=false`.
+
+Флаги `Optimize` и `Configuration` нужны потому, что иначе .NET запустит бенчмарк в режиме Debug и без оптимизаций. А, [как известно](https://benchmarkdotnet.org/articles/guides/good-practices.html#use-the-release-build-without-an-attached-debugger), бенчмарки в режиме Debug менее точные.
+
+Флаг `PublishAot` отключает AOT, который для файловых приложений [включён по умолчанию](https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps#native-aot-publishing). AOT может быть полезен для уменьшения времени запуска вашего однофайлового приложения, и BDN поддерживает NativeAOT, но для этого требуется [дополнительная настройка BDN](https://benchmarkdotnet.org/articles/configs/toolchains.html#nativeaot).
+
+## Запуск бенчмарка
+
+Чтобы запустить бенчмарк, выполните:
+
+```sh
+dotnet run Benchmark.cs
+```
+
+Если у вас Linux или macOS, то можно использовать shebang. Сначала найдите путь до `dotnet`:
+
+```sh
+which dotnet
+```
+
+Затем добавьте shebang в начало `Benchmark.cs`. В моём случае путь был `/usr/bin/dotnet`:
+
+```cs
+#!/usr/bin/dotnet run
+#:package BenchmarkDotNet@0.15.8
+// ... остальной код
+```
+
+Сделайте файл исполняемым:
+
+```sh
+chmod +x Benchmark.cs
+```
+
+И запустите:
+
+```sh
+./Benchmark.cs
+```
+
+Вне зависимости от способа запуска вы увидите примерно такие результаты:
+
+```markdown
+| Method  |     Mean |   Error |  StdDev |
+| ------- | -------: | ------: | ------: |
+| Example | 100.4 ms | 0.31 ms | 0.26 ms |
+```
+
+## Вывод
+
+Однофайловые C#-приложения можно использовать для бенчмаркинга, но для этого нужно запускать их в режиме in-process. Используя такой подход, помните, что такие бенчмарки менее изолированы и на результаты может влиять хост-процесс.

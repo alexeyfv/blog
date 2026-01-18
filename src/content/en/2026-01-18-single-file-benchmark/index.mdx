@@ -1,0 +1,107 @@
+---
+title: 'Single-file C# benchmarks with BenchmarkDotNet'
+description: 'Learn how to run benchmarks from a single C# file using BenchmarkDotNet.'
+pubDate: 'Jan 18 2026'
+tags: ['C#', '.NET', 'BenchmarkDotNet', 'Performance', 'Benchmarks']
+lang: 'en'
+---
+
+If you ever wondered if it's possible to run a benchmark from a single file, then the answer is yes. Starting from .NET 10, [there is a possibility](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/tutorials/file-based-programs) to create C# applications within a single \*.cs file. The problem is that BenchmarkDotNet (BDN) doesn't support this scenario with its default setup. In this article I will show how to use the InProcess toolchain as a workaround.
+
+## What is file-based C# application?
+
+A file-based app is a single \*.cs file that you can run directly:
+
+```cs
+// HelloWorld.cs
+Console.WriteLine("Hello, world!");
+```
+
+Run it like this:
+
+```sh
+dotnet HelloWorld.cs
+# or
+dotnet run HelloWorld.cs
+```
+
+## Why doesn't BenchmarkDotNet work out of the box?
+
+By default, it uses [process-level isolation](https://benchmarkdotnet.org/articles/configs/toolchains.html) by generating, building, and running a separate console app for each of your benchmarks. Process-level isolation makes measurements accurate, stable, and not affected by the host process. In file-based apps, the .NET SDK uses a generated project and builds outputs to a temp location, so there's no normal \*.csproj for BDN to discover.
+
+## The workaround: run benchmarks in-process
+
+If you're okay with in-process benchmarking, you can bypass the project-generation step by forcing BDN to use the InProcess toolchain. But keep in mind that in-process benchmarks are less isolated and the results can be affected by the host process.
+
+Here is the minimal working example:
+
+```cs
+#:package BenchmarkDotNet@0.15.8
+#:property Optimize=true
+#:property Configuration=Release
+#:property PublishAot=false
+
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
+
+BenchmarkRunner.Run<Benchmarks>();
+
+[InProcess]
+public class Benchmarks
+{
+    [Benchmark]
+    public Task Example() => Task.Delay(100);
+}
+```
+
+You might have noticed that we used `Optimize=true`, `Configuration=Release` and `PublishAot=false`.
+
+The `Optimize` and `Configuration` flags are required because otherwise .NET will execute your application in Debug mode without optimizations. And, as [we know](https://benchmarkdotnet.org/articles/guides/good-practices.html#use-the-release-build-without-an-attached-debugger), we should never use Debug for benchmarking because it will spoil the results.
+
+The `PublishAot` flag disables AOT compilation, which is [enabled by default](https://learn.microsoft.com/en-us/dotnet/core/sdk/file-based-apps#native-aot-publishing) when publishing file-based C# applications. AOT might be useful if you want to reduce the application startup time. BDN supports AOT, but at the same time it requires an [additional configuration for BDN](https://benchmarkdotnet.org/articles/configs/toolchains.html#nativeaot).
+
+## Running the benchmark
+
+To run the benchmark, simply execute:
+
+```sh
+dotnet run Benchmark.cs
+```
+
+If you're Linux or macOS user, you will probably want to add a shebang. But first, you need to find the path to your `dotnet` executable:
+
+```sh
+which dotnet
+```
+
+Then add the shebang line to the top of your `Benchmark.cs` file. In my case, the path is `/usr/bin/dotnet`, so the shebang line will look like this:
+
+```cs
+#!/usr/bin/dotnet run
+#:package BenchmarkDotNet@0.15.8
+// ... rest of the code
+```
+
+Then make the file executable:
+
+```sh
+chmod +x Benchmark.cs
+```
+
+And run it directly:
+
+```sh
+./Benchmark.cs
+```
+
+Whatever way you choose to run it, you should see the benchmark results like this:
+
+```markdown
+| Method  |     Mean |   Error |  StdDev |
+| ------- | -------: | ------: | ------: |
+| Example | 100.4 ms | 0.31 ms | 0.26 ms |
+```
+
+## Conclusion
+
+In short, file-based C# apps can run benchmarks, but only if you use the InProcess toolchain. It may be OK for your case, but don't forget that in-process benchmarks are not isolated from the host process, so the results can be affected by it.
