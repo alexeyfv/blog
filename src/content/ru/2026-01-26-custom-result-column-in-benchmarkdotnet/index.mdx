@@ -1,0 +1,160 @@
+---
+title: 'Добавляем кастомные столбцы в результаты BenchmarkDotNet'
+description: 'Разбираем, как добавить кастомные столбцы в результаты BenchmarkDotNet при помощи in-process diagnosers и генераторов кода.'
+pubDate: 'Jan 26 2026'
+tags: ['C#', '.NET', 'BenchmarkDotNet', 'Performance', 'Benchmarks']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import image1 from './image1.png'
+
+В BenchmarkDotNet (BDN) есть возможность добавлять столбцы в результаты выполнения бенчмарка (summary). Это сделать просто, когда значения известны заранее. Но если значение вычисляется прямо во время выполнения бенчмарка, вывести его в результатах -- задача не тривиальная. В этой статье разберём, почему это так и разберём решение на базе `IInProcessDiagnoser` и генераторов кода.
+
+## Зачем вообще добавлять столбцы в результаты?
+
+BDN автоматически добавляет столбцы в результаты при использовании атрибутов `[Params]` или `[ParamsSource]`. Это отлично работает, если вы знаете значения параметров заранее. Например, в статье о [производительности FrozenDictionary](/ru/post/2024-08-22-frozen-dictionary) я использовал `[ParamsSource]` для изменения размера словаря (DictionarySize) и замерял время выполнения при таком размере:
+
+```markdown
+| Method           | DictionarySize |            Mean |    Ratio |
+| ---------------- | -------------- | --------------: | -------: |
+| Dictionary       | 1000000        | 7,345,645.62 ns | baseline |
+| FrozenDictionary | 1000000        | 4,712,357.84 ns |     -36% |
+```
+
+Задача усложняется, когда значение, которое вы хотите показать в результатах, генерируется во время выполнения бенчмарка. Например, вы написали бенчмарк для SQL-запроса и хотите отобразить план запроса или ключевые метрики из него рядом с метриками времени.
+
+## Почему это сложно сделать?
+
+По умолчанию BDN запускает бенчмарки в отдельном процессе. Изоляция на уровне процесса делает измерения более точными, поскольку уменьшает влияние от хост-процесса.
+
+<Image src={image1} alt="Изоляция процессов в BenchmarkDotNet" />
+
+Из-за этого измерения выполняются внутри процесса бенчмарка, но результаты формируются в хост-процессе. Простого способа передачи пользовательских данных из процесса бенчмарка в хост-процесс в BDN до недавного времени не было. Это [известное ограничение](https://github.com/dotnet/BenchmarkDotNet/issues/784), существующее с 2018 года. К счастью, in-process diagnosers были совсем недавно [добавлены в BDN](https://github.com/dotnet/BenchmarkDotNet/pull/2843) v0.16.
+
+## Как могут помочь in-process diagnosers
+
+Используя `IInProcessDiagnoser` с `IInProcessDiagnoserHandler`, можно передавать данные из процесса бенчмарка в хост-процесс. После чего, можно отобразить их реализовав интерфейс `IColumn`.
+
+Добавление собственного столбца в результаты состоит из следующих шагов:
+
+- реализовать `IInProcessDiagnoser`;
+- реализовать `IInProcessDiagnoserHandler`;
+- реализовать один или несколько экземпляров `IColumn` для каждого столбца, который вы хотите видеть в результатах;
+- создать конфигурацию, реализовав абстрактный класс `ManualConfig` и добавить туда ваши столбцы;
+- зарегистрировать конфигурацию, чтобы BenchmarkDotNet использовал её.
+
+Поскольку добавление даже одного столбца требует написания большого количества бойлерплейта, я создал [библиотеку на основе генераторов кода](https://www.nuget.org/packages/AlekseiFedorov.BenchmarkDotNet.ReportColumns).
+
+_Я оставил комментарий об этой библиотеке в [issue BDN](https://github.com/dotnet/BenchmarkDotNet/issues/784#issuecomment-3722244890), потому что, по моему мнению, этот функционал должен быть встроенным в BDN. Пока что эта библиотека может использоваться для уменьшения бойлерплейта. Если/когда в BDN добавят такой функционал, я планирую пометить библиотеку как deprecated._
+
+## Как использовать библиотеку
+
+Библиотека основана на функциональности BDN, которая доступна только в nightly-сборках, поэтому сперва вам нужно добавить nightly-фид BDN в NuGet-источники.
+
+
+### Добавляем nightly-фид BenchmarkDotNet
+
+Создайте файл `nuget.config` в корне вашего решения со следующим кодом:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <packageSources>
+        <!-- Official NuGet feed -->
+        <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+        <!-- BenchmarkDotNet nightly feed -->
+        <add key="bdn-nightly" value="https://www.myget.org/F/benchmarkdotnet/api/v3/index.json" />
+    </packageSources>
+</configuration>
+```
+
+### Устанавливаем пакеты
+
+Добавьте nighly-версию BDN и библиотеку с генераторами исходного кода в ваш проект:
+
+```sh
+dotnet add package BenchmarkDotNet --version 0.16.0-nightly.20260105.397
+dotnet add package AlekseiFedorov.BenchmarkDotNet.ReportColumns
+```
+
+### Добавляем атрибуты на свойства
+
+Сделайте класс бенчмарка `partial` и добавьте атрибут `[ReportColumn]` на свойства, которые вы хотите видеть в результатах:
+
+```cs
+public partial class MyBenchmark
+{
+    [ReportColumn]
+    public int MyAwesomeColumn { get; set; }
+
+    [Benchmark]
+    public async Task BenchmarkMethod()
+    {
+        MyAwesomeColumn = Random.Shared.Next(1, 100);
+        await Task.Delay(1000);
+    }
+}
+```
+
+По умолчанию генератор создаст столбец с именем свойства в качестве заголовка и будет использовать последнее наблюдаемое значение как значение столбца.
+
+```markdown
+| Method          |    Mean |    Error |   StdDev | MyAwesomeColumn |
+| --------------- | ------: | -------: | -------: | --------------- |
+| BenchmarkMethod | 1.000 s | 0.0001 s | 0.0001 s | 77              |
+```
+
+### Смотрим на сгенерированные файлы
+
+Если вы хотите посмотреть сгенерированные файлы, добавьте следующие строки в ваш файл бенчмарка `.csproj`:
+
+```xml
+<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
+```
+
+После сборки перейдите в указанную папку. Вы должны увидеть файлы, наподобие этих:
+
+```cs
+public sealed class MyBenchmark_MyAwesomeColumn_Column : IColumn
+{
+    // Код для столбца
+}
+
+public sealed class MyBenchmark_InProcessDiagnoser : IInProcessDiagnoser
+{
+    // Код in-process diagnoser
+}
+
+public sealed class MyBenchmark_InProcessDiagnoserHandler : IInProcessDiagnoserHandler
+{
+    // Код хендлера
+}
+
+public sealed class MyBenchmark_ManualConfig : ManualConfig
+{
+    public MyBenchmark_ManualConfig()
+    {
+        AddDiagnoser(new MyBenchmark_InProcessDiagnoser());
+        AddColumn(new MyBenchmark_MyAwesomeColumn_Column());
+    }
+}
+
+internal static class MyBenchmark_Results
+{
+    // Класс для хранения результатов бенчмарка
+}
+
+namespace Demo
+{
+    [Config(typeof(MyBenchmark_ManualConfig))]
+    public partial class MyBenchmark
+    {
+    }
+}
+```
+
+## Заключение
+
+`IInProcessDiagnoser` позволяет передавать данные из процесса бенчмарка в хост-процесс и отображать их в результатах с помощью `IColumn`. Однако добавление таких слобцов вручную требует написания большого количества бойлерплейта. Пакет NuGet `AlekseiFedorov.BenchmarkDotNet.ReportColumns` позволяет уменьшить бойлерплейт до минимума, чтобы вы могли сосредоточиться на бенчмаркинге.
