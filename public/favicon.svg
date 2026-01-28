@@ -1,16 +1,16 @@
 <svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
  <g>
   <title>Layer 1</title>
-  <rect x="-1" y="-1" id="svg_5" height="122" width="122" stroke-width="0" stroke="#000" fill="#1f2b3a"/>
+  <rect fill="#1f2b3a" stroke="#000" stroke-width="0" width="122" height="122" id="svg_5" y="-1" x="-1"/>
  </g>
+
  <g>
   <title>Layer 2</title>
-  <g id="svg_8">
-   <svg fill="#f8f8f8" y="42" x="17.11" id="svg_2" height="36" width="85.78" data-asc="1.066" viewBox="0 17.299999237060547 85.77999877929688 36" xmlns="http://www.w3.org/2000/svg">
-
-    <g id="svg_3" fill="#000000">
-     <g id="svg_4">
-      <path fill="#f8f8f8" id="svg_6" d="m0,53.3l12.4,-36l4.88,0l12.4,36l-3.83,0l-11.77,-33.95l1.45,0l-11.7,33.95l-3.83,0m5.53,-8.72l0,-3.45l18.6,0l0,3.45l-18.6,0zm28.64,8.72l0,-36l20.68,0l0,3.68l-17,0l0,12.5l14,0l0,3.65l-14,0l0,16.17l-3.68,0zm34.33,0l-12.4,-36l3.83,0l10.97,31.83l11.05,-31.83l3.83,0l-12.4,36l-4.88,0z"/>
+  <g id="svg_1" transform="matrix(2.5, 0, 0, 2.5, 0, 0)">
+   <svg fill="#f8f8f8" xmlns="http://www.w3.org/2000/svg" viewBox="0 17.299999237060547 30.93000030517578 36" data-asc="1.066" width="30.93" height="36" id="svg_7" x="8.6694" y="6.15434">
+    <g fill="#000000" id="svg_8">
+     <g id="svg_9">
+      <path fill="#f8f8f8" d="m0,53.3l11.7,-36l7.53,0l11.7,36l-5.43,0l-10.77,-32.85l1.34,0l-10.64,32.85l-5.43,0m6.08,-8.12l0,-4.9l18.8,0l0,4.9l-18.8,0z" id="svg_10"/>
      </g>
     </g>
    </svg>
