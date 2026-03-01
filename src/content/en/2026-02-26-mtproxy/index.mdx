@@ -1,0 +1,82 @@
+---
+title: 'Set up your own MTProxy'
+description: 'How to run an MTProxy for Telegram on a VPS.'
+pubDate: 'Feb 26 2026'
+tags: ['MTProxy', 'Telegram']
+lang: 'en'
+---
+
+Russian [government](https://www.rbc.ru/technology_and_media/26/02/2026/69a059719a7947a5ece8f4e4) pushes me to improve my technical skills. Let's see how to run an MTProxy for Telegram on a VPS. For this, we need a VPS, Docker Engine, and a domain for Fake TLS.
+
+## What do we need?
+
+### 1. VPS.
+
+Buy the cheapest server. You do not need powerful hardware; the main point is to have no traffic limits. My server specs: 1 vCPU, 1 GB RAM, 15 GB SSD.
+
+My server is outside Russia. On Habr, some people [write](https://habr.com/ru/articles/994934/) that a server in Russia may work better because traffic inside the country is not inspected. Whether this is true or not, I do not know.
+
+### 2. Docker Engine.
+
+The proxy will run in Docker, so just install it using the [official documentation](https://docs.docker.com/engine/install/) for your operating system.
+
+### 3. Domain.
+
+A domain is needed for Fake TLS. Our MTProxy will pretend to be regular HTTPS traffic.
+
+If you already have a domain, great. Just add an A record with your server IP address.
+
+If you do not have a domain, you can register on [FreeDNS](https://freedns.afraid.org/) and get a third-level domain on any free domain you like. I used such domains before for convenient access to my self-hosted apps.
+
+## Start the proxy
+
+There are several Docker images for MTProxy. I use [nineseconds/mtg:2](https://hub.docker.com/r/nineseconds/mtg/), because this is the easiest way to run a proxy with Fake TLS. Run everything as follows:
+
+### 1. Generate a secret from your domain
+
+```sh
+docker run --rm \
+    nineseconds/mtg:2 generate-secret \
+    --hex your.domain.com
+```
+
+The result will look like this:
+
+```
+ee...
+```
+
+### 2. Put the secret into config.toml:
+
+```toml
+secret = "ee..."
+bind-to = "0.0.0.0:443"
+```
+
+### 3. Create a Docker Compose file
+
+Create a Docker Compose file with the content below and start the proxy with `docker compose up -d`:
+
+```yaml
+services:
+  mtg-proxy:
+    image: nineseconds/mtg:2
+    container_name: mtg-proxy
+    restart: unless-stopped
+    ports:
+      - '443:443/tcp'
+    volumes:
+      - ./config.toml:/config.toml:ro
+```
+
+Check logs with `docker compose logs`. If there are no logs, everything is fine.
+
+Now you can make a link in this format:
+
+```
+tg://proxy?server=<your.domain.com>&port=443&secret=<secret>
+```
+
+And share it with your friends and family.
+
+Telegram will add your proxy when they click the link.
