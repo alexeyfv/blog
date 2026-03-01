@@ -11,7 +11,7 @@ export async function getStaticPaths() {
 
     for (const post of posts) {
       result.push({
-        params: { lang, slug: post.slug },
+        params: { lang, slug: post.id },
         props: post,
       })
     }
@@ -32,8 +32,9 @@ export const GET: APIRoute = async ({ props }) => {
 
   const title = props.data.title
   const cover = await generateCover(title)
+  const body = new Uint8Array(cover)
 
-  return new Response(cover, {
+  return new Response(body, {
     headers: { 'Content-Type': 'image/png' },
   })
 }

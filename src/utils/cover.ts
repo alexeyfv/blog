@@ -17,10 +17,7 @@ export function getCover(lang: Lang, props: Record<string, any>): ImageMetadata 
     return cover
   }
 
-  // id = lang\path-to-post\index.mdx
-  const id = props.id as string
-  const slashIndex = id.lastIndexOf('/')
-  const slug = id.substring(0, slashIndex)
+  const slug = props.id as string
 
   // Otherwise, use the generated image
   const generated: ImageMetadata = {
@@ -34,11 +31,12 @@ export function getCover(lang: Lang, props: Record<string, any>): ImageMetadata 
 }
 
 export async function generateCover(title: string) {
-  const fontFamily = 'Ubuntu+Mono'
+  const fontFamily = 'CoverFont'
+  const googleFontFamily = 'Ubuntu+Mono'
   const fontWeight = 400
   const fontStyle = 'normal'
 
-  const data = await getGoogleFont(fontFamily, fontWeight)
+  const data = await getFontData(googleFontFamily, fontWeight)
 
   const element = createOgImage(title)
 
@@ -61,6 +59,42 @@ export async function generateCover(title: string) {
   const pngData = resvg.render()
 
   return pngData.asPng()
+}
+
+async function getFontData(font: string, weight: number): Promise<ArrayBuffer> {
+  try {
+    return await getGoogleFont(font, weight)
+  }
+  catch {
+    return getLocalFallbackFont()
+  }
+}
+
+function getLocalFallbackFont(): ArrayBuffer {
+  const candidates = [
+    process.env.OG_FONT_PATH,
+    '/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+    '/System/Library/Fonts/Supplemental/Courier New.ttf',
+    'C:/Windows/Fonts/consola.ttf',
+  ].filter((path): path is string => Boolean(path))
+
+  for (const fontPath of candidates) {
+    if (!fs.existsSync(fontPath)) {
+      continue
+    }
+
+    const data = fs.readFileSync(fontPath)
+    return data.buffer.slice(
+      data.byteOffset,
+      data.byteOffset + data.byteLength,
+    ) as ArrayBuffer
+  }
+
+  throw new Error(
+    'Failed to load font: Google Fonts unavailable and no local fallback font found. Set OG_FONT_PATH to a .ttf font file.',
+  )
 }
 
 function createOgImage(title: string): any {

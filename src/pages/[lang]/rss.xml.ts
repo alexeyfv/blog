@@ -19,7 +19,7 @@ export const GET = async ({ params, site }) => {
     site: site,
     items: posts.map((post) => ({
       ...post.data,
-      link: `${lang}/post/${post.slug}/`,
+      link: `${lang}/post/${post.id}/`,
     })),
   })
 }

@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
 
 body {
   margin-left: calc(100vw - 100%);
@@ -17,12 +16,12 @@ body {
 
   /* prose styles here */
   .prose h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply text-zinc-800 dark:text-zinc-100 !important;
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    @apply text-zinc-800 dark:text-zinc-100;
   }
 }
 

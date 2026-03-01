@@ -1,5 +1,5 @@
 ---
-import { type CollectionEntry, getCollection } from 'astro:content'
+import { type CollectionEntry, getCollection, render } from 'astro:content'
 import BlogPost from '@/layouts/BlogPost'
 import Code from '@/components/mdx/Code'
 import ListRelatedPosts from '@/components/ListRelatedPosts'
@@ -18,7 +18,7 @@ export const getStaticPaths = async () => {
 
     for (const post of posts) {
       result.push({
-        params: { lang, slug: post.slug },
+        params: { lang, slug: post.id },
         props: post,
       })
     }
@@ -39,7 +39,7 @@ const getRelatedPosts = (post: Props) => {
   const lowercaseTags = post.data.tags.map((tag) => tag.toLowerCase())
   const relatedPosts = posts.filter(
     (p) =>
-      p.slug !== post.slug &&
+      p.id !== post.id &&
       p.data.tags.some((t) => lowercaseTags.includes(t.toLowerCase())),
   )
 
@@ -53,7 +53,7 @@ const getRelatedPosts = (post: Props) => {
 
 const relatedPosts = getRelatedPosts(post)
 
-const { Content, headings, remarkPluginFrontmatter } = await post.render()
+const { Content, headings, remarkPluginFrontmatter } = await render(post)
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href
 ---

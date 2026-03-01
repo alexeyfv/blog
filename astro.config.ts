@@ -2,7 +2,7 @@
 import { defineConfig } from 'astro/config'
 import mdx from '@astrojs/mdx'
 import sitemap from '@astrojs/sitemap'
-import tailwind from '@astrojs/tailwind'
+import tailwindcss from '@tailwindcss/vite'
 import pagefind from 'astro-pagefind'
 import { remarkReadingTime } from './src/utils/readTime'
 
@@ -13,10 +13,6 @@ export default defineConfig({
 
   devToolbar: {
     enabled: false,
-  },
-
-  experimental: {
-    contentLayer: true,
   },
 
   i18n: {
@@ -33,6 +29,7 @@ export default defineConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     build: {
       assetsInlineLimit: 0
     }
@@ -40,7 +37,6 @@ export default defineConfig({
 
   integrations: [
     mdx(),
-    tailwind(),
     pagefind(),
 
     sitemap({

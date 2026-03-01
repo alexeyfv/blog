@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss'
 import defaultTheme from 'tailwindcss/defaultTheme'
+import typography from '@tailwindcss/typography'
 
 export default {
   darkMode: 'selector',
@@ -20,5 +21,5 @@ export default {
     },
   },
 
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [typography],
 } satisfies Config
