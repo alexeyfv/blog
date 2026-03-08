@@ -77,7 +77,7 @@ TimescaleDB can use columnar storage (Hypercore), automatically splits the table
 
 <Image src={image1} alt="Data segmentation in a hypertable" />
 
-With enough cardinality (the number of unique resources) and data volume, the performance of analytical queries on a hypertable can be much better than on a regular Postgres table. This happens because of higher data density and optimized data access.
+With enough data volume and when the number of unique resources is low (low cardinality), the performance of analytical queries on a hypertable can be much better than on a regular Postgres table. This happens because of higher data density and optimized data access.
 
 ## Benchmark: comparing TimescaleDB and PostgreSQL
 
@@ -117,12 +117,12 @@ The benchmark [results](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/T
 
 The table size was fixed at 1 million rows, and I changed only the cardinality by increasing the number of unique resources from 10 to 1 million. So the cardinality value depended on the ratio of unique resources to the amount of data.
 
-As the results show, TimescaleDB performance is 30% to 40% better when we have up to 10k rows of data per resource.
+As the results show, TimescaleDB performance is 15% to 28% better when the number of unique resources is low (up to about 10,000 unique resources, or about 100 rows of data per resource).
 
-If the cardinality is higher, the query execution time becomes 160% to 170% worse.
+If the cardinality is higher (more than 20,000 unique resources), the query execution time becomes 45% to 165% worse.
 
 ## Conclusion
 
-TimescaleDB is a good fit for analytical queries if the data has high cardinality and volume. In such cases, it can provide a significant performance improvement compared to regular Postgres.
+TimescaleDB is a good fit for analytical queries if the data has low cardinality and sufficient volume. In such cases, it can provide a significant performance improvement compared to regular Postgres.
 
 In the next posts, I will experiment with other data and queries to understand in which scenarios TimescaleDB can be especially useful.
