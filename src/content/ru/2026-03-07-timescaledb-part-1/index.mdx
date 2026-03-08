@@ -1,0 +1,128 @@
+---
+title: 'PostgreSQL vs TimescaleDB: сравнение производительности'
+description: 'Сравнение производительности TimescaleDB и PostgreSQL на аналитических запросах. Запуск TimescaleDB, создание hypertables, замеры производительности аналитических запросов в PostgreSQL и TimescaleDB, и анализ результатов.'
+pubDate: 'Mar 08 2026'
+tags: ['PostgreSQL', 'TimescaleDB', 'Performance', 'Analytics', 'SQL']
+lang: 'ru'
+---
+
+import { Image } from 'astro:assets'
+import image1 from './image01.png'
+import image2 from './image02.png'
+
+TimescaleDB — популярное расширение PostgreSQL для работы с временными рядами (time-series). В нём есть функционал, позволяющий оптимизировать хранение данных и запросы к ним.
+
+В этой статье я сравню производительность TimescaleDB и обычного PostgreSQL на тестовом аналитическом запросе.
+
+## Установка и запуск TimescaleDB в Docker
+
+У TimescaleDB есть [готовый Docker образ](https://hub.docker.com/r/timescale/timescaledb). Конфигурация аналогична обычной базе Postgres.
+
+```yml
+# docker-compose.yml
+services:
+  timescaledb:
+    container_name: timescaledb
+    image: timescale/timescaledb:latest-pg17
+    restart: unless-stopped
+    shm_size: 1g
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: 'timescaledb'
+      POSTGRES_USER: 'sa'
+      POSTGRES_PASSWORD: 'qweQWE123!!'
+      PGDATA: /var/lib/postgresql/17/docker
+    volumes:
+      - timescaledb_data:/var/lib/postgresql
+
+volumes:
+  timescaledb_data:
+```
+
+Запускаем базу командой:
+
+```sh
+docker compose -f docker-compose.yml up -d
+```
+
+## Создание hypertable в TimescaleDB
+
+Таблицы в TimescaleDB называются hypertables. Они создаются как обычные Postgres таблицы с небольшим дополнением.
+
+```sql
+CREATE TABLE billing_data (
+    billed_cost numeric(25,15),
+    charge_date timestamptz,
+    resource_id int4)
+WITH (
+    -- Указываем, что это hypertable
+    timescaledb.hypertable = true,
+    -- Разбиваем данные на части (chunks) размером в 1 день
+    timescaledb.chunk_interval='1 day',
+    -- Группируем данные по ресурсу
+    timescaledb.segmentby='resource_id'
+    -- Сортируем данные по дате
+    timescaledb.orderby='charge_date'
+);
+```
+
+### Что такое hypertable?
+
+Hypertable — это специальный тип таблицы TimescaleDB, который автоматически разбивает данные на части (chunks), оптимизирует их хранение и доступ для аналитических запросов.
+
+### Как работает сегментирование данных в hypertable?
+
+TimescaleDB может использовать колончатое хранение данных (Hypercore), автоматически разбивает таблицу на chunks и поддерживает его в актуальном состоянии. Картинка взята [из документации TimescaleDB](https://www.tigerdata.com/docs/use-timescale/latest/hypercore/secondary-indexes#segmenting-and-ordering-data).
+
+<Image src={image1} alt="Сегментирование данных в hypertable" />
+
+При достаточной кардинальности (количестве уникальных ресурсов) и объёме данных, производительность аналитических запросов на hypertable может быть значительно выше, чем на обычной таблице Postgres. Достигается это за счёт высокой плотности данных и оптимизации доступа к ним.
+
+## Бенчмарк: сравнение TimescaleDB и PostgreSQL
+
+В тестовом аналитическом запросе я считал ежедневные траты облачных ресурсов за последние 30 дней.
+
+Для замеров я использовал библиотеку BenchmarkDotNet. Исходный код бенчмарка доступен в моём [репозитории на GitHub](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/TimescaleDB).
+
+```sql
+-- Postgres
+SELECT
+    date_bin('1 day', charge_date, TIMESTAMP 'epoch') AS day,
+    resource_id,
+    SUM(billed_cost) AS total_cost
+FROM billing_data
+WHERE charge_date >= now() - interval '30 days'
+GROUP BY day, resource_id
+
+-- TimescaleDB
+SELECT
+    time_bucket(INTERVAL '1 day', charge_date) AS day,
+    resource_id,
+    SUM(billed_cost) AS total_cost
+FROM billing_data
+WHERE charge_date >= now() - interval '30 days'
+GROUP BY day, resource_id
+```
+
+### Чем time_bucket отличается от date_bin?
+
+Функции `time_bucket` и `date_bin` похожи. Они позволяют группировать данные по произвольным интервалам времени. Однако `time_bucket` оптимизирован для работы с hypertable и может обеспечить лучшую производительность в TimescaleDB.
+
+## Результаты бенчмарка
+
+Результаты бенчмарка на графике ниже. Ось Y — медианное время выполнения, ось X — количество ресурсов в таблице.
+
+<Image src={image2} alt="Результаты бенчмарка" />
+
+Размер таблицы был фиксированным — 1 млн строк и я изменял только кардинальность путём увеличения количества уникальных ресурсов от 10 до 1 млн. То есть значение кардинальности зависело от соотношения уникальных ресурсов к количеству данных.
+
+Как видно из [результатов](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/TimescaleDB/BenchmarkDotNet.Artifacts/results/Benchmark.Benchmark-report-github.md), производительность TimescaleDB до 30% - 40% лучше при условии, что у нас до 10к строк данных на 1 ресурс.
+
+Если кардинальность выше, то время выполнения запроса становится на 160% - 170% хуже.
+
+## Заключение
+
+TimescaleDB хорошо подходит для аналитических запросов, если данные имеют высокую кардинальность и объём. В таких случаях он может обеспечить значительное улучшение производительности по сравнению с обычным Postgres.
+
+В следующих постах я поэкспериментирую с другими данными и запросами, чтобы понять, в каких сценариях TimescaleDB может быть особенно полезен.

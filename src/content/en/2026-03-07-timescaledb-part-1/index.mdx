@@ -1,0 +1,128 @@
+---
+title: 'PostgreSQL vs TimescaleDB: performance comparison'
+description: 'A performance comparison of TimescaleDB and PostgreSQL for analytical queries. Running TimescaleDB, creating hypertables, measuring analytical query performance in PostgreSQL and TimescaleDB, and analyzing the results.'
+pubDate: 'Mar 08 2026'
+tags: ['PostgreSQL', 'TimescaleDB', 'Performance', 'Analytics', 'SQL']
+lang: 'en'
+---
+
+import { Image } from 'astro:assets'
+import image1 from './image01.png'
+import image2 from './image02.png'
+
+TimescaleDB is a popular PostgreSQL extension for working with time-series data. It has features that help optimize data storage and queries.
+
+In this article, I compare the performance of TimescaleDB and regular PostgreSQL on a test analytical query.
+
+## Installing and running TimescaleDB in Docker
+
+TimescaleDB has a [ready-made Docker image](https://hub.docker.com/r/timescale/timescaledb). The configuration is similar to a regular Postgres database.
+
+```yml
+# docker-compose.yml
+services:
+  timescaledb:
+    container_name: timescaledb
+    image: timescale/timescaledb:latest-pg17
+    restart: unless-stopped
+    shm_size: 1g
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: 'timescaledb'
+      POSTGRES_USER: 'sa'
+      POSTGRES_PASSWORD: 'qweQWE123!!'
+      PGDATA: /var/lib/postgresql/17/docker
+    volumes:
+      - timescaledb_data:/var/lib/postgresql
+
+volumes:
+  timescaledb_data:
+```
+
+Run the database with this command:
+
+```sh
+docker compose -f docker-compose.yml up -d
+```
+
+## Creating a hypertable in TimescaleDB
+
+Tables in TimescaleDB are called hypertables. They are created like regular Postgres tables with a small addition.
+
+```sql
+CREATE TABLE billing_data (
+    billed_cost numeric(25,15),
+    charge_date timestamptz,
+    resource_id int4)
+WITH (
+  -- Specify that this is a hypertable
+    timescaledb.hypertable = true,
+  -- Split the data into chunks of 1 day
+    timescaledb.chunk_interval='1 day',
+  -- Group the data by resource
+    timescaledb.segmentby='resource_id'
+  -- Sort the data by date
+    timescaledb.orderby='charge_date'
+);
+```
+
+### What is a hypertable?
+
+A hypertable is a special type of TimescaleDB table that automatically splits data into chunks, optimizes storage, and improves access for analytical queries.
+
+### How does data segmentation work in a hypertable?
+
+TimescaleDB can use columnar storage (Hypercore), automatically splits the table into chunks, and keeps them up to date. The image is taken [from the TimescaleDB documentation](https://www.tigerdata.com/docs/use-timescale/latest/hypercore/secondary-indexes#segmenting-and-ordering-data).
+
+<Image src={image1} alt="Data segmentation in a hypertable" />
+
+With enough cardinality (the number of unique resources) and data volume, the performance of analytical queries on a hypertable can be much better than on a regular Postgres table. This happens because of higher data density and optimized data access.
+
+## Benchmark: comparing TimescaleDB and PostgreSQL
+
+In the test analytical query, I calculated the daily cost of cloud resources for the last 30 days.
+
+For benchmarking I used BenchmarkDotNet library. The benchmark source code is available in my [GitHub repository](https://github.com/alexeyfv/DotNetBenchmarks/tree/main/TimescaleDB).
+
+```sql
+-- Postgres
+SELECT
+    date_bin('1 day', charge_date, TIMESTAMP 'epoch') AS day,
+    resource_id,
+    SUM(billed_cost) AS total_cost
+FROM billing_data
+WHERE charge_date >= now() - interval '30 days'
+GROUP BY day, resource_id
+
+-- TimescaleDB
+SELECT
+    time_bucket(INTERVAL '1 day', charge_date) AS day,
+    resource_id,
+    SUM(billed_cost) AS total_cost
+FROM billing_data
+WHERE charge_date >= now() - interval '30 days'
+GROUP BY day, resource_id
+```
+
+### How is time_bucket different from date_bin?
+
+The `time_bucket` and `date_bin` functions are similar. They let you group data by custom time intervals. However, `time_bucket` is optimized for hypertables and can provide better performance in TimescaleDB.
+
+## Benchmark results
+
+The benchmark [results](https://github.com/alexeyfv/DotNetBenchmarks/blob/main/TimescaleDB/BenchmarkDotNet.Artifacts/results/Benchmark.Benchmark-report-github.md) are shown in the chart below. The Y-axis is the median execution time, and the X-axis is the number of resources in the table.
+
+<Image src={image2} alt="Benchmark results" />
+
+The table size was fixed at 1 million rows, and I changed only the cardinality by increasing the number of unique resources from 10 to 1 million. So the cardinality value depended on the ratio of unique resources to the amount of data.
+
+As the results show, TimescaleDB performance is 30% to 40% better when we have up to 10k rows of data per resource.
+
+If the cardinality is higher, the query execution time becomes 160% to 170% worse.
+
+## Conclusion
+
+TimescaleDB is a good fit for analytical queries if the data has high cardinality and volume. In such cases, it can provide a significant performance improvement compared to regular Postgres.
+
+In the next posts, I will experiment with other data and queries to understand in which scenarios TimescaleDB can be especially useful.
