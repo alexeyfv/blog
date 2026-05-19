@@ -1,0 +1,180 @@
+---
+title: 'I found that one third of Yandex Music is AI slop'
+description: 'My investigation of how much AI-content is on Yandex Music right now.'
+pubDate: 'May 18 2026'
+tags: ['AI', 'ML']
+cover: 'cover.png'
+lang: 'en'
+---
+
+import Figure from '@/components/Figure'
+import image1 from './image01.png'
+import image2 from './image02.png'
+import image3 from './image03.png'
+import image4 from './image04.png'
+import image5 from './image05.png'
+import image6 from './image06.png'
+import image7 from './image07.png'
+import image8 from './image08.png'
+import image9 from './image09.png'
+import image10 from './image10.png'
+import image11 from './image11.png'
+import image12 from './image12.png'
+import image13 from './image13.png'
+import image14 from './image14.png'
+
+You may already know that AI-generated tracks are getting into the music charts. For example, in Yandex Music (the largest music streaming platform in Russia) an AI cover of Sergei Yesenin's poem ["Shoot, accordion!"](https://www.kommersant.ru/doc/8401328) is currently at 16th place. Or the track "Yarmarka Sudeb" by Alena, which was even [sung live on Russian federal TV channel](https://www.youtube.com/watch?v=Gf9VwpM_MWM).
+
+I used to like Yandex Music's recommendation algorithms. They helped me discover many underground artists that I still listen to today. But after Suno, Lyria, Udio appeared, it became impossible to use Yandex Music recommendations. It kept pushing low-quality AI tracks at me.
+
+At some point I had enough. I did my own investigation and the results are not good. Right now Yandex Music has **at least 140 thousand AI artists**. Every month they upload **at least 100 thousand AI tracks** — that's about 40% of all new tracks. And **every 10th track in the charts is AI-generated**. Yandex is not doing anything about it.
+
+## Short preface
+
+One ordinary January workday I was listening to "My Wave" (Yandex Music's personalized recommendation system). The algorithms served me an AI track again. I clearly heard it was AI slop.
+
+I went to talk to Yandex support. I wanted to understand if Yandex plans to label AI music in any way.
+
+Since Yandex already uses AI in their support, it took me a while to get to a real person. When I finally did, they asked me for links to the AI artists I found, and that was it... They didn't answer my questions. The next day my ticket was automatically closed.
+
+<Figure
+  src={image1}
+  caption="Here I'm trying to reach a real human (image translated by Firefox)"
+/>
+<Figure
+  src={image2}
+  caption="Still trying to reach a real human (image translated by Firefox)"
+/>
+<Figure
+  src={image3}
+  caption="Finally sent a link to AI artist (image translated by Firefox)"
+/>
+<Figure
+  src={image4}
+  caption="They didn't answer me and the ticket was automatically closed (image translated by Firefox)"
+/>
+
+## AI content labeling. Yandex and government position.
+
+As it turned out later, Yandex had no plans to voluntarily label AI music. The main reason is money. Here is what Arseniy Kozymaev, director of content and partnerships at Yandex Music, said in a [discussion](https://i-m-i.ru/post/ai-pravo-kultura-i-zaschita-artistov) at the Institute of Music Initiatives:
+
+> If listeners like a track — it goes into recommendations, if not — then the track is not interesting to the audience. This rule is the same for everyone — it doesn't matter what tools were used to create the track.
+
+> AI will help the music industry make more money. I like Spotify's personal approach, which is thinking about offering users to generate their own version of a favorite track right on the platform. The original author gets paid, and the user gets a version they want to hear right now.
+
+This statement makes sense because Yandex [dominates](https://www.sostav.ru/publication/yandeks-muzyka-lidirovala-po-dokhodam-sredi-muzykalnykh-strimingov-77330.html) music streaming in Russia. And when would a business turn down 300% profit? Western services that voluntarily label AI tracks are not available to Russians. So you can do whatever you want. Capitalism, happiness, awesome!
+
+The government [also does not support](https://www.interfax-russia.ru/moscow/news/profilnyy-komitet-gosdumy-otklonil-zakonoproekt-o-markirovke-kontenta-sgenerirovannogo-ii) labeling AI content. On April 15, 2026, the profile committee of the State Duma rejected the bill on AI content labeling:
+
+> "The committee does not support it, recommends rejecting it," said Anton Gorelkin, deputy chairman of the Duma committee on information policy, at a committee meeting on Wednesday.
+
+> In his words, if the bill was passed, "90% of the entire internet would have to be labeled, and scammers, of course, would not label anything."
+
+I should note that I'm not against AI in general. As a programmer, I use neural networks every day: at work I have corporate subscriptions to GitHub Copilot and Microsoft Copilot. For pet projects I use OpenCode with DeepSeek. Part of my job is also implementing AI agents in our applications.
+
+Let those who like AI music create and listen to it as much as they want. But I think the current situation is unfair to both regular musicians and listeners. If a user, for example, doesn't like electronic music, they can filter their playlist. Every streaming service has this option. With AI tracks you can't do that.
+
+## The investigation and its results
+
+After that conversation with Yandex support, I stopped listening to "My Wave" and only listened to a few of my favorite bands. This went on for about 2 months. During that time in Instagram I saw many reels from regular musicians who were also angry about the AI slop takeover. At the end of March I ran out of patience and [started making a browser extension](https://t.me/yet_another_dev/249) that would automatically label AI artists, but more on that later.
+
+I understood from the start that a browser extension cannot do deep analysis of music and artist metadata on the fly. The checks had to happen somewhere in the background, centrally, and the extension would just use a ready database of AI artists. So I started investigating all artists on Yandex Music — from the newest to the oldest.
+
+The first step was to compare artist releases on Yandex Music with releases on Deezer — the only streaming platform I know that labels AI music.
+
+<Figure src={image5} caption="Example of AI labeling on Deezer" />
+
+I started going through artists one by one. So far I have checked 5.7 million artists. Only 19% of them have at least one release, so from now on I'll only talk about those.
+
+<Figure
+  src={image6}
+  caption="81% of artist profiles on Yandex Music are empty"
+/>
+
+Comparison with Deezer showed that **at least 7% of artists used AI when creating music.**
+
+<Figure src={image7} caption="AI is only 7%" />
+
+The legend labels mean the following:
+
+- 100% not AI — artist was found on Deezer and none of their releases are marked as AI.
+- Needs extra check — artist found on Deezer, existing releases on Deezer are not marked as AI, but on Yandex there are releases that are not on Deezer.
+- 100% AI — artist found on Deezer and at least one release is marked as AI.
+- Not on Deezer — artist profile not found on Deezer.
+
+7% does not seem like a lot. In absolute numbers that's only 76.9 thousand artists. But there are a few things to consider:
+
+1. These 7% are currently creating about one third of all new music on Yandex.
+
+<Figure
+  src={image8}
+  caption="Number of new tracks per month on Yandex Music by category in 2026"
+/>
+
+2. Not all authors upload their music to Deezer. I did a quick check of the "Not on Deezer" category and found many artists with AI-generated music. Same situation with the "Needs extra check" category. From now on I'll call these 2 categories the "gray zone."
+
+<Figure src={image9} caption="Example of AI artists that are not on Deezer" />
+
+## Using machine learning
+
+To deal with the second issue and find AI artists in the gray zone, I decided to use machine learning. Since I can't analyze 400 thousand tracks that get uploaded to Yandex every month, I decided to use available metadata with the [XGBoost model](https://en.wikipedia.org/wiki/XGBoost). To find patterns, I analyzed information about artists, labels, releases, and tracks. I found some patterns.
+
+As it turned out, one sign of AI artists is frequent releases. Some artists generate so much content it's hard to believe. For example, the AI artist below uploads on average 90+ releases per day (5465 releases in 60 days). Phenomenal productivity.
+
+<Figure src={image10} caption="Artist Sommnia uploads 90+ releases per day" />
+
+Another important sign is belonging to certain labels or collaborating with artists from those labels. An example of such a label is Context Collapse with 278 AI artists.
+
+<Figure src={image11} caption="They don't even care about avatars" />
+
+In total the model used 15 features. For training I used metadata of 572K artists. 59K were confirmed as AI, the remaining 398K — not AI. The remaining 114K were used for evaluating the model.
+
+The confusion matrix of the model looks like this:
+
+```markdown
+|                 | Predicted not AI | Predicted AI |
+| :-------------- | :--------------- | :----------- |
+| Actually not AI | 96 740           | 2784         |
+| Actually AI     | 423              | 14 370       |
+```
+
+Of all artists the model labeled as AI, 83.77% actually were AI. It found 97.14% of all AI artists.
+
+Other model metrics:
+
+```text
+Precision: 0.8377
+Recall: 0.9714
+F1: 0.8996
+MCC: 0.8867
+AUC-ROC: 0.9971
+AUC-PR: 0.9841
+Log loss: 0.0659
+```
+
+<Figure src={image12} caption="Calibration curve" />
+
+After applying the model to artists in the "gray" category, I found that about 64K more artists can be classified as AI with high probability (>= 0.85). They, in turn, added another 6% – 11% AI tracks monthly.
+
+<Figure
+  src={image13}
+  caption="Number of new tracks per month on Yandex Music by category in 2026, including model predictions"
+/>
+
+By my rough count, Yandex Music now has about 140 thousand AI artists. And every month they upload about 40% of all new music.
+
+## How to deal with this?
+
+As I wrote above, Yandex does not plan to label AI music. I decided to do it for them and wrote a browser extension for [Chrome](https://chromewebstore.google.com/detail/slopless/ceehepkmdedlkcgcaocbfjheafkfnaej) and [Firefox](https://addons.mozilla.org/en-US/firefox/addon/slopless/) that labels AI artists based on my data.
+
+<Figure src={image14} caption="Example of labeling using the extension" />
+
+Also, if an AI artist's track shows up in "My Wave," the track automatically gets a dislike and gets skipped.
+
+The extension is free. If you, like me, often listen to music on your computer while working, it might be useful for you. The code is on [GitHub](https://github.com/alexeyfv/slopless) under the MIT license — I'd be happy if someone wants to contribute. If you want more technical details about the project, welcome to my [Telegram channel](https://t.me/yet_another_dev).
+
+## Conclusion
+
+I don't know if anything will change from publishing this article or from the extension. I will continue working on this project. At least now you understand the scale. The dead internet conspiracy theory might not be so much of a theory after all.
+
+What do you think about AI music?
