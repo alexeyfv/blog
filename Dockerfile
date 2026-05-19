@@ -10,7 +10,7 @@ COPY . .
 
 RUN pnpm build
 
-FROM node:20-alpine
+FROM node:lts-alpine
 
 WORKDIR /app
 
