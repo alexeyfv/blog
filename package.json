@@ -38,10 +38,5 @@
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "lodash": "4.17.23"
-    }
   }
 }
