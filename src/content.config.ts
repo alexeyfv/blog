@@ -1,6 +1,8 @@
 import { Lang } from '@/i18n/utils'
 import { glob } from 'astro/loaders'
-import { defineCollection, z } from 'astro:content'
+import { z } from 'astro/zod'
+import type { SchemaContext } from 'astro:content'
+import { defineCollection } from 'astro:content'
 
 const en = defineCollection({ loader: loader('en'), schema: schema })
 const ru = defineCollection({ loader: loader('ru'), schema: schema })
@@ -9,7 +11,7 @@ function loader(lang: Lang) {
   return glob({ pattern: '**/*.mdx', base: `./src/content/${lang}` })
 }
 
-function schema({ image }) {
+function schema({ image }: SchemaContext) {
   return z.object({
     // 60 characters
     // With Google's Title update, shorter titles are preferred.

@@ -1,7 +1,7 @@
 ---
 import TbX from '@/components/icons/TbX'
 import TbSearch from '@/components/icons/TbSearch'
-import Search from 'astro-pagefind/components/Search'
+import Search from 'astro-pagefind/components/Search.astro'
 import '../styles/pagefind-ui.css'
 
 interface Props {
@@ -39,9 +39,9 @@ const { title }: Props = Astro.props
 
     <section class="text-start">
       <Search
-        id="search"
+        instance="search"
         className="pagefind-ui"
-        uiOptions={{ showImages: true }}
+        searchboxOptions={{ showImages: true }}
       />
     </section>
   </div>
