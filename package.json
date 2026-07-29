@@ -2,7 +2,7 @@
   "name": "nano-blog",
   "type": "module",
   "scripts": {
-    "start": "astro dev",
+    "dev": "astro dev",
     "build": "astro check && astro build",
     "sync": "astro sync",
     "preview": "astro preview",

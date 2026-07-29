@@ -1,0 +1,167 @@
+---
+title: 'One third of new releases on Yandex Music are AI'
+description: 'A second article about how much AI music is on Yandex Music right now.'
+pubDate: 'Jul 02 2026'
+tags: ['AI', 'ML']
+cover: 'cover.png'
+lang: 'en'
+---
+
+import Figure from '@/components/Figure'
+import image1 from './image01.png'
+import image2 from './image02.png'
+import image3 from './image03.png'
+import image4 from './image04.png'
+import image5 from './image05.png'
+import image6 from './image06.png'
+import image7 from './image07.png'
+import image8 from './image08.png'
+import image9 from './image09.png'
+import image10 from './image10.png'
+import image11 from './image11.png'
+import image12 from './image12.png'
+import image13 from './image13.png'
+
+A month and a half has passed since I published my article "[I found that one third of Yandex Music is AI slop](2026-05-19-yandex-music-ai-slop)". All this time I kept working on detecting AI in music. The result is an algorithm that can find AI-generated tracks with accuracy close to 100%.
+
+I also analyzed all releases on Yandex Music for the first half of 2026. It turns out that 37% of all new releases have signs of AI music. And if we only count releases with likes, the number goes up to 50%.
+
+In this article I will explain how the AI detection algorithm works, why it does not need a GPU, and show the analytics for Yandex Music.
+
+## Breaking down the AI music detection algorithm
+
+The algorithm is based on a simple fact: AI-generated music has specific artifacts in the frequency spectrum. These artifacts appear during audio generation. This was shown in the paper "[A Fourier Explanation of AI-music Artifacts](https://arxiv.org/html/2506.19108v1)" by researchers from Deezer. Their algorithm later became the basis for AI music labeling in Deezer itself.
+
+But I will explain a version of the algorithm that I adapted. In my opinion, it is easier to implement and understand, but just as accurate as the original.
+
+### Music from a math perspective
+
+To understand the algorithm, you need a little math. If you already know about the Fourier transform, you can skip this section.
+
+Music is sound, and sound is a mechanical wave. In math, waves can be described using a [sine function](https://en.wikipedia.org/wiki/Sine_wave). Music can be thought of as a sum of sine waves, or harmonics.
+
+The simplest sound signal is a vibration over time. A harmonic (a sine wave) has three main parameters: amplitude, frequency, and phase.
+
+<Figure
+  src={image1}
+  caption="Three main parameters of a sine wave: amplitude, frequency, and phase"
+/>
+
+But in reality, music never has just one harmonic. It is always many harmonics with different frequencies and amplitudes. When they add up together, they form a complex sound signal. For example, this is what human speech looks like as a sound signal:
+
+<Figure
+  src={image2}
+  caption="Human speech shown as a sound signal"
+/>
+
+How do you split a complex signal into separate harmonics? Back in the 19th century, the physicist and mathematician Joseph Fourier discovered that any complex signal (including music) can be broken down into simple parts: harmonics with different parameters. Today this method is called the Fourier transform.
+
+<Figure
+  src={image3}
+  caption="Illustration of how the Fourier transform works. From Wikipedia."
+/>
+
+Why do we need this? Because it makes analyzing a complex signal easier. For example, by splitting a music track into harmonics, you can figure out which notes are playing at each moment and how loud they are.
+
+### How math helps detect AI music
+
+So now we know that music can be split into harmonics using the Fourier transform. In their paper, Deezer researchers showed that the spectrum of AI-generated music has artifacts. These artifacts come from the architecture of the neural networks used.
+
+But first, let's understand what these artifacts look like. Remember the early AI-generated images with repeating patterns? Same thing, but in music. These artifacts are called "checkerboard artifacts".
+
+<Figure
+  src={image4}
+  caption="An AI-generated image from the time when people did not know AI would replace them"
+/>
+
+For music, these **artifacts show up as repeating sharp spikes at certain frequencies**. But to "see" them mathematically, just using the Fourier transform is not enough. For example, the graph below shows the average frequency spectrum of two tracks from the Yandex Music chart. One of them was made with AI. Can you tell which one?
+
+<Figure src={image5} caption="It is hard to tell the difference just by looking" />
+
+The first track is "Shade", [made with AI](https://www.kp.ru/daily/277789/5263319/). The second one is Billie Jean by Michael Jackson.
+
+To make these artifacts more visible, we need to extract the peaks from the frequency spectrum. In the Deezer proof-of-concept, they used a version of the [Convex Hull algorithm](https://en.wikipedia.org/wiki/Convex_hull_algorithms). I will show a simpler way — using derivatives.
+
+A [derivative](https://en.wikipedia.org/wiki/Derivative) of the first order is the rate of change of a signal. For a digital signal, the derivative is calculated as the difference between neighboring samples:
+
+```
+f'[n] = f[n + 1] - f[n]
+```
+
+The graph below shows an example of a signal with a sharp change in amplitude. You can see that the derivative helps find peaks in digital signals. This method works well for our task.
+
+<Figure src={image6} caption="The derivative highlights sharp changes in signals" />
+
+If we calculate the derivative of the average spectrum for the two tracks we talked about earlier, the peaks become much clearer.
+
+<Figure
+  src={image7}
+  caption="Zoomed in on the 6 kHz - 16 kHz range — this is where artifacts are most visible"
+/>
+
+I think the difference between real and AI-generated music is now clear.
+But manually looking for these artifacts in hundreds of thousands of tracks is impossible. So it all comes down to a classic machine learning problem: turn the spectrum into a set of features and train a model.
+
+### Testing the detector on music
+
+In general terms, the pipeline looks like this:
+
+- Calculate the frequency spectrum using the Fourier transform.
+- Calculate the derivative, turning the track into a set of features.
+- Reduce the number of features using [Principal Component Analysis (PCA)](https://en.wikipedia.org/wiki/Principal_component_analysis).
+- Use the remaining components to train [XGBoost](https://en.wikipedia.org/wiki/XGBoost).
+
+For the experiment, I trained a classifier using two datasets:
+
+1. AI music — [Echoes](https://huggingface.co/datasets/Octavian97/Echoes) (3577 tracks, 10 AI music generators).
+2. Human music — [FMA Small](https://github.com/mdeff/fma) (8000 tracks, 8 genres).
+
+With these datasets, the classifier's accuracy is almost perfect: 98.44%. This matches the [Deezer researchers' results](https://arxiv.org/html/2506.19108v1#S4). Their accuracy was also close to 100%.
+
+<Figure src={image8} caption="Confusion matrix" />
+
+If you want to check the results yourself, take a look at this [repository](https://github.com/alexeyfv/slopless/tree/main/classifier).
+
+So detecting AI music does not require a lot of computing power or GPU servers. I did all my experiments on a regular laptop. This means **any streaming service can use a similar approach without serious infrastructure costs**.
+
+## Yandex Music release analytics for the first half of 2026
+
+I collected information on 3.8 million tracks uploaded from January 1 to June 30, 2026.
+
+<Figure
+  src={image9}
+  caption="73% of tracks had no likes at the time of publication"
+/>
+Since I did not have enough time to analyze all the music, I decided to skip
+releases without likes — nobody likes them anyway. But I did check one full
+month (May) completely.
+
+In May, almost 711 thousand releases were uploaded. Of those, 260 thousand (36.6%) were classified as AI-generated. This is close to what I found in my previous article — I estimated AI content at 40% back then.
+
+<Figure
+  src={image10}
+  caption="In May, 36.6% of all releases were AI-generated"
+/>
+
+Now let's remove releases that users did not like. The share of AI music is slowly growing and has now reached about half. The drop in absolute numbers in June is because the month just ended and likes have not had time to "settle" yet.
+
+<Figure
+  src={image11}
+  caption="Half of liked tracks are now made with AI"
+/>
+
+If we look at how many likes each type of music gets, AI music gets fewer likes than regular music. But there are still hits. For example, in May the track "Shade" [became a hit](https://www.kp.ru/daily/277789/5263319/). At the time of publication, it was still ranked 2nd on the Yandex Music chart.
+
+<Figure src={image12} caption="AI music gets fewer likes" />
+
+Here is how AI music is spread across genres. In absolute numbers, pop, rock, rap, electronic, and dance have the most AI music. In relative numbers, k-pop and chanson lead — about 80% of their releases are AI-generated.
+
+<Figure src={image13} caption="AI music distribution by genre" />
+
+## Conclusion
+
+The results of my analysis show that on Yandex Music, the share of liked releases with signs of AI music in the first half of 2026 has already reached half.
+
+This problem is not unique to Yandex Music. In April, Deezer [reported](https://newsroom-deezer.com/2026/04/ai-generated-tracks-represent-44-of-new-uploaded-music/) that about 44% of new uploads on their platform are AI-generated tracks.
+
+The question of labeling AI content on other services remains open. But as I showed in this article, it is actually quite simple to implement.
