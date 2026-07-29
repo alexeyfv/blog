@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Deploy to remote server
-        uses: appleboy/ssh-action @v1
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
